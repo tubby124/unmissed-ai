@@ -192,9 +192,10 @@ export async function POST(req: NextRequest) {
 
     // Gate-13 parity: enforce plan entitlements before using capability fields
     const checkoutEntitlements = getPlanEntitlements(selectedPlanId)
-    const checkoutCallHandlingMode = checkoutEntitlements.bookingEnabled
-      ? ((intakeData.call_handling_mode as string) || (intakeData.callHandlingMode as string) || 'triage')
-      : 'triage'
+    const requestedCallHandlingMode = (intakeData.call_handling_mode as string) || (intakeData.callHandlingMode as string) || 'triage'
+    const checkoutCallHandlingMode = (!checkoutEntitlements.bookingEnabled && requestedCallHandlingMode === 'full_service')
+      ? 'triage'
+      : requestedCallHandlingMode
     const checkoutForwardingEnabled = checkoutEntitlements.transferEnabled
       ? !!(intakeData.callForwardingEnabled)
       : false

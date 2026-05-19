@@ -8,6 +8,7 @@ import WebsiteSourcesList from '@/components/dashboard/settings/WebsiteSourcesLi
 import KnowledgeCompiler from '@/components/dashboard/knowledge/KnowledgeCompiler'
 import ChunkBrowser from '@/components/dashboard/knowledge/ChunkBrowser'
 import KnowledgeSourceRegistry from '@/components/dashboard/knowledge/KnowledgeSourceRegistry'
+import KnowledgeProvenanceCard from '@/components/dashboard/knowledge/KnowledgeProvenanceCard'
 import KnowledgeGaps from '@/components/dashboard/knowledge/KnowledgeGaps'
 import PendingSuggestions from '@/components/dashboard/knowledge/PendingSuggestions'
 import KnowledgeTextInput from '@/components/dashboard/knowledge/KnowledgeTextInput'
@@ -795,9 +796,17 @@ export default function KnowledgePageView({
       </div>
 
       {/* ═══ TIER 3 — Sources + Suggestions + Caller Searches (3-col) ════ */}
+      <KnowledgeProvenanceCard client={client} />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Knowledge sources */}
-        <KnowledgeSourceRegistry key={`ksr-${client.id}`} clientId={client.id} websiteUrl={client.website_url ?? undefined} onSourceClick={openSourceDrawer} />
+        <KnowledgeSourceRegistry
+          key={`ksr-${client.id}`}
+          clientId={client.id}
+          websiteUrl={client.website_url ?? undefined}
+          hasGbpProfile={!!client.gbp_place_id}
+          onSourceClick={openSourceDrawer}
+        />
 
         {/* Pending suggestions */}
         <PendingSuggestions key={`ps-${client.id}`} clientId={client.id} />

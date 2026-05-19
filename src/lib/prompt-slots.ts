@@ -1273,11 +1273,15 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   let faqPairsFormatted = ''
   if (faqPairsRaw) {
     try {
-      const pairs = JSON.parse(faqPairsRaw) as { question: string; answer: string }[]
+      const pairs = JSON.parse(faqPairsRaw) as Array<{ question?: string; answer?: string; q?: string; a?: string }>
       if (pairs.length > 0) {
         faqPairsFormatted = pairs
-          .filter(p => p.question?.trim() && p.answer?.trim())
-          .map(p => `**Q: ${p.question.trim()}**\n"${p.answer.trim()}"`)
+          .map(p => ({
+            question: (p.question ?? p.q ?? '').trim(),
+            answer: (p.answer ?? p.a ?? '').trim(),
+          }))
+          .filter(p => p.question && p.answer)
+          .map(p => `**Q: ${p.question}**\n"${p.answer}"`)
           .join('\n\n')
       }
     } catch { /* invalid JSON */ }

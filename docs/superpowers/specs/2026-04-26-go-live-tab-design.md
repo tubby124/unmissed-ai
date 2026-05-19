@@ -156,6 +156,10 @@ That's the whole banner. No GBP link, no pause button, no extras. The number and
 
 ## 6. "Live" definition
 
+> Superseded note, 2026-05-19: D427 launch readiness changed the proof rule.
+> A browser/direct test or `call_status='test'` no longer proves voicemail replacement.
+> Live proof must come from a real Twilio-backed phone-path call after missed-call forwarding is configured.
+
 Derived in `<GoLiveProgress />` from existing DB state. No new `is_live` column.
 
 The four conditions:

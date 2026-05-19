@@ -137,12 +137,12 @@ export async function POST(req: NextRequest) {
   // Only block full_service for non-Pro plans — message_only and triage are safe to pass through.
   const entitlements = getPlanEntitlements(data.selectedPlan)
   const rawCallHandlingMode = intakePayload.call_handling_mode
-  // Trial upgrade: selectedPlan during trial = "what they'll pay for after" — not a cap on trial experience.
-  // Always give trial users at least AI Receptionist (triage) so they experience the full product.
-  const trialUpgradedMode = rawCallHandlingMode === 'message_only' ? 'triage' : (rawCallHandlingMode || 'triage')
-  const effectiveCallHandlingMode = (!entitlements.bookingEnabled && trialUpgradedMode === 'full_service')
+  // Only downgrade booking/full-service behavior when the selected plan cannot book.
+  // message_only is the EndVoicemail core path and must not be coerced to triage.
+  const requestedCallHandlingMode = rawCallHandlingMode || 'triage'
+  const effectiveCallHandlingMode = (!entitlements.bookingEnabled && requestedCallHandlingMode === 'full_service')
     ? 'triage'
-    : trialUpgradedMode
+    : requestedCallHandlingMode
   const effectiveCallForwardingEnabled = entitlements.transferEnabled
     ? (data.callForwardingEnabled ?? false)
     : false

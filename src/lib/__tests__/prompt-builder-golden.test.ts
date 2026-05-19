@@ -212,6 +212,24 @@ describe('Layer 2 — Voicemail niche', () => {
     assert.ok(p.length > 100)
     assert.ok(p.length <= 25_000)
   })
+
+  test('voicemail niche: q/a FAQ pairs are included as business knowledge', () => {
+    const p = buildPromptFromIntake(intake('voicemail', undefined, {
+      niche_faq_pairs: JSON.stringify([
+        { q: 'Do you service furnaces?', a: 'Yes, we handle furnace repair and maintenance.' },
+      ]),
+    }))
+    assert.ok(p.includes('BUSINESS KNOWLEDGE'), 'voicemail prompt should include business knowledge block')
+    assert.ok(p.includes('Do you service furnaces?'), 'q/a FAQ question missing from voicemail prompt')
+    assert.ok(p.includes('furnace repair and maintenance'), 'q/a FAQ answer missing from voicemail prompt')
+  })
+
+  test('voicemail niche: default capture checklist qualifies the callback', () => {
+    const p = buildPromptFromIntake(intake('voicemail'))
+    assert.ok(p.includes('urgency level'), 'default urgency field missing')
+    assert.ok(p.includes('service or request type'), 'default service/request field missing')
+    assert.ok(p.includes('preferred callback time'), 'default callback-time field missing')
+  })
 })
 
 describe('Layer 2 — Real estate', () => {
@@ -683,6 +701,18 @@ describe('Layer 4B — Feature edge cases', () => {
       'caller_faq should emit inline FAQ header')
     assert.ok(p.includes('9 to 5'),
       'caller_faq content should be in prompt')
+  })
+
+  test('slot pipeline: q/a FAQ pairs survive regeneration shape', () => {
+    const p = buildPromptFromIntake(intake('hvac', undefined, {
+      niche_faq_pairs: JSON.stringify([
+        { q: 'Do you offer emergency service?', a: 'Yes, urgent calls are prioritized.' },
+      ]),
+    }))
+    assert.ok(p.includes('Do you offer emergency service?'),
+      'q/a FAQ question should be present in slot prompt')
+    assert.ok(p.includes('urgent calls are prioritized'),
+      'q/a FAQ answer should be present in slot prompt')
   })
 
   // D272: conditional pricing policy

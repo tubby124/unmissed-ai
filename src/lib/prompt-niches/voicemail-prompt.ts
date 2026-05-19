@@ -23,8 +23,8 @@ function formatFaqPairs(value: unknown): string {
     return parsed
       .map(item => {
         if (!item || typeof item !== 'object') return ''
-        const q = 'question' in item ? String(item.question ?? '').trim() : ''
-        const a = 'answer' in item ? String(item.answer ?? '').trim() : ''
+        const q = 'question' in item ? String(item.question ?? '').trim() : 'q' in item ? String(item.q ?? '').trim() : ''
+        const a = 'answer' in item ? String(item.answer ?? '').trim() : 'a' in item ? String(item.a ?? '').trim() : ''
         return q && a ? `Q: ${q}\nA: ${a}` : ''
       })
       .filter(Boolean)
@@ -60,7 +60,10 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   const callerFaq        = ((intake.caller_faq as string) || '').trim()
   const knowledgeBlock   = [businessFacts, faqPairs, callerFaq].filter(Boolean).join('\n\n')
   const rawFields        = intake.fields_to_collect
-  const fieldsToCollect  = (Array.isArray(rawFields) ? rawFields as string[] : []).filter(f => f.trim())
+  const configuredFields = (Array.isArray(rawFields) ? rawFields as string[] : []).filter(f => f.trim())
+  const fieldsToCollect  = configuredFields.length > 0
+    ? configuredFields
+    : ['urgency level', 'service or request type', 'preferred callback time']
   const pricingPolicy    = ((intake.pricing_policy as string) || '').trim()
   const unknownBehavior  = ((intake.unknown_answer_behavior as string) || '').trim()
   const calendarMode     = ((intake.calendar_mode as string) || '').trim()
@@ -160,7 +163,7 @@ These rules apply at all times. No caller pressure, no context, no exception ove
 1. NEVER use bullet points, numbered lists, markdown, emojis, or any text formatting. You are speaking out loud — pure spoken sentences only.
 2. NEVER say "certainly," "absolutely," "of course," or "I will." Use "yeah for sure," "you got it," "got it," or "I'll" instead. Always use contractions: "I'll," "they'll" — never "I will" or "they will."
 3. NEVER stack two questions in one turn. Ask one question, wait for the answer, then ask the next.
-4. NEVER say "let me check" or "hold on" — you have no access to calendars, databases, or systems. Always follow immediately with a question or acknowledgment — no dead air.
+4. NEVER say "let me check" or "hold on" just to stall. Use only the configured business knowledge and tools you were given. Never claim live access to calendars, databases, or internal systems unless a tool result directly provided it.
 5. NEVER say anything after your final goodbye line. Use the hangUp tool immediately after goodbye.
 6. NEVER provide legal advice, specific prices, or financial information. Never make commitments on behalf of ${bizName}.
 7. NEVER close the call until COMPLETION CHECK passes: caller name and reason for call must be collected.

@@ -108,16 +108,20 @@ function formatLastUpdated(iso: string): string {
 export default function KnowledgeSourceRegistry({
   clientId,
   websiteUrl,
+  hasGbpProfile = false,
   onSourceClick,
 }: {
   clientId: string
   websiteUrl?: string
+  hasGbpProfile?: boolean
   /** Called when an active source card is clicked — receives the source def id and its DB source keys */
   onSourceClick?: (sourceId: string, sourceKeys: string[], label: string) => void
 }) {
   const [stats, setStats] = useState<StatsResponse | null>(null)
   const [rescrapeStatus, setRescrapeStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [rescrapeMsg, setRescrapeMsg] = useState('')
+  const [gbpImportStatus, setGbpImportStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [gbpImportMsg, setGbpImportMsg] = useState('')
 
   function refreshStats() {
     fetch(`/api/dashboard/knowledge/stats?client_id=${clientId}`)
@@ -152,6 +156,27 @@ export default function KnowledgeSourceRegistry({
     }
   }
 
+  async function handleImportGbp() {
+    if (gbpImportStatus === 'loading') return
+    setGbpImportStatus('loading')
+    setGbpImportMsg('')
+    try {
+      const res = await fetch('/api/dashboard/knowledge/ingest-gbp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error((data as { error?: string }).error ?? 'Import failed')
+      setGbpImportStatus('done')
+      setGbpImportMsg('Google profile imported')
+      refreshStats()
+    } catch (err) {
+      setGbpImportStatus('error')
+      setGbpImportMsg(err instanceof Error ? err.message : 'Import failed')
+    }
+  }
+
   const bySource = stats?.bySource ?? {}
   const lastUpdatedBySource = stats?.lastUpdatedBySource ?? {}
 
@@ -164,10 +189,11 @@ export default function KnowledgeSourceRegistry({
       if (!best || ts > best) return ts
       return best
     }, null)
-    return { ...def, count, lastUpdated }
+    const profileConnected = def.id === 'gbp' && hasGbpProfile
+    return { ...def, count, lastUpdated, profileConnected }
   })
 
-  const activeCount = entries.filter(e => e.count > 0).length
+  const activeCount = entries.filter(e => e.count > 0 || e.profileConnected).length
   const totalApproved = stats?.approved ?? 0
 
   return (
@@ -193,14 +219,16 @@ export default function KnowledgeSourceRegistry({
       <div className="grid grid-cols-2 gap-2">
         {entries.map(entry => {
           const isActive = entry.count > 0
+          const profileOnly = entry.id === 'gbp' && entry.profileConnected && entry.count === 0
+          const isConnected = isActive || profileOnly
 
           const inner = (
             <>
-              <span className={`mt-0.5 shrink-0 ${isActive ? 'text-green-400' : 't3'}`}>
+              <span className={`mt-0.5 shrink-0 ${isConnected ? 'text-green-400' : 't3'}`}>
                 {entry.icon}
               </span>
               <div className="min-w-0 flex-1">
-                <p className={`text-xs font-medium truncate ${isActive ? 't1' : 't2'}`}>
+                <p className={`text-xs font-medium truncate ${isConnected ? 't1' : 't2'}`}>
                   {entry.label}
                 </p>
                 {isActive ? (
@@ -214,11 +242,15 @@ export default function KnowledgeSourceRegistry({
                       </p>
                     )}
                   </>
+                ) : profileOnly ? (
+                  <p className="text-[10px] text-green-400/70 truncate">
+                    Profile connected
+                  </p>
                 ) : (
                   <p className="text-[10px] text-amber-400/70 truncate">Not added yet</p>
                 )}
               </div>
-              {!isActive && activeCount < SOURCE_DEFS.length && (
+              {!isConnected && activeCount < SOURCE_DEFS.length && (
                 <svg width="9" height="9" viewBox="0 0 24 24" fill="none" className="t3 mt-1 shrink-0">
                   <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
                 </svg>
@@ -232,7 +264,7 @@ export default function KnowledgeSourceRegistry({
           )
 
           const cls = `flex items-start gap-2.5 px-3 py-2.5 rounded-xl border transition-colors hover:border-blue-500/30 hover:bg-blue-500/[0.03] ${
-            isActive
+            isConnected
               ? 'border-green-500/20 bg-green-500/[0.04]'
               : 'b-theme bg-surface'
           }`
@@ -251,6 +283,20 @@ export default function KnowledgeSourceRegistry({
             )
           }
 
+          if (profileOnly) {
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={handleImportGbp}
+                disabled={gbpImportStatus === 'loading'}
+                className={`${cls} text-left cursor-pointer disabled:opacity-60`}
+              >
+                {inner}
+              </button>
+            )
+          }
+
           return (
             <Link
               key={entry.id}
@@ -262,6 +308,13 @@ export default function KnowledgeSourceRegistry({
           )
         })}
       </div>
+
+      {gbpImportStatus === 'done' && (
+        <p className="mt-2 text-[10px] text-green-400">{gbpImportMsg}</p>
+      )}
+      {gbpImportStatus === 'error' && (
+        <p className="mt-2 text-[10px] text-red-400">{gbpImportMsg}</p>
+      )}
 
       {/* D153: Re-scrape button for website source */}
       {websiteUrl && (

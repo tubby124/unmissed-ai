@@ -13,6 +13,7 @@ import BillingTile from './BillingTile'
 // (merged into single readiness band below)
 // ShareNumberCard and SoftTestGateCard replaced by compact nudge grid items
 import AgentIdentityCardCompact from './AgentIdentityCardCompact'
+import AgentKnowsCard from './AgentKnowsCard'
 // v2: removed AgentIntelligenceSection (not in mockup Option 1)
 // Wave 2 — unified overview bands (v2: CapabilitiesCard + AgentRoutesOnCard removed)
 import V2CallList from './V2CallList'
@@ -275,8 +276,15 @@ export default function UnifiedHomeSectionV2({
         {/* v2: TIER 1.5 (CallMe + StatsHeroCard + TrialModeSwitcher) removed.
             Stats now surfaced inline in the trial pill at the top per mockup. */}
 
-        {/* v2: AgentKnowsCard ("What your agent knows") removed 2026-04-27 —
-            users go to /dashboard/knowledge directly for that view. */}
+        <AgentKnowsCard
+          factsText={data.editableFields.businessFacts}
+          faqCount={faqCount}
+          servicesCount={data.activeServicesCount ?? 0}
+          approvedChunkCount={data.knowledge.approved_chunk_count}
+          clientId={data.clientId}
+          hasGoogleProfile={!!data.gbpData?.placeId}
+          googleProfileSummary={data.gbpData?.summary ?? null}
+        />
 
         {/* ════════════════════════════════════════════════════════════
             v2 — Readiness band (full-width, internal 2-col grid).

@@ -79,8 +79,18 @@ export default function GoLiveView({ client, hasTestCall = false, isAdmin }: Pro
     client.website_knowledge_approved ||
     client.gbp_summary ||
     (client.business_facts?.length ?? 0) > 0 ||
+    (client.extra_qa?.length ?? 0) > 0 ||
     client.custom_niche_config,
   )
+  const factCount = Array.isArray(client.business_facts) ? client.business_facts.length : 0
+  const faqCount = client.extra_qa?.filter(pair => pair.q?.trim() && pair.a?.trim()).length ?? 0
+  const knowledgeSources = [
+    client.gbp_summary ? 'Google profile' : null,
+    client.website_knowledge_approved ? 'website' : null,
+    factCount > 0 ? `${factCount} fact${factCount !== 1 ? 's' : ''}` : null,
+    faqCount > 0 ? `${faqCount} FAQ${faqCount !== 1 ? 's' : ''}` : null,
+    client.custom_niche_config ? 'custom setup' : null,
+  ].filter(Boolean) as string[]
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white pb-[env(safe-area-inset-bottom)]">
@@ -138,6 +148,7 @@ export default function GoLiveView({ client, hasTestCall = false, isAdmin }: Pro
         <ReadinessChecklist
           hasNumber={!!twilioNumber}
           knowledgeReady={knowledgeReady}
+          knowledgeDetail={knowledgeSources.length > 0 ? knowledgeSources.join(', ') : null}
           alertsReady={emailReady || telegramConnected}
           forwardingReady={isLive}
           hasTestCall={hasTestCall || isLive}
@@ -214,12 +225,14 @@ function SectionHeader({ id, title }: { id: string; title: string }) {
 function ReadinessChecklist({
   hasNumber,
   knowledgeReady,
+  knowledgeDetail,
   alertsReady,
   forwardingReady,
   hasTestCall,
 }: {
   hasNumber: boolean
   knowledgeReady: boolean
+  knowledgeDetail: string | null
   alertsReady: boolean
   forwardingReady: boolean
   hasTestCall: boolean
@@ -233,7 +246,8 @@ function ReadinessChecklist({
     {
       label: 'Business knowledge loaded',
       done: knowledgeReady,
-      detail: knowledgeReady ? 'Agent has business context' : 'Add website, GBP, services, or facts',
+      detail: knowledgeReady && knowledgeDetail ? knowledgeDetail : knowledgeReady ? 'Agent has business context' : 'Add website, Google profile, services, or facts',
+      href: '/dashboard/knowledge',
     },
     {
       label: 'Owner alerts ready',
@@ -282,7 +296,11 @@ function ReadinessChecklist({
               {item.done ? '✓' : '·'}
             </span>
             <div>
-              <p className="text-sm font-medium text-zinc-900">{item.label}</p>
+              <p className="text-sm font-medium text-zinc-900">
+                {'href' in item && item.href ? (
+                  <Link href={item.href} className="hover:underline underline-offset-2">{item.label}</Link>
+                ) : item.label}
+              </p>
               <p className="text-xs text-zinc-500 mt-0.5">{item.detail}</p>
             </div>
           </div>
