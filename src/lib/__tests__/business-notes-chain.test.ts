@@ -18,6 +18,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 
 import { buildPromptFromIntake } from '../prompt-builder.js'
+import { buildVoicemailPrompt } from '../prompt-niches/voicemail-prompt.js'
 
 function baseIntake(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -90,5 +91,32 @@ describe('Phase E.7 — business_notes end-to-end chain', () => {
       prompt.length < 17000,
       `prompt with 3000-char business_notes is ${prompt.length} chars, expected < 17000`,
     )
+  })
+})
+
+describe('Voicemail builder — launch knowledge chain', () => {
+  test('voicemail prompt includes business facts and FAQs for basic caller questions', () => {
+    const prompt = buildVoicemailPrompt({
+      business_name: 'Prairie Plumbing',
+      agent_name: 'Sam',
+      owner_name: 'Dan',
+      niche: 'voicemail',
+      business_facts: ['Open Monday to Friday 8-5', 'Emergency leak calls are prioritized'],
+      extra_qa: [
+        { question: 'Do you handle water heaters?', answer: 'Yes, water heaters are supported.' },
+      ],
+    })
+
+    assert.ok(prompt.includes('<business_knowledge>'), 'expected voicemail knowledge wrapper')
+    assert.ok(prompt.includes('Open Monday to Friday 8-5'), 'expected business facts in voicemail prompt')
+    assert.ok(prompt.includes('Do you handle water heaters?'), 'expected FAQ question in voicemail prompt')
+    assert.ok(prompt.includes('Yes, water heaters are supported.'), 'expected FAQ answer in voicemail prompt')
+    assert.ok(prompt.includes('If the answer is not here, do not guess'), 'expected anti-hallucination boundary')
+  })
+
+  test('slot pipeline still emits business_notes separately', () => {
+    const prompt = buildPromptFromIntake(baseIntake({ business_notes: 'Family-owned service shop.' }))
+    assert.ok(prompt.includes('<business_notes>'), 'slot pipeline should still use the business_notes slot')
+    assert.ok(prompt.includes('Family-owned service shop.'), 'slot pipeline should keep business note content')
   })
 })

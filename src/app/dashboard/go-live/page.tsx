@@ -65,13 +65,14 @@ export default async function GoLivePage({
     )
   }
 
-  // §6 condition 4 — at least one row in call_logs where call_status='test'.
+  // Go Live proof should come from the real phone path, not browser/direct test calls.
   // Cheapest possible existence check: head + count + limit(1).
   const { count: testCallCount } = await supabase
     .from('call_logs')
     .select('id', { count: 'exact', head: true })
     .eq('client_id', targetClientId)
-    .eq('call_status', 'test')
+    .neq('call_status', 'test')
+    .not('twilio_call_sid', 'is', null)
     .limit(1)
 
   const hasTestCall = (testCallCount ?? 0) > 0

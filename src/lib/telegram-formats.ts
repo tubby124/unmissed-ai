@@ -38,6 +38,9 @@ interface FormatInput {
   } | null
   recordingUrl?: string | null
   callbackPreference?: string | null
+  qualityScore?: number | null
+  urgencyLabel?: string | null
+  callbackOpener?: string | null
 }
 
 const STATUS_EMOJI: Record<string, string> = {
@@ -104,6 +107,14 @@ function formatCompact(input: FormatInput): string {
 
   if (input.summary) lines.push(input.summary)
 
+  if (input.urgencyLabel || typeof input.qualityScore === 'number') {
+    const score = typeof input.qualityScore === 'number' ? ` · ${input.qualityScore}/100` : ''
+    lines.push(`Priority: ${input.urgencyLabel || input.status}${score}`)
+  }
+
+  if (input.nextSteps) lines.push(`Next: ${input.nextSteps}`)
+  if (input.callbackOpener) lines.push(`Open: "${input.callbackOpener}"`)
+
   if (input.booking) {
     lines.push(`📅 Booked: ${input.booking.appointmentTime}`)
   }
@@ -144,6 +155,20 @@ function formatStandard(input: FormatInput): string {
   if (input.summary) {
     lines.push('')
     lines.push(input.summary)
+  }
+
+  if (input.urgencyLabel || typeof input.qualityScore === 'number') {
+    const score = typeof input.qualityScore === 'number' ? ` · ${input.qualityScore}/100 quality` : ''
+    lines.push('')
+    lines.push(`Priority: ${input.urgencyLabel || input.status}${score}`)
+  }
+
+  if (input.nextSteps) {
+    lines.push(`Next step: ${input.nextSteps}`)
+  }
+
+  if (input.callbackOpener) {
+    lines.push(`Suggested opener: "${input.callbackOpener}"`)
   }
 
   if (input.booking) {
@@ -190,6 +215,14 @@ function formatActionCard(input: FormatInput): string {
   }
 
   if (input.summary) lines.push(input.summary)
+
+  if (input.urgencyLabel || typeof input.qualityScore === 'number') {
+    const score = typeof input.qualityScore === 'number' ? ` · ${input.qualityScore}/100 quality` : ''
+    lines.push(`Priority: ${input.urgencyLabel || input.status}${score}`)
+  }
+
+  if (input.nextSteps) lines.push(`Next: ${input.nextSteps}`)
+  if (input.callbackOpener) lines.push(`Open with: "${input.callbackOpener}"`)
 
   if (input.booking) {
     lines.push(`📅 Booked: <b>${input.booking.appointmentTime}</b>`)

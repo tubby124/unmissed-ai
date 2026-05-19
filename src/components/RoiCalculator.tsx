@@ -212,7 +212,7 @@ export default function RoiCalculator() {
             </Link>
           </motion.div>
           <p className="text-center text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
-            No contracts · Cancel anytime · Agent live within 24 hours
+            No contracts · Cancel anytime · Real AI number after checkout
           </p>
         </motion.div>
 

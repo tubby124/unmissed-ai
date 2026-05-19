@@ -41,7 +41,7 @@ const rows = [
     best: "unmissed",
   },
   {
-    feature: "Instant Telegram/SMS alert",
+    feature: "Actionable owner summary",
     human: "❌ No",
     answering: "❌ No",
     unmissed: "✅ Yes",

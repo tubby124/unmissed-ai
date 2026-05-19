@@ -92,7 +92,7 @@ export const AUTO_GLASS: NichePageData = {
   leadCardNiche: "auto-glass",
   schema: {
     name: "Auto Glass Receptionist AI",
-    description: "AI receptionist for auto glass shops. Answers inbound calls, collects vehicle details, damage description, and ADAS calibration requirements. Delivers structured lead cards via Telegram/SMS.",
+    description: "AI receptionist for auto glass shops. Answers missed calls, collects vehicle details, damage description, and ADAS calibration requirements. Delivers structured summaries by email with Telegram optional.",
   },
   hero: {
     subtitle: "For Auto Glass Shops",
@@ -337,7 +337,7 @@ export const REALTY: NichePageData = {
   leadCardNiche: "realty",
   schema: {
     name: "Real Estate AI Receptionist",
-    description: "AI receptionist and lead qualification service for real estate agents. Handles inbound buyer and seller inquiries, qualifies leads by budget, timeline, and pre-approval status, and delivers structured lead cards via Telegram/SMS.",
+    description: "AI receptionist and lead qualification service for real estate agents. Handles missed buyer and seller inquiries, qualifies leads by budget, timeline, and pre-approval status, and delivers structured summaries by email with Telegram optional.",
   },
   hero: {
     subtitle: "For Real Estate Agents",
@@ -346,15 +346,15 @@ export const REALTY: NichePageData = {
     tagline: "Your AI agent qualifies every inquiry \u2014 even at 11pm.",
     ctaLabel: "Get My Realtor Agent \u2192",
     secondaryCta: { href: "/demo", label: "Hear a Demo Call \u2192" },
-    leadCardLabel: "This hits your Telegram within seconds of every inquiry:",
+    leadCardLabel: "This hits your email by default, with Telegram optional:",
   },
   stats: [
-    { value: "2,082+", label: "Calls handled for one BC agent", color: "primary" },
+    { value: "Lead card", label: "Budget, timeline, and callback detail", color: "primary" },
     { value: "$12,000+", label: "Avg deal commission", color: "red" },
     { value: "24/7", label: "Coverage \u2014 even on showings", color: "green" },
   ],
   collected: {
-    headline: "Pre-qualified leads waiting in your Telegram.",
+    headline: "Pre-qualified leads waiting in your inbox.",
     subtext: "By the time you call back, you already know their budget, timeline, and readiness.",
     items: [
       { icon: Home, label: "Buying or selling?" },

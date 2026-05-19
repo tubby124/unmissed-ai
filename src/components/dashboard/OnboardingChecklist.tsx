@@ -48,7 +48,7 @@ export default function OnboardingChecklist({
   const meetDone = isStepComplete('meet_agent') || hasReceivedCall || state.test_call_count > 0
   const alertsDone = isStepComplete('setup_alerts') || telegramConnected
   const trainDone = isStepComplete('train_agent') || hasKnowledge
-  const liveDone = isStepComplete('go_live') || (hasPhoneNumber && !isTrial)
+  const liveDone = isStepComplete('go_live') || (hasPhoneNumber && hasReceivedCall && !isTrial)
 
   const steps: Step[] = [
     {
@@ -64,11 +64,11 @@ export default function OnboardingChecklist({
     {
       id: 'setup_alerts',
       label: 'Set up alerts',
-      description: 'Get instant call summaries on Telegram so you never miss a lead.',
-      doneDescription: 'Telegram connected',
+      description: 'Email summaries are the default. Connect Telegram too if you want faster phone pings.',
+      doneDescription: telegramConnected ? 'Telegram connected' : 'Alerts ready',
       done: alertsDone,
       link: '/dashboard/settings?tab=notifications',
-      linkLabel: 'Connect',
+      linkLabel: 'Manage',
     },
     {
       id: 'train_agent',
@@ -84,11 +84,11 @@ export default function OnboardingChecklist({
       label: 'Go live',
       description: isTrial
         ? 'After upgrading: forward your existing business line. Callers reach your agent automatically.'
-        : 'Forward your business line so calls reach your agent.',
+        : 'Forward missed calls from your normal business number, then run a real missed-call test.',
       doneDescription: isTrial ? 'Upgrade to go live' : 'Forwarding tested',
       done: liveDone,
-      link: isTrial ? undefined : '/dashboard/setup',
-      linkLabel: isTrial ? 'Upgrade to go live' : 'Setup instructions',
+      link: isTrial ? undefined : '/dashboard/go-live',
+      linkLabel: isTrial ? 'Upgrade to go live' : 'Open Go Live',
       onClick: isTrial ? () => openUpgradeModal('checklist_go_live', null, undefined) : undefined,
     },
   ]

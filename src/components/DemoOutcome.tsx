@@ -204,7 +204,7 @@ function PipelineSteps({ demo }: { demo: DemoNiche }) {
     "Answered in 0.3 seconds",
     "Collected caller details",
     `Classified lead as ${demo.outcome.status}`,
-    "Telegram alert sent to owner",
+    "Owner summary prepared",
   ]
 
   return (

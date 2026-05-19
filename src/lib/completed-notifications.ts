@@ -79,6 +79,81 @@ export interface NotificationContext {
   callbackPreference?: string | null
 }
 
+export interface OwnerAlertDetails {
+  callerName: string
+  formattedPhone: string
+  urgencyLabel: string
+  leadQuality: string
+  reasonForCall: string
+  requiredNextStep: string
+  callbackOpener: string
+}
+
+function formatOwnerPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.length === 11 && digits[0] === '1') return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
+  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  return phone || 'Unknown'
+}
+
+function firstSentence(text: string): string {
+  const trimmed = text.replace(/\s+/g, ' ').trim()
+  if (!trimmed) return ''
+  const match = trimmed.match(/^(.+?[.!?])(?:\s|$)/)
+  return (match?.[1] || trimmed).slice(0, 220)
+}
+
+export function buildOwnerAlertDetails(
+  classification: Classification,
+  callerPhone: string,
+  businessName: string | null,
+): OwnerAlertDetails {
+  const callerName =
+    classification.caller_data?.caller_name ||
+    classification.niche_data?.caller_name ||
+    'Unknown caller'
+  const serviceRequested =
+    classification.caller_data?.service_requested ||
+    classification.niche_data?.requested_service ||
+    ''
+  const fallbackReason = firstSentence(classification.summary) || classification.serviceType || 'missed call'
+  const reasonForCall = serviceRequested || fallbackReason
+  const status = classification.status || 'UNKNOWN'
+  const urgencyLabel =
+    status === 'HOT' ? 'Urgent callback'
+    : status === 'WARM' ? 'Good lead'
+    : status === 'COLD' ? 'Low urgency'
+    : status === 'JUNK' ? 'No action'
+    : 'Needs review'
+  const quality =
+    typeof classification.quality_score === 'number' && Number.isFinite(classification.quality_score)
+      ? ` · ${Math.max(0, Math.min(100, Math.round(classification.quality_score)))}/100 quality`
+      : ''
+  const requiredNextStep =
+    classification.next_steps?.trim() ||
+    (status === 'HOT'
+      ? 'Call back as soon as possible.'
+      : status === 'WARM'
+        ? 'Call back when you have a clear window.'
+        : status === 'COLD'
+          ? 'Review when convenient.'
+          : 'Review the call manually.')
+  const safeReason = reasonForCall.replace(/\.$/, '')
+  const openerName = callerName === 'Unknown caller' ? 'there' : callerName
+  const business = businessName || 'the business'
+  const callbackOpener = `Hi ${openerName}, this is ${business}. My assistant said you called about ${safeReason}. I wanted to help with that.`
+
+  return {
+    callerName,
+    formattedPhone: callerPhone === 'unknown' ? 'Unknown' : formatOwnerPhone(callerPhone),
+    urgencyLabel,
+    leadQuality: `${status} lead${quality}`,
+    reasonForCall,
+    requiredNextStep,
+    callbackOpener,
+  }
+}
+
 // ── Idempotency Guard ────────────────────────────────────────────────────────
 
 /**
@@ -117,6 +192,7 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
 
   const fullSummary = classification.summary || ultravoxSummary || ''
   const clientTz = client.timezone || 'America/Regina'
+  const ownerAlert = buildOwnerAlertDetails(classification, callerPhone, client.business_name)
 
   let message: string
 
@@ -163,7 +239,7 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
       callerPhone,
       durationSeconds,
       summary: fullSummary,
-      nextSteps: classification.next_steps || '',
+      nextSteps: ownerAlert.requiredNextStep,
       serviceType: classification.serviceType || 'other',
       endedAt,
       timezone: clientTz,
@@ -171,6 +247,9 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
       booking,
       recordingUrl,
       callbackPreference: callbackPreference ?? null,
+      qualityScore: classification.quality_score,
+      urgencyLabel: ownerAlert.urgencyLabel,
+      callbackOpener: ownerAlert.callbackOpener,
     })
   }
 
@@ -224,7 +303,6 @@ function buildAutoGlassMessage(params: {
   const nameStr = nd?.caller_name || 'Unknown'
   const urgencyFallback: Record<string, string> = { HOT: 'HIGH', WARM: 'MEDIUM', COLD: 'LOW', JUNK: 'LOW', UNKNOWN: 'LOW' }
   const urgencyStr = nd?.urgency || urgencyFallback[classification.status] || 'MEDIUM'
-  const requestedStr = nd?.requested_service || 'None'
 
   const fmtPhone = (p: string) => {
     const d = p.replace(/\D/g, '')
@@ -318,7 +396,6 @@ function buildPmNotificationMessage(params: {
   const tenantStr = tenantMatch ? tenantMatch[1].trim() : null
   const issueStr = issueMatch ? issueMatch[1].trim() : null
 
-  const summaryUpper = fullSummary.toUpperCase()
   const lines: string[] = []
 
   if (/\[P1\s+(?:URGENT|EMERGENCY)\]/i.test(fullSummary)) {
@@ -484,7 +561,7 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
 
 export async function sendEmailNotification(ctx: NotificationContext): Promise<void> {
   const { supabase, client, slug, callId, callLogId, callerPhone, classification,
-    durationSeconds, transcript } = ctx
+    durationSeconds, transcript, recordingUrl } = ctx
 
   if (!client.contact_email || classification.status === 'JUNK') return
 
@@ -511,17 +588,28 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
       .map((m) => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
       .join('\n')
 
-    const callerName = classification.caller_data?.caller_name || 'Unknown caller'
-    const fmtPhone = callerPhone !== 'unknown' ? callerPhone : 'Unknown'
+    const ownerAlert = buildOwnerAlertDetails(classification, callerPhone, client.business_name)
     const mins = Math.floor(durationSeconds / 60)
     const secs = durationSeconds % 60
 
-    const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-    const emailSubject = `Voicemail from ${callerName} — ${client.business_name || slug}`
-    const emailHtml = `<h2 style="margin:0 0 16px">New voicemail message</h2>
-<p><strong>From:</strong> ${escHtml(callerName)} (${escHtml(fmtPhone)})</p>
+    const emailSubject = `${ownerAlert.urgencyLabel}: ${ownerAlert.callerName} — ${client.business_name || slug}`
+    const rows = [
+      ['Urgency', ownerAlert.urgencyLabel],
+      ['Caller', `${ownerAlert.callerName} (${ownerAlert.formattedPhone})`],
+      ['Lead quality', ownerAlert.leadQuality],
+      ['Reason for call', ownerAlert.reasonForCall],
+      ['Required next step', ownerAlert.requiredNextStep],
+      ['Suggested callback opener', ownerAlert.callbackOpener],
+    ]
+    const emailHtml = `<h2 style="margin:0 0 8px">New captured call</h2>
+<p style="margin:0 0 16px;color:#555">Your AI answered a missed call and captured the callback details.</p>
+<table style="width:100%;border-collapse:collapse;margin:0 0 16px">
+${rows.map(([label, value]) => `<tr><td style="padding:8px 10px;border:1px solid #eee;background:#fafafa;width:34%;font-weight:600">${escHtml(label)}</td><td style="padding:8px 10px;border:1px solid #eee">${escHtml(value)}</td></tr>`).join('')}
+</table>
 <p><strong>Duration:</strong> ${mins}m ${secs}s</p>
+${recordingUrl ? `<p><strong>Recording:</strong> <a href="${escHtml(recordingUrl)}">Listen to the call</a></p>` : ''}
 <p><strong>Summary:</strong> ${escHtml(classification.summary || 'No summary available.')}</p>
 <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
 <h3 style="margin:0 0 8px">Transcript</h3>
@@ -546,7 +634,17 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
       client_id: client.id,
       channel: 'email',
       recipient: client.contact_email,
-      content: `Subject: ${emailSubject}\n\n${transcriptText.slice(0, 9000)}`,
+      content: `Subject: ${emailSubject}
+
+Urgency: ${ownerAlert.urgencyLabel}
+Caller: ${ownerAlert.callerName} (${ownerAlert.formattedPhone})
+Lead quality: ${ownerAlert.leadQuality}
+Reason for call: ${ownerAlert.reasonForCall}
+Required next step: ${ownerAlert.requiredNextStep}
+Suggested opener: ${ownerAlert.callbackOpener}
+
+Transcript:
+${transcriptText.slice(0, 8500)}`,
       status: 'sent',
       external_id: emailResult.id || null,
     })

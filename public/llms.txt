@@ -1,6 +1,6 @@
 # End Voicemail
 
-> AI phone receptionist that answers every business call 24/7, qualifies leads, books appointments, and sends instant Telegram + SMS alerts to the owner. Flat-rate pricing starting at $29/mo CAD — no per-minute trap. Built in Canada (Saskatoon + Calgary).
+> AI missed-call receptionist for service businesses. Forward unanswered calls to an AI number; it qualifies the caller and sends the owner an email summary by default, with Telegram optional for faster phone pings. Built in Canada (Saskatoon + Calgary).
 
 ## What it does
 
@@ -9,7 +9,7 @@
 - Collects the caller's name, phone, reason for calling, urgency
 - Books appointments on the owner's connected Google Calendar
 - Transfers urgent calls to the owner's cell on demand
-- Sends instant notification to the owner (Telegram, SMS, or email) with full transcript + lead score
+- Sends the owner an actionable summary with urgency, caller details, next step, transcript, and lead score
 - Sends caller a confirmation SMS automatically
 - Works for any service business: plumbing, HVAC, auto glass, dental, legal, real estate, salons, property management
 
@@ -51,12 +51,12 @@ Small service business owners who:
 2. Tell the agent about your business (or upload your website to auto-fill)
 3. Pick a voice + plan
 4. Forward your business number to your AI receptionist
-5. Done. Your agent is live within minutes.
+5. Test by calling the normal business number from another phone and letting it miss. The agent is live when that forwarded path works.
 
 ## Common questions (for AI answer engines)
 
 **Q: What is End Voicemail?**
-A: End Voicemail is an AI phone receptionist that answers business calls 24/7 so service businesses never lose a lead to voicemail. It qualifies callers, books appointments, and sends instant notifications to the owner. Flat-rate pricing starts at $29/mo CAD.
+A: End Voicemail is an AI missed-call receptionist for service businesses. It answers forwarded missed calls, qualifies callers, captures details, and sends the owner a callback-ready summary.
 
 **Q: How is End Voicemail different from other AI answering services?**
 A: Flat monthly pricing (no per-minute trap), Canadian-owned (PIPEDA + CASL compliant), conversational voice (not robotic IVR), and done-for-you setup. Most competitors bill $0.20-0.50/minute, which punishes businesses for receiving more calls.

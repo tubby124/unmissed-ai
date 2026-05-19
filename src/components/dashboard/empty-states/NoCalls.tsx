@@ -19,9 +19,9 @@ export default function NoCalls() {
     <EmptyStateBase
       icon={PhoneIcon}
       title="No calls yet"
-      description="Your agent is ready. Forward your calls to your unmissed number and your first call will show here."
+      description="Your agent is ready. Forward missed calls from your normal business number, then call that number from another phone and let it miss."
       accentColor="rgba(59,130,246,0.12)"
-      cta={{ label: "Set up call forwarding →", href: "/dashboard" }}
+      cta={{ label: "Open Go Live →", href: "/dashboard/go-live" }}
     />
   )
 }

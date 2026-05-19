@@ -559,13 +559,13 @@ export function PostCallSummary({
     ? [
         { label: `Answered in 0.3s`, done: true },
         { label: `Lead classified as ${leadLabel}`, done: true },
-        { label: "Telegram alert → active after activation", done: false },
+        { label: "Owner summary → active after activation", done: false },
         { label: "SMS follow-up → active after activation", done: false },
       ]
     : [
         { label: `Answered in 0.3s`, done: true },
         { label: `Lead classified as ${leadLabel}`, done: true },
-        { label: "Telegram alert sent to owner", done: true },
+        { label: "Owner summary prepared", done: true },
         { label: "SMS follow-up sent to caller", done: true },
       ]
 

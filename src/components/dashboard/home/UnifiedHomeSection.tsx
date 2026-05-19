@@ -206,7 +206,7 @@ export default function UnifiedHomeSection({
       }
     }
     if (!onboarding.telegramConnected) {
-      return { text: 'Get instant call alerts on Telegram', cta: 'Connect', href: '/dashboard/settings?tab=notifications' }
+      return { text: 'Email summaries are default; Telegram is optional for faster pings', cta: 'Manage alerts', href: '/dashboard/settings?tab=notifications' }
     }
     return null
   })()

@@ -16,6 +16,7 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  buildOwnerAlertDetails,
   notificationsAlreadySent,
   type CompletedClient,
   type Classification,
@@ -112,23 +113,31 @@ describe('S8d: CompletedClient guard prerequisites', () => {
     assert.equal(unknownPhone, 'unknown', 'unknown phone → guard triggers')
   })
 
-  test('email guard: niche must be voicemail + contact_email required + not JUNK', () => {
-    // Guard: if (client.niche !== 'voicemail' || !client.contact_email || classification.status === 'JUNK') return
+  test('email guard: contact_email required + not JUNK; non-voicemail needs explicit opt-in', () => {
     const validEmail: Partial<CompletedClient> = {
       niche: 'voicemail',
       contact_email: 'test@example.com',
+      email_notifications_enabled: null,
     }
     const validClass: Partial<Classification> = { status: 'HOT' }
     assert.ok(
-      validEmail.niche === 'voicemail' && validEmail.contact_email && validClass.status !== 'JUNK',
-      'all conditions met → passes guard'
+      validEmail.niche === 'voicemail' && validEmail.contact_email && validEmail.email_notifications_enabled !== false && validClass.status !== 'JUNK',
+      'voicemail default email path → passes guard'
     )
 
-    const wrongNiche: Partial<CompletedClient> = {
+    const optedInNonVoicemail: Partial<CompletedClient> = {
       niche: 'real_estate',
       contact_email: 'test@example.com',
+      email_notifications_enabled: true,
     }
-    assert.ok(wrongNiche.niche !== 'voicemail', 'non-voicemail niche → guard triggers')
+    assert.ok(optedInNonVoicemail.email_notifications_enabled === true, 'non-voicemail explicit opt-in → passes guard')
+
+    const wrongNicheNoOptIn: Partial<CompletedClient> = {
+      niche: 'real_estate',
+      contact_email: 'test@example.com',
+      email_notifications_enabled: null,
+    }
+    assert.ok(wrongNicheNoOptIn.email_notifications_enabled !== true, 'non-voicemail without opt-in → guard triggers')
 
     const junkClass: Partial<Classification> = { status: 'JUNK' }
     assert.ok(junkClass.status === 'JUNK', 'JUNK classification → guard triggers')
@@ -138,6 +147,35 @@ describe('S8d: CompletedClient guard prerequisites', () => {
       contact_email: null,
     }
     assert.ok(!noEmail.contact_email, 'no contact_email → guard triggers')
+  })
+})
+
+describe('Launch readiness: owner alert details', () => {
+  test('buildOwnerAlertDetails includes callback-critical fields', () => {
+    const details = buildOwnerAlertDetails({
+      status: 'HOT',
+      summary: 'Maya called about a burst pipe under the kitchen sink. She needs help today.',
+      serviceType: 'emergency',
+      confidence: 91,
+      sentiment: 'frustrated',
+      key_topics: ['burst pipe', 'kitchen'],
+      next_steps: 'Call Maya immediately and confirm whether the water is shut off.',
+      quality_score: 88,
+      caller_data: {
+        caller_name: 'Maya',
+        service_requested: 'Burst pipe under kitchen sink',
+      },
+    }, '+13065550123', 'Prairie Plumbing')
+
+    assert.equal(details.urgencyLabel, 'Urgent callback')
+    assert.equal(details.callerName, 'Maya')
+    assert.equal(details.formattedPhone, '+1 (306) 555-0123')
+    assert.equal(details.reasonForCall, 'Burst pipe under kitchen sink')
+    assert.equal(details.requiredNextStep, 'Call Maya immediately and confirm whether the water is shut off.')
+    assert.match(details.leadQuality, /HOT lead/)
+    assert.match(details.leadQuality, /88\/100/)
+    assert.match(details.callbackOpener, /Hi Maya/)
+    assert.match(details.callbackOpener, /Prairie Plumbing/)
   })
 })
 

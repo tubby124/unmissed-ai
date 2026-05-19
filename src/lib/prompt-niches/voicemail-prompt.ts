@@ -1,6 +1,40 @@
 // Extracted from prompt-builder.ts by Phase 3 refactor.
 // Voicemail-specific prompt builder (Hasan/Aisha structure, parameterized).
 
+function formatKnowledgeList(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .map(item => typeof item === 'string' ? item : JSON.stringify(item))
+      .map(item => item.trim())
+      .filter(Boolean)
+      .slice(0, 20)
+      .join('\n')
+  }
+  if (typeof value === 'string') return value.trim()
+  return ''
+}
+
+function formatFaqPairs(value: unknown): string {
+  const parsed = typeof value === 'string'
+    ? (() => { try { return JSON.parse(value) } catch { return value } })()
+    : value
+
+  if (Array.isArray(parsed)) {
+    return parsed
+      .map(item => {
+        if (!item || typeof item !== 'object') return ''
+        const q = 'question' in item ? String(item.question ?? '').trim() : ''
+        const a = 'answer' in item ? String(item.answer ?? '').trim() : ''
+        return q && a ? `Q: ${q}\nA: ${a}` : ''
+      })
+      .filter(Boolean)
+      .slice(0, 12)
+      .join('\n\n')
+  }
+
+  return typeof parsed === 'string' ? parsed.trim() : ''
+}
+
 export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   const agentName   = ((intake.db_agent_name as string) || (intake.agent_name as string) || 'Sam').trim()
   const bizName     = ((intake.business_name as string) || 'our office').trim()
@@ -21,6 +55,10 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
   // today_update takes priority; fall back to legacy injected_note (QuickInject)
   const todayUpdate      = ((intake.today_update as string) || (intake.injected_note as string) || '').trim()
   const businessNotes    = ((intake.business_notes as string) || '').trim()
+  const businessFacts    = formatKnowledgeList(intake.business_facts)
+  const faqPairs         = formatFaqPairs(intake.extra_qa ?? intake.niche_faq_pairs)
+  const callerFaq        = ((intake.caller_faq as string) || '').trim()
+  const knowledgeBlock   = [businessFacts, faqPairs, callerFaq].filter(Boolean).join('\n\n')
   const rawFields        = intake.fields_to_collect
   const fieldsToCollect  = (Array.isArray(rawFields) ? rawFields as string[] : []).filter(f => f.trim())
   const pricingPolicy    = ((intake.pricing_policy as string) || '').trim()
@@ -36,7 +74,8 @@ export function buildVoicemailPrompt(intake: Record<string, unknown>): string {
     : ownerName || `the team at ${bizName}`
 
   // Behavior mode
-  const canAnswerFaq = (intake.niche_voicemailBehavior as string) === 'message_and_faq'
+  const voicemailBehavior = (intake.niche_voicemailBehavior as string) || ''
+  const canAnswerFaq = voicemailBehavior !== 'message_only' || !!knowledgeBlock
 
   // PM-specific context (pet/parking/package policies + safety rules)
   let pmContext = ''
@@ -193,6 +232,16 @@ The business owner shared this context about their business. Use it to answer qu
 
 ${businessNotes}
 </business_notes>
+` : ''}${knowledgeBlock ? `
+---
+
+# BUSINESS KNOWLEDGE
+
+<business_knowledge>
+Use this to answer basic questions about hours, location, services, pricing policy, service area, and common FAQs. Keep answers to one short sentence, then continue message-taking. If the answer is not here, do not guess — take the message and have ${recipientName} call back.
+
+${knowledgeBlock}
+</business_knowledge>
 ` : ''}
 ---
 

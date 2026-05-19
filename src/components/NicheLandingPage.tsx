@@ -18,7 +18,7 @@ const STAT_COLORS: Record<string, string> = {
 export default function NicheLandingPage({ data }: { data: NichePageData }) {
   const schema = nicheSchema(data.schema.name, data.schema.description);
   const secondaryCta = data.hero.secondaryCta ?? { href: "/try", label: "Try a Live Demo" };
-  const leadCardLabel = data.hero.leadCardLabel ?? "This hits your Telegram within seconds of every call:";
+  const leadCardLabel = data.hero.leadCardLabel ?? "This hits your email by default, with Telegram optional:";
 
   return (
     <>
@@ -95,7 +95,7 @@ export default function NicheLandingPage({ data }: { data: NichePageData }) {
                 </div>
 
                 <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
-                  No contracts · Agent live within 24 hours
+                  No contracts · Real AI number after checkout
                 </p>
               </div>
 
@@ -249,7 +249,7 @@ export default function NicheLandingPage({ data }: { data: NichePageData }) {
               {data.finalCta.ctaLabel}
             </Link>
             <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
-              Agent live within 24 hours · No contracts · 30-day guarantee
+              Real AI number after checkout · No contracts · 30-day guarantee
             </p>
           </div>
         </section>

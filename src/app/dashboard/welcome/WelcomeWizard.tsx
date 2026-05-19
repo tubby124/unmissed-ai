@@ -196,7 +196,7 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
   const planLabel = selectedPlan === 'pro' ? 'Pro' : selectedPlan === 'core' ? 'Core' : 'Lite'
 
   function finish() {
-    router.push('/dashboard')
+    router.push('/dashboard/go-live')
   }
 
   const steps = [
@@ -252,7 +252,7 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
                 <p className="text-2xl font-bold t1 tracking-tight font-mono">{formatted}</p>
               </div>
               <p className="text-xs t3 leading-relaxed">
-                This is the phone number assigned to {agentName}. Callers who dial this number will reach your AI agent immediately. Save it — you&apos;ll forward your business line to it in the next step.
+                This is the number assigned to {agentName}. Save it for forwarding setup — the real proof is your normal business number forwarding missed calls here.
               </p>
             </div>
           )}
@@ -329,12 +329,15 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
                   </svg>
                 </div>
                 <div>
-                  <p className="text-[10px] t3 font-medium">Call this number now</p>
-                  <p className="text-base font-bold t1 font-mono">{formatted}</p>
+                  <p className="text-[10px] t3 font-medium">Do the real missed-call test</p>
+                  <p className="text-base font-bold t1">Call your normal business number</p>
                 </div>
               </div>
               <p className="text-xs t3 leading-relaxed">
-                Pick up any phone and call {formatted}. {agentName} will answer and walk you through a real conversation. You can also test it any time from your dashboard.
+                Use another phone, call the number your customers normally dial, and let it ring unanswered. If forwarding is set up correctly, {agentName} will answer and your summary will appear after the call.
+              </p>
+              <p className="text-[10px] t3 leading-relaxed">
+                Calling {formatted} directly only proves the AI number works. It does not prove voicemail has been replaced.
               </p>
             </div>
           )}
@@ -363,7 +366,7 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
                 className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white transition-opacity hover:opacity-90"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
-                Go to dashboard →
+                Open Go Live →
               </button>
             )}
           </div>
@@ -372,7 +375,7 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
         {/* Skip */}
         <p className="text-center mt-4">
           <button onClick={finish} className="text-[11px] t3 hover:t2 underline underline-offset-2">
-            Skip setup — go to dashboard
+            Skip setup — open Go Live
           </button>
         </p>
       </div>
