@@ -9,9 +9,8 @@
  *   - Lead with: pick carrier → show dial code → "Now call your business number
  *     to test" → user clicks "It worked — I heard the agent" → self-attest.
  *
- * The self-attest endpoint stamps both `forwarding_self_attested=true` and
- * `forwarding_verified_at=now()` on the clients row. The Go Live banner
- * fires off `forwarding_self_attested`.
+ * The self-attest endpoint stamps the owner-marked-done state. The final proof
+ * is still a real missed-call summary in call logs.
  *
  * The verify TwiML + confirm endpoint stay on disk as deferred infra and
  * may be re-surfaced later (see CALLINGAGENTS/Tracker/forwarding-verify-twilio.md).
@@ -109,10 +108,10 @@ function CollapsedPill({
       type="button"
       onClick={onExpand}
       className="w-full flex items-center justify-between rounded-2xl bg-emerald-50 border border-emerald-200 px-5 py-4 text-left hover:bg-emerald-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-      aria-label="Forwarding set up — tap to edit or re-test"
+      aria-label="Forwarding marked done — tap to edit or re-test"
     >
       <span className="text-sm font-medium text-emerald-900">
-        ✓ Forwarding set up — {carrierName} · {formatPhone(twilioNumber)}
+        ✓ Forwarding marked done — {carrierName} · {formatPhone(twilioNumber)}
       </span>
       <span className="text-xs text-emerald-700">Edit</span>
     </button>
@@ -151,13 +150,13 @@ function SetupForm({
   const disableCode = carrierEntry?.disable ?? null
   const isOtherCarrier = carrier === 'other'
 
-  // Status pill — gray "Not set up yet" | green "Forwarded ✓ {when}" | amber on submit error
+  // Status pill — gray "Not set up yet" | green "Marked done ✓ {when}" | amber on submit error
   let statusPill: { tone: 'gray' | 'green' | 'amber'; text: string }
   if (attest === 'failed') {
     statusPill = { tone: 'amber', text: "Couldn't save — try again" }
   } else if (forwardingVerifiedAt || forwardingSelfAttested) {
     const when = forwardingVerifiedAt ? formatRelative(forwardingVerifiedAt) : 'just now'
-    statusPill = { tone: 'green', text: `Forwarded ✓ ${when}` }
+    statusPill = { tone: 'green', text: `Marked done ✓ ${when}` }
   } else {
     statusPill = { tone: 'gray', text: 'Not set up yet' }
   }
@@ -234,7 +233,7 @@ function SetupForm({
       ) : (
         enableCode && (
           <div className="space-y-2">
-            <p className="text-sm font-medium text-zinc-900">Dial this on your phone:</p>
+            <p className="text-sm font-medium text-zinc-900">Dial this common carrier code on your phone:</p>
             <button
               type="button"
               onClick={copyEnableCode}

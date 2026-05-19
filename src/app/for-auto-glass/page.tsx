@@ -6,14 +6,14 @@ import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 export const metadata: Metadata = {
   title: `AI Receptionist for Auto Glass Shops — ${BRAND_NAME}`,
   description:
-    "Never lose another windshield job to voicemail. Your AI agent handles calls while you do installs — 24/7, with instant lead cards delivered to your phone.",
+    "Route missed windshield calls away from voicemail. Your AI agent collects vehicle details and sends lead summaries while you do installs.",
   alternates: {
     canonical: `https://${BRAND_DOMAIN}/for-auto-glass`,
   },
   openGraph: {
     title: `AI Receptionist for Auto Glass Shops — ${BRAND_NAME}`,
     description:
-      "Stop losing $150–$800 windshield jobs to voicemail. AI agent answers every call, collects vehicle details, ADAS requirements, and sends instant alerts.",
+      "AI agent answers missed auto-glass calls, collects vehicle details and ADAS requirements, and sends instant summaries.",
   },
 };
 

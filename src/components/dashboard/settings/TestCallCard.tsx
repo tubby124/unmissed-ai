@@ -86,7 +86,7 @@ export default function TestCallCard({ clientId, isAdmin, previewMode, mode = 's
             <p className="text-[11px] t3 mb-4">
               {mode === 'onboarding'
                 ? 'Click the orb below to have a live conversation with your agent right in your browser.'
-                : 'Have a live conversation with your agent directly in the browser — hear exactly what your callers experience.'}
+                : 'Have a live conversation with your agent directly in the browser — preview the voice and script before forwarding missed calls.'}
             </p>
           </>
         )}

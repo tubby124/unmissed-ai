@@ -18,6 +18,9 @@ interface AgentKnowsCardProps {
   clientId: string | null
   hasGoogleProfile?: boolean
   googleProfileSummary?: string | null
+  sourceCounts?: Record<string, number>
+  businessName?: string | null
+  agentName?: string | null
   /** If true, keep the empty-state copy out; still render summary line. */
   alwaysExpanded?: boolean
 }
@@ -39,6 +42,9 @@ export default function AgentKnowsCard({
   clientId,
   hasGoogleProfile = false,
   googleProfileSummary = null,
+  sourceCounts = {},
+  businessName = null,
+  agentName = null,
   alwaysExpanded = false,
 }: AgentKnowsCardProps) {
   const [gaps, setGaps] = useState<Gap[]>([])
@@ -52,6 +58,9 @@ export default function AgentKnowsCard({
     .length
 
   const hasAnything = factCount > 0 || faqCount > 0 || servicesCount > 0 || approvedChunkCount > 0 || hasGoogleProfile
+  const websiteChunks = sourceCounts.website_scrape ?? 0
+  const docChunks = sourceCounts.knowledge_doc ?? 0
+  const manualChunks = (sourceCounts.manual_text ?? 0) + (sourceCounts.compiled_import ?? 0) + (sourceCounts.call_snippet ?? 0)
 
   useEffect(() => {
     if (!clientId) return
@@ -126,6 +135,27 @@ export default function AgentKnowsCard({
         <CountPill label="FAQ" count={faqCount} href="/dashboard/knowledge?tab=add&source=manual" />
         <CountPill label="Services" count={servicesCount} href="/dashboard/settings?tab=services" />
         <CountPill label="KB" count={approvedChunkCount} unit="chunk" href="/dashboard/knowledge" />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}>
+          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase t3 mb-1">Business identity</p>
+          <p className="text-[12px] t2 leading-relaxed">
+            {agentName || 'Your agent'} answers as {businessName || 'your business'}.
+          </p>
+          <Link href="/dashboard/agent" className="inline-flex mt-1 text-[11px] font-semibold hover:opacity-80 transition-opacity" style={{ color: 'var(--color-primary)' }}>
+            Edit business info →
+          </Link>
+        </div>
+        <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: 'var(--color-hover)', border: '1px solid var(--color-border)' }}>
+          <p className="text-[10px] font-semibold tracking-[0.14em] uppercase t3 mb-1">Searchable sources</p>
+          <p className="text-[12px] t2 leading-relaxed">
+            {websiteChunks} website · {docChunks} docs · {manualChunks} manual
+          </p>
+          <Link href="/dashboard/knowledge" className="inline-flex mt-1 text-[11px] font-semibold hover:opacity-80 transition-opacity" style={{ color: 'var(--color-primary)' }}>
+            Review answers →
+          </Link>
+        </div>
       </div>
 
       {googleProfileSummary?.trim() && (

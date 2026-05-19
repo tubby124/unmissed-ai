@@ -457,7 +457,7 @@ export function TrialSuccessScreen({
 
   const trialCountdown = snapshot?.trialExpiresAt ? getTrialCountdown(snapshot.trialExpiresAt) : null;
   const subtitle = liveCount > 0
-    ? `${agentName ?? "Your agent"} is ready for a browser test — trained on ${liveCount} facts from your business.`
+    ? `${agentName ?? "Your agent"} is ready for a browser test — loaded with ${liveCount} facts from your business.`
     : `${agentName ?? "Your agent"} is ready for a browser test.`;
 
   return (
@@ -547,7 +547,7 @@ export function TrialSuccessScreen({
                 ✓ That call was recorded
               </p>
               <p className="text-white/70 text-sm leading-relaxed">
-                Sign in to see the transcript, call summary, and everything {agentName ?? "your agent"} learned from that conversation.
+                Sign in to see the transcript, call summary, and what {agentName ?? "your agent"} captured from that conversation.
               </p>
               {callId && (
                 <p className="text-white/30 text-[11px]">

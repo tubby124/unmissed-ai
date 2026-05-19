@@ -6,7 +6,7 @@ import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 export const metadata: Metadata = {
   title: `AI Receptionist for Real Estate Agents — ${BRAND_NAME}`,
   description:
-    "Handle every buyer and seller inquiry while you're showing properties. Your AI handles calls, qualifies leads, and sends instant alerts — 24/7.",
+    "Handle missed buyer and seller inquiries while you're showing properties. Your AI qualifies leads and sends instant summaries.",
   alternates: {
     canonical: `https://${BRAND_DOMAIN}/for-realtors`,
   },

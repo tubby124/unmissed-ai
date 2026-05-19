@@ -15,18 +15,19 @@ import {
   COMPETITORS,
   FEATURE_COMPARISON,
   POLICIES,
+  getPlanDisplayMonthly,
 } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: `Pricing — ${BRAND_NAME} AI Receptionist`,
-  description: `Simple flat-rate pricing, no contracts. AI receptionist from $${PLANS[0].monthly}/mo CAD. ${TRIAL.label}. Cancel anytime.`,
+  description: `Simple flat-rate pricing, no contracts. AI receptionist from $${getPlanDisplayMonthly(PLANS[0])}/mo CAD founding rate. ${TRIAL.label}. Cancel anytime.`,
   alternates: {
     canonical: `https://${BRAND_DOMAIN}/pricing`,
   },
   openGraph: {
     title: `Pricing — ${BRAND_NAME}`,
-    description: `AI receptionist from $${PLANS[0].monthly}/mo CAD. ${TRIAL.label}. No contracts, no per-minute charges.`,
+    description: `AI receptionist from $${getPlanDisplayMonthly(PLANS[0])}/mo CAD founding rate. ${TRIAL.label}. No contracts, no per-minute charges.`,
   },
 };
 
@@ -120,7 +121,7 @@ export default function PricingPage() {
             >
               <p className="font-semibold text-sm" style={{ color: "var(--color-cta,#059669)" }}>
                 {BRAND_NAME} is flat-rate per plan with generous included minutes.
-                Every competitor charges more the busier you get — sometimes 5x more.
+                Many alternatives use usage-based pricing, so your bill can rise as call volume grows.
               </p>
             </div>
           </div>

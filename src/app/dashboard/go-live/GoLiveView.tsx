@@ -151,7 +151,7 @@ export default function GoLiveView({ client, hasTestCall = false, isAdmin }: Pro
           knowledgeDetail={knowledgeSources.length > 0 ? knowledgeSources.join(', ') : null}
           alertsReady={emailReady || telegramConnected}
           forwardingReady={isLive}
-          hasTestCall={hasTestCall || isLive}
+          hasTestCall={hasTestCall}
         />
 
         {/* ═══════════ Forwarding (the centerpiece) ═══════════ */}
@@ -257,7 +257,7 @@ function ReadinessChecklist({
     {
       label: 'Forwarding tested',
       done: forwardingReady,
-      detail: forwardingReady ? 'Business number reaches the agent' : 'Call your normal number and let it miss',
+      detail: forwardingReady ? 'Owner marked forwarding complete' : 'Call your normal number and let it miss',
     },
     {
       label: 'First test captured',

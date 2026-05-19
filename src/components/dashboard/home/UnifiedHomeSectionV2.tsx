@@ -284,6 +284,9 @@ export default function UnifiedHomeSectionV2({
           clientId={data.clientId}
           hasGoogleProfile={!!data.gbpData?.placeId}
           googleProfileSummary={data.gbpData?.summary ?? null}
+          sourceCounts={data.knowledge.source_counts}
+          businessName={data.onboarding.businessName}
+          agentName={data.agent.name}
         />
 
         {/* ════════════════════════════════════════════════════════════

@@ -3,13 +3,18 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { BRAND_NAME } from "@/lib/brand";
+import { PUBLIC_PLANS } from "@/lib/pricing";
+
+const minPlan = PUBLIC_PLANS[0];
+const maxPlan = PUBLIC_PLANS[PUBLIC_PLANS.length - 1];
+const publicPriceRange = `$${minPlan.foundingMonthly ?? minPlan.monthly}–$${maxPlan.foundingMonthly ?? maxPlan.monthly}`;
 
 const rows = [
   {
     feature: "Monthly cost",
     human: "$3,500+",
     answering: "$300–$500 + overage",
-    unmissed: "$147–$397",
+    unmissed: publicPriceRange,
     best: "unmissed",
   },
   {
@@ -23,21 +28,21 @@ const rows = [
     feature: "After-hours calls",
     human: "❌ No",
     answering: "Sometimes",
-    unmissed: "✅ Always",
+    unmissed: "✅ After forwarding is active",
     best: "unmissed",
   },
   {
     feature: "Sick days / no-shows",
     human: "Yes — gaps happen",
     answering: "Rare",
-    unmissed: "✅ Never",
+    unmissed: "✅ Designed to keep answering",
     best: "unmissed",
   },
   {
     feature: "Lead card (structured data)",
     human: "Hit or miss",
     answering: "❌ No",
-    unmissed: "✅ Every call",
+    unmissed: "✅ Captured call details",
     best: "unmissed",
   },
   {
@@ -51,14 +56,14 @@ const rows = [
     feature: "Learns from its own calls",
     human: "With training",
     answering: "❌ No",
-    unmissed: "✅ Weekly (The Learning Loop)",
+    unmissed: "✅ Reviewable call patterns",
     best: "unmissed",
   },
   {
     feature: "Setup time",
     human: "2–4 weeks + HR",
     answering: "1–3 days",
-    unmissed: "✅ 24 hours",
+    unmissed: "✅ Starts during onboarding",
     best: "unmissed",
   },
 ];

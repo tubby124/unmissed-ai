@@ -228,13 +228,18 @@ function AskYourAgent({ clientId, isAdmin }: { clientId: string; isAdmin: boolea
     setLoading(true)
     setAnswer(null)
     try {
-      const params = new URLSearchParams({ q })
-      if (isAdmin) params.set('client_id', clientId)
-      const res = await fetch(`/api/dashboard/knowledge/preview-question?${params}`)
+      const res = await fetch('/api/dashboard/preview-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: q,
+          ...(isAdmin ? { clientId } : {}),
+        }),
+      })
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
       setAnswer({
-        content: data.answer ?? data.content ?? 'No answer found.',
+        content: data.answer ?? data.preview ?? data.content ?? 'No answer found.',
         sources: data.sources ?? [],
       })
     } catch {

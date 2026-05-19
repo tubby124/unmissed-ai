@@ -18,20 +18,22 @@ import assert from 'node:assert/strict'
 import {
   buildOwnerAlertDetails,
   notificationsAlreadySent,
+  shouldSendPerCallEmail,
   type CompletedClient,
   type Classification,
   type NotificationContext,
 } from '../completed-notifications.js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 // ── Mock Supabase for idempotency check ──────────────────────────────────────
 
 function createIdempotencyMock(count: number | null) {
   return {
-    from(_table: string) {
+    from() {
       return {
-        select(..._args: unknown[]) {
+        select() {
           return {
-            eq(..._eqArgs: unknown[]) {
+            eq() {
               // Return the count directly (matches .select('id', { count: 'exact', head: true }))
               return Promise.resolve({ count, error: null })
             },
@@ -39,7 +41,7 @@ function createIdempotencyMock(count: number | null) {
         },
       }
     },
-  } as any
+  } as unknown as SupabaseClient
 }
 
 // ── notificationsAlreadySent ─────────────────────────────────────────────────
@@ -113,31 +115,36 @@ describe('S8d: CompletedClient guard prerequisites', () => {
     assert.equal(unknownPhone, 'unknown', 'unknown phone → guard triggers')
   })
 
-  test('email guard: contact_email required + not JUNK; non-voicemail needs explicit opt-in', () => {
-    const validEmail: Partial<CompletedClient> = {
-      niche: 'voicemail',
-      contact_email: 'test@example.com',
-      email_notifications_enabled: null,
-    }
-    const validClass: Partial<Classification> = { status: 'HOT' }
-    assert.ok(
-      validEmail.niche === 'voicemail' && validEmail.contact_email && validEmail.email_notifications_enabled !== false && validClass.status !== 'JUNK',
-      'voicemail default email path → passes guard'
+  test('email guard: voicemail replacement defaults to email; non-message modes require opt-in', () => {
+    assert.equal(
+      shouldSendPerCallEmail({ niche: 'voicemail', call_handling_mode: null, email_notifications_enabled: null }),
+      true,
+      'voicemail niche default email path passes guard'
     )
 
-    const optedInNonVoicemail: Partial<CompletedClient> = {
-      niche: 'real_estate',
-      contact_email: 'test@example.com',
-      email_notifications_enabled: true,
-    }
-    assert.ok(optedInNonVoicemail.email_notifications_enabled === true, 'non-voicemail explicit opt-in → passes guard')
+    assert.equal(
+      shouldSendPerCallEmail({ niche: 'plumbing', call_handling_mode: 'message_only', email_notifications_enabled: null }),
+      true,
+      'message_only service niche gets default email path'
+    )
 
-    const wrongNicheNoOptIn: Partial<CompletedClient> = {
-      niche: 'real_estate',
-      contact_email: 'test@example.com',
-      email_notifications_enabled: null,
-    }
-    assert.ok(wrongNicheNoOptIn.email_notifications_enabled !== true, 'non-voicemail without opt-in → guard triggers')
+    assert.equal(
+      shouldSendPerCallEmail({ niche: 'hvac', call_handling_mode: 'message_only', email_notifications_enabled: false }),
+      false,
+      'message_only can explicitly opt out'
+    )
+
+    assert.equal(
+      shouldSendPerCallEmail({ niche: 'real_estate', call_handling_mode: 'triage', email_notifications_enabled: true }),
+      true,
+      'non-message mode explicit opt-in passes guard'
+    )
+
+    assert.equal(
+      shouldSendPerCallEmail({ niche: 'real_estate', call_handling_mode: 'triage', email_notifications_enabled: null }),
+      false,
+      'non-message mode without opt-in triggers guard'
+    )
 
     const junkClass: Partial<Classification> = { status: 'JUNK' }
     assert.ok(junkClass.status === 'JUNK', 'JUNK classification → guard triggers')
@@ -185,7 +192,7 @@ describe('S8d: NotificationContext required fields', () => {
   test('NotificationContext has all fields needed by helpers', () => {
     // Compile-time check: if this compiles, the interface matches
     const ctx: NotificationContext = {
-      supabase: {} as any,
+      supabase: {} as unknown as SupabaseClient,
       client: {
         id: 'c1',
         business_name: 'Test Biz',
@@ -202,6 +209,7 @@ describe('S8d: NotificationContext required fields', () => {
         contact_email: null,
         telegram_notifications_enabled: null,
         email_notifications_enabled: null,
+        call_handling_mode: 'triage',
       },
       callId: 'uv-call-123',
       callLogId: 'log-456',

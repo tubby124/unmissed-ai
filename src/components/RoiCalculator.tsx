@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { BRAND_NAME } from "@/lib/brand";
+import { PLANS } from "@/lib/pricing";
 
 function formatCurrency(n: number) {
   if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
@@ -18,7 +19,7 @@ export default function RoiCalculator() {
   const missedPerWeek = Math.round(callsPerWeek * (missRate / 100));
   const lostPerWeek = missedPerWeek * jobValue;
   const lostPerMonth = lostPerWeek * 4.33;
-  const agentCost = 247;
+  const agentCost = PLANS[1].foundingMonthly ?? PLANS[1].monthly;
   const roi = Math.round((lostPerMonth - agentCost) / agentCost * 100);
 
   return (
@@ -39,7 +40,7 @@ export default function RoiCalculator() {
             Find out what missed calls are costing you.
           </h2>
           <p style={{ color: "var(--color-text-2)" }}>
-            Move the sliders to see your real number.
+            Move the sliders to estimate your missed-call cost.
           </p>
         </div>
 
@@ -197,7 +198,7 @@ export default function RoiCalculator() {
                     {roi > 999 ? "1000%+" : `${roi}%`} ROI
                   </motion.span>
                 </p>
-                <p className="text-xs" style={{ color: "var(--color-text-2)" }}>payback in week 1</p>
+                <p className="text-xs" style={{ color: "var(--color-text-2)" }}>estimated monthly return</p>
               </div>
             </div>
           </div>

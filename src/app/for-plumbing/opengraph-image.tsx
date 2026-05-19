@@ -78,7 +78,7 @@ export default function Image() {
             padding: '0 80px',
           }}
         >
-          Never lose a plumbing emergency to voicemail
+          Route missed plumbing calls away from voicemail
         </div>
 
         {/* Stats bar */}

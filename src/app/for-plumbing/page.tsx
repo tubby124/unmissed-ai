@@ -6,14 +6,14 @@ import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 export const metadata: Metadata = {
   title: `AI Receptionist for Plumbers — ${BRAND_NAME}`,
   description:
-    "Never lose a plumbing emergency to voicemail. Your AI handles calls 24/7 — triages leaks, collects details, sends you instant alerts.",
+    "Route missed plumbing calls away from voicemail. Your AI triages leaks, collects details, and sends instant summaries.",
   alternates: {
     canonical: `https://${BRAND_DOMAIN}/for-plumbing`,
   },
   openGraph: {
     title: `AI Receptionist for Plumbers — ${BRAND_NAME}`,
     description:
-      "Never lose a plumbing emergency to voicemail. Your AI handles calls 24/7 — triages leaks, collects details, sends you instant alerts.",
+      "Route missed plumbing calls away from voicemail. Your AI triages leaks, collects details, and sends instant summaries.",
   },
 };
 

@@ -29,7 +29,7 @@ export default function SoftTestGateCard({ onScrollToTestCall }: Props) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[12px] font-semibold t1">Hear your agent before going live</p>
-        <p className="text-[11px] t3 leading-snug">Make a quick test call to hear exactly how your agent sounds to customers.</p>
+        <p className="text-[11px] t3 leading-snug">Make a quick test call to preview how your agent sounds before you forward missed calls.</p>
       </div>
       <button
         onClick={onScrollToTestCall}

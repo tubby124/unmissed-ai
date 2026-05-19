@@ -6,7 +6,7 @@ import { BRAND_NAME, BRAND_DOMAIN } from '@/lib/brand'
 
 export const metadata: Metadata = {
   title: `Keep Your Existing Phone Number — ${BRAND_NAME}`,
-  description: `Your customers still call YOUR number. End Voicemail answers behind the scenes when you don't pick up — they never see our number, they never know.`,
+  description: `Your customers still call YOUR number. End Voicemail answers behind the scenes when you don't pick up, and our number does not show on their screen.`,
   alternates: { canonical: `https://${BRAND_DOMAIN}/keep-your-number` },
   openGraph: {
     title: `Keep Your Existing Phone Number — ${BRAND_NAME}`,
@@ -30,7 +30,7 @@ export default function KeepYourNumberPage() {
             </h1>
             <p className="text-gray-400 text-xl leading-relaxed">
               Your customers dial your business number. {BRAND_NAME} only picks up when you don&apos;t.
-              They never see our number. They never know the call was routed.
+              They still call your normal number, and our number does not show on their screen.
             </p>
           </div>
         </section>

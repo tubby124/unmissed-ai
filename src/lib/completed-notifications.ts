@@ -33,6 +33,7 @@ export interface CompletedClient {
   contact_email: string | null
   telegram_notifications_enabled: boolean | null
   email_notifications_enabled: boolean | null
+  call_handling_mode?: string | null
 }
 
 /** Classification result from OpenRouter or pre-classification. */
@@ -152,6 +153,16 @@ export function buildOwnerAlertDetails(
     requiredNextStep,
     callbackOpener,
   }
+}
+
+export function shouldSendPerCallEmail(client: Pick<CompletedClient, 'niche' | 'call_handling_mode' | 'email_notifications_enabled'>): boolean {
+  const isVoicemailReplacement = client.niche === 'voicemail' || client.call_handling_mode === 'message_only'
+
+  if (isVoicemailReplacement) {
+    return client.email_notifications_enabled !== false
+  }
+
+  return client.email_notifications_enabled === true
 }
 
 // ── Idempotency Guard ────────────────────────────────────────────────────────
@@ -565,24 +576,34 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
 
   if (!client.contact_email || classification.status === 'JUNK') return
 
-  // Voicemail niche always sends (per-call alert IS the product) unless explicitly opted out.
-  // Other niches require explicit opt-in via email_notifications_enabled === true.
-  // Default (null) = no per-call emails — clients toggle on from dashboard if they want them.
-  if (client.niche === 'voicemail') {
-    if (client.email_notifications_enabled === false) {
-      console.log(`[completed] Email SKIPPED for slug=${slug}: voicemail niche but opted out`)
-      return
+  // Voicemail replacement always sends per-call email by default, even when the
+  // business niche is HVAC/plumbing/etc. Telegram remains optional.
+  if (!shouldSendPerCallEmail(client)) {
+    const mode = client.call_handling_mode || 'unknown'
+    if (client.niche === 'voicemail' || mode === 'message_only') {
+      console.log(`[completed] Email SKIPPED for slug=${slug}: voicemail replacement opted out`)
+    } else {
+      console.log(`[completed] Email SKIPPED for slug=${slug}: niche=${client.niche} mode=${mode} requires explicit opt-in`)
     }
-  } else {
-    if (client.email_notifications_enabled !== true) {
-      console.log(`[completed] Email SKIPPED for slug=${slug}: niche=${client.niche} requires explicit opt-in`)
-      return
-    }
+    return
   }
 
   try {
     const resendKey = process.env.RESEND_API_KEY
-    if (!resendKey) return
+    if (!resendKey) {
+      console.error(`[completed] Voicemail email failed for callId=${callId}: RESEND_API_KEY missing`)
+      const { error: nlErr } = await supabase.from('notification_logs').insert({
+        call_id: callLogId,
+        client_id: client.id,
+        channel: 'email',
+        recipient: client.contact_email,
+        content: 'voicemail email failed before send: RESEND_API_KEY missing',
+        status: 'failed',
+        error: 'RESEND_API_KEY missing',
+      })
+      if (nlErr) console.error(`[completed] notification_logs insert failed (email-config): ${nlErr.message}`)
+      return
+    }
 
     const transcriptText = transcript
       .map((m) => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)

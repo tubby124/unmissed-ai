@@ -34,15 +34,15 @@ export const CALL_ME_WIDGET_COPY = {
   /** Hero/compact mode helper text under the input row */
   helperTextCompact:  "Demo call only. No app. No sign-up.",
   /** Standard (non-compact) label above the input */
-  standardLabel:      "Get a live call from Zara in seconds.",
+  standardLabel:      "Preview a call from Zara in seconds.",
   /** Expanded helper text in non-compact mode */
   helperTextFull:     "We'll call your phone and connect you live. No app needed.",
   /** Proof line — shows under input in hero compact mode */
-  proofLine:          "Hear exactly how End Voicemail answers, qualifies, and follows up with callers.",
+  proofLine:          "Hear how End Voicemail answers, qualifies, and follows up with callers. Your real voicemail test happens after checkout, when you forward missed calls from your business line.",
   /** Success heading — urgency, not celebration */
   successHeading:     "Pick up now — Zara is calling from an unknown number.",
   /** Success body — sets expectation + reinforces value */
-  successBody:        "That's Zara, our AI receptionist. This is exactly what your callers will hear.",
+  successBody:        "That's Zara, our AI receptionist. This previews the call style your real agent uses after you forward missed calls.",
   /** Button states */
   buttonIdle:         "Call Me Now",
   buttonLoading:      "Calling...",
@@ -103,7 +103,7 @@ export const TRUST_BAR = {
 export const DEMO_SECTION = {
   eyebrow: 'Live Demo',
   headline: 'Hear it answer.',
-  subheadline: 'Real calls your AI agent handles — every caller greeted, every job captured.',
+  subheadline: 'Sample calls your AI agent can handle — caller greeted, job details captured, summary prepared.',
   ctaLabel: 'Talk to an AI Agent Live',
   ctaHref: '/try',
   ctaSubtext: 'No sign-up · Browser demo',
@@ -143,7 +143,7 @@ export const HOW_IT_WORKS = {
       icon: CircleCheck as LucideIcon,
       title: 'Call back informed — skip the jobs not worth your time',
       description:
-        'You know exactly what the job is before you dial. No chasing dead ends. Just close the work that\'s worth your time.',
+        'You know what the job is before you dial. No chasing dead ends. Just close the work that\'s worth your time.',
     },
   ],
 }

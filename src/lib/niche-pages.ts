@@ -98,13 +98,13 @@ export const AUTO_GLASS: NichePageData = {
     subtitle: "For Auto Glass Shops",
     headline: "Stop losing windshield jobs to voicemail.",
     body: "You\u2019re mid-calibration. A customer calls about a cracked windshield on their 2024 F-150. Three rings. They hang up and call the next shop on Google. That\u2019s a $600 job gone — and you\u2019ll never know they called.",
-    tagline: "You can\u2019t stop mid-install to answer. Your agent never lets a call go to voicemail.",
+    tagline: "You can\u2019t stop mid-install to answer. Your agent routes missed calls away from voicemail once forwarding is active.",
     ctaLabel: "Get My Auto Glass Agent \u2192",
   },
   stats: [
     { value: "$150\u2013$800", label: "Avg glass job value", color: "primary" },
     { value: "3 jobs/week", label: "Typical missed calls per shop", color: "red" },
-    { value: "$93,600", label: "Estimated annual opportunity", color: "green" },
+    { value: "Example ROI", label: "Based on your missed-call assumptions", color: "green" },
   ],
   collected: {
     headline: "Your agent collects everything you need to quote the job.",
@@ -128,7 +128,7 @@ export const AUTO_GLASS: NichePageData = {
     subtext: "At $400/avg job, a single captured lead covers your entire plan cost.",
   },
   finalCta: {
-    headline: "Never lose a windshield job to voicemail again.",
+    headline: "Route windshield calls away from voicemail.",
     ctaLabel: "Get My Auto Glass Agent \u2192",
   },
   showDemoPopup: true,
@@ -153,7 +153,7 @@ export const HVAC: NichePageData = {
   stats: [
     { value: "$200\u2013$800", label: "Avg service call value", color: "primary" },
     { value: "5+ calls/week", label: "Missed during peak season", color: "red" },
-    { value: "$156,000", label: "Estimated annual opportunity", color: "green" },
+    { value: "Example ROI", label: "Based on your missed-call assumptions", color: "green" },
   ],
   collected: {
     headline: "Your agent collects everything you need to dispatch the right tech.",
@@ -177,7 +177,7 @@ export const HVAC: NichePageData = {
     subtext: "At $500/avg job, a single captured lead covers your entire plan cost.",
   },
   finalCta: {
-    headline: "Never lose a service call to voicemail again.",
+    headline: "Route service calls away from voicemail.",
     ctaLabel: "Get My HVAC Agent \u2192",
   },
   showDemoPopup: true,
@@ -195,14 +195,14 @@ export const PLUMBING: NichePageData = {
   hero: {
     subtitle: "For Plumbers",
     headline: "Stop losing emergency jobs to voicemail.",
-    body: "A pipe bursts at midnight. The homeowner is panicking, water everywhere, shut-off valve location unknown. They call your company. Voicemail. They call the next plumber on Google and someone else gets the job. Emergency calls pay double. Your agent catches every one.",
+    body: "A pipe bursts at midnight. The homeowner is panicking, water everywhere, shut-off valve location unknown. They call your company. Voicemail. They call the next plumber on Google and someone else gets the job. Your agent captures the details when forwarding is active, so you can call back ready.",
     tagline: "A burst pipe at midnight can\u2019t wait for voicemail. Your agent is always there.",
     ctaLabel: "Get My Plumbing Agent \u2192",
   },
   stats: [
     { value: "$200\u2013$600", label: "Avg service call value", color: "primary" },
     { value: "4 calls/week", label: "Missed after hours", color: "red" },
-    { value: "$124,800", label: "Estimated annual opportunity", color: "green" },
+    { value: "Example ROI", label: "Based on your missed-call assumptions", color: "green" },
   ],
   collected: {
     headline: "Your agent captures what you\u2019d need to dispatch \u2014 before you pick up the phone.",
@@ -226,7 +226,7 @@ export const PLUMBING: NichePageData = {
     subtext: "At $400/avg job, a single captured lead covers your entire plan cost.",
   },
   finalCta: {
-    headline: "Never lose a plumbing job to voicemail again.",
+    headline: "Route plumbing calls away from voicemail.",
     ctaLabel: "Get My Plumbing Agent \u2192",
   },
   showDemoPopup: true,
@@ -251,7 +251,7 @@ export const DENTAL: NichePageData = {
   stats: [
     { value: "$800\u2013$2,000", label: "Avg new patient lifetime value", color: "primary" },
     { value: "8+ calls/week", label: "Missed outside office hours", color: "red" },
-    { value: "$332,800", label: "Estimated annual opportunity", color: "green" },
+    { value: "Example ROI", label: "Based on your missed-call assumptions", color: "green" },
   ],
   collected: {
     headline: "Your agent captures what your front desk would \u2014 even after hours.",
@@ -275,7 +275,7 @@ export const DENTAL: NichePageData = {
     subtext: "At $800+ lifetime value, a single captured patient covers your entire plan cost.",
   },
   finalCta: {
-    headline: "Never lose a new patient to voicemail again.",
+    headline: "Route new-patient calls away from voicemail.",
     ctaLabel: "Get My Dental Agent \u2192",
   },
   showDemoPopup: true,
@@ -300,7 +300,7 @@ export const LEGAL: NichePageData = {
   stats: [
     { value: "$3,000\u2013$10,000", label: "Avg retainer value", color: "primary" },
     { value: "6+ calls/week", label: "Missed after hours", color: "red" },
-    { value: "$936,000", label: "Estimated annual opportunity", color: "green" },
+    { value: "Example ROI", label: "Based on your missed-call assumptions", color: "green" },
   ],
   collected: {
     headline: "Your agent collects everything you need to qualify the lead.",
@@ -324,7 +324,7 @@ export const LEGAL: NichePageData = {
     subtext: "At $3,000+ per retainer, a single captured lead covers your entire plan cost many times over.",
   },
   finalCta: {
-    headline: "Never lose a client to voicemail again.",
+    headline: "Route client calls away from voicemail.",
     ctaLabel: "Get My Law Firm Agent \u2192",
   },
   showDemoPopup: true,

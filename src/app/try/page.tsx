@@ -84,7 +84,7 @@ export default function TryPage() {
             </h1>
             <p className="text-lg" style={{ color: "var(--color-text-2)" }}>
               No sign-up. No credit card. Pick an agent below, say your name, and start talking.
-              This is exactly what your customers will hear.
+              This previews the agent voice and call style. Voicemail replacement is proven after activation with a real forwarded-call test.
             </p>
           </div>
         </section>

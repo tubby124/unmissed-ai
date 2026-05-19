@@ -10,7 +10,7 @@ import { BRAND_NAME } from "@/lib/brand";
 export const metadata: Metadata = {
   title: `Hear a Real Demo — ${BRAND_NAME}`,
   description:
-    "Listen to real AI receptionist calls for auto glass, HVAC, plumbing, and more. This is exactly what your customers will hear.",
+    "Listen to AI receptionist demo calls for auto glass, HVAC, plumbing, and more. Preview the call style before activation.",
   openGraph: {
     title: `Hear a Real Demo — ${BRAND_NAME}`,
     description: "Real AI receptionist calls for auto glass, HVAC, plumbing, dental, legal, and salon businesses.",
