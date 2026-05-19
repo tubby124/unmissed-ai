@@ -186,10 +186,9 @@ export default function AboutPage() {
                     <span className="text-white font-semibold">
                       Transparent pricing.
                     </span>{" "}
-                    Flat monthly rate. No per-minute meter ticking in the
-                    background, no surprise overage at month-end, no &quot;starts
-                    at&quot; pricing that triples once you read the fine print.
-                    You know what you pay before you sign.
+                    Flat base subscription with included monthly minutes. No surprise
+                    overages at month-end; if you need more minutes, you buy prepaid
+                    reload packs. You know what you pay before you sign.
                   </li>
                   <li>
                     <span className="text-white font-semibold">
@@ -204,8 +203,8 @@ export default function AboutPage() {
                     <span className="text-white font-semibold">
                       Canadian-built, PIPEDA-first.
                     </span>{" "}
-                    Built in Canada under Canadian privacy law. PIPEDA-aligned
-                    data handling, CASL-compliant messaging, and recording
+                    Built in Canada under Canadian privacy law. PIPEDA-aware
+                    data handling, CASL-ready messaging controls, and recording
                     disclosures available out of the box. Your data and your
                     callers&apos; data stay protected.
                   </li>
@@ -221,7 +220,7 @@ export default function AboutPage() {
                   Equally important. We don&apos;t:
                 </p>
                 <ul className="list-disc list-inside space-y-2 text-gray-400">
-                  <li>Bill by the minute</li>
+                  <li>Surprise-bill you for extra minutes after the fact</li>
                   <li>Lock you into long contracts</li>
                   <li>Ship robotic scripts that get hung up on</li>
                   <li>

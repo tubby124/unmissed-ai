@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { Check, Star } from "lucide-react";
 import { OnboardingData } from "@/types/onboarding";
-import { PUBLIC_PLANS } from "@/lib/pricing";
+import { PUBLIC_PLANS, getPlanDisplayMonthly } from "@/lib/pricing";
 import { planToMode } from "@/lib/plan-entitlements";
 
 interface Props {
@@ -111,7 +111,7 @@ export default function StepPlan({ data, onUpdate }: Props) {
                       </span>
                     )}
                     <span className="ml-auto font-bold text-foreground">
-                      ${plan.monthly}
+                      ${getPlanDisplayMonthly(plan)}
                       <span className="text-xs font-normal text-muted-foreground">/mo</span>
                     </span>
                   </div>

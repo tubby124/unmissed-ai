@@ -3,7 +3,6 @@
  *
  * Creates a Stripe Checkout session for trial-to-paid conversion.
  * Redirects the user to Stripe Checkout.
- * Legacy single-price route — uses STRIPE_SUBSCRIPTION_PRICE_ID env var. See billing/upgrade for 3-tier flow.
  *
  * Public — linked from trial expiry emails. No auth required.
  * The clientId maps to a client with trial_expires_at set.
@@ -13,15 +12,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
+import { PUBLIC_PLANS } from '@/lib/pricing'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 }
 
-function getSubscriptionPriceId(): string {
-  const priceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID
-  if (!priceId) throw new Error('Missing env var STRIPE_SUBSCRIPTION_PRICE_ID')
-  return priceId
+function getPublicCheckoutPriceId(planId: string): string {
+  const plan = PUBLIC_PLANS.find((p) => p.id === planId)
+  if (!plan) throw new Error(`Invalid public checkout plan: ${planId}`)
+  if (!plan.stripeMonthlyPriceId) throw new Error(`Missing monthly Stripe price for plan: ${planId}`)
+  return plan.stripeMonthlyPriceId
 }
 
 export async function GET(req: NextRequest) {
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
     // Look up client — must have trial_expires_at set
     const { data: client, error: clientErr } = await adminSupa
       .from('clients')
-      .select('id, slug, business_name, trial_expires_at, contact_email')
+      .select('id, slug, business_name, trial_expires_at, contact_email, selected_plan')
       .eq('id', clientId)
       .single()
 
@@ -61,12 +62,13 @@ export async function GET(req: NextRequest) {
 
     const intakeId = intake?.id ?? null
 
+    const selectedPlanId = (client.selected_plan as string | null) || 'core'
     let subscriptionPriceId: string
     try {
-      subscriptionPriceId = getSubscriptionPriceId()
+      subscriptionPriceId = getPublicCheckoutPriceId(selectedPlanId)
     } catch (err) {
       console.error('[trial-convert] Subscription price lookup failed:', err)
-      return NextResponse.json({ error: 'Subscription price not configured', detail: String(err) }, { status: 500 })
+      return NextResponse.json({ error: 'Selected plan is not available for checkout', detail: String(err) }, { status: 400 })
     }
 
     const session = await getStripe().checkout.sessions.create({
@@ -77,11 +79,13 @@ export async function GET(req: NextRequest) {
         metadata: {
           client_id: clientId,
           client_slug: client.slug as string,
+          planId: selectedPlanId,
         },
       },
       metadata: {
         client_id: clientId,
         client_slug: client.slug,
+        planId: selectedPlanId,
         is_trial_convert: 'true',
         ...(intakeId ? { intake_id: intakeId } : {}),
       },

@@ -180,6 +180,7 @@ export async function activateClient(params: {
 
       // Generate a one-click recovery link so the user is auto-authenticated on click.
       // Fallback: login with email pre-filled so they can request a magic link.
+      const setupDestination = mode === 'trial' ? '/dashboard' : '/dashboard/go-live'
       setupUrl = `${appUrl}/login?email=${encodeURIComponent(contactEmail)}`
       try {
         const { data: linkData } = await adminSupa.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
@@ -187,7 +188,7 @@ export async function activateClient(params: {
         if (actionLink) {
           const parsed = new URL(actionLink)
           const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
-          if (tokenHash) setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+          if (tokenHash) setupUrl = `${appUrl}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=${encodeURIComponent(setupDestination)}`
         }
       } catch { /* fall through to login URL */ }
 

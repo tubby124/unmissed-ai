@@ -197,7 +197,13 @@ function LoginContent() {
     if (!email) { setError('Enter your email first, then click this link.'); return }
     setError('')
     setMagicLinkLoading(true)
-    const { error: otpError } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+      },
+    })
     setMagicLinkLoading(false)
     if (otpError) {
       setError(otpError.message)

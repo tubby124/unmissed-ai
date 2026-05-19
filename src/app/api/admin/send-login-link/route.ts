@@ -67,13 +67,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to generate login link' }, { status: 500 })
   }
 
-  let setupUrl = `${APP_URL}/dashboard`
+  const setupDestination = twilioNumber ? '/dashboard/go-live' : '/dashboard'
+  let setupUrl = `${APP_URL}${setupDestination}`
 
   try {
     const parsed = new URL(linkData.properties.action_link)
     const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
     if (tokenHash) {
-      setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+      setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=${encodeURIComponent(setupDestination)}`
     }
   } catch {
     console.warn(`${TAG} Could not parse action_link — using fallback URL`)

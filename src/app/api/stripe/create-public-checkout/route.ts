@@ -22,16 +22,17 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
 import { buildSlotInsertFields } from '@/lib/intake-transform'
+import { PUBLIC_PLANS } from '@/lib/pricing'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 }
 
-/** Subscription price from STRIPE_SUBSCRIPTION_PRICE_ID env var. Legacy single-price route — see billing/upgrade for 3-tier flow. */
-function getSubscriptionPriceId(): string {
-  const priceId = process.env.STRIPE_SUBSCRIPTION_PRICE_ID
-  if (!priceId) throw new Error('Missing env var STRIPE_SUBSCRIPTION_PRICE_ID')
-  return priceId
+function getPublicCheckoutPriceId(planId: string): string {
+  const plan = PUBLIC_PLANS.find((p) => p.id === planId)
+  if (!plan) throw new Error(`Invalid public checkout plan: ${planId}`)
+  if (!plan.stripeMonthlyPriceId) throw new Error(`Missing monthly Stripe price for plan: ${planId}`)
+  return plan.stripeMonthlyPriceId
 }
 
 const rateLimitMap = new Map<string, number[]>()
@@ -90,6 +91,13 @@ export async function POST(req: NextRequest) {
   // Resolve plan from intake — needed for both the clients INSERT and Stripe session metadata
   const intakeJson = (intake.intake_json as Record<string, unknown>) || {}
   const selectedPlanId = (intakeJson.selectedPlan as string) || 'core'
+  let subscriptionPriceId: string
+  try {
+    subscriptionPriceId = getPublicCheckoutPriceId(selectedPlanId)
+  } catch (err) {
+    console.error('[create-public-checkout] Subscription price lookup failed:', err)
+    return NextResponse.json({ error: 'Selected plan is not available for checkout', detail: String(err) }, { status: 400 })
+  }
 
   // ── Phase 6: Release stale reservations before attempting new one ──────────
   // Expired reservations (>30 min) are auto-reclaimed by the atomic OR clause below,
@@ -463,14 +471,6 @@ export async function POST(req: NextRequest) {
 
   // ── Create Stripe Checkout session ─────────────────────────────────────────
 
-  let subscriptionPriceId: string
-  try {
-    subscriptionPriceId = getSubscriptionPriceId()
-  } catch (err) {
-    console.error('[create-public-checkout] Subscription price lookup failed:', err)
-    return NextResponse.json({ error: 'Subscription price not configured', detail: String(err) }, { status: 500 })
-  }
-
   let session: { url: string | null }
   try {
     const isInventory = !!selectedNumber
@@ -491,11 +491,12 @@ export async function POST(req: NextRequest) {
         },
       ],
       subscription_data: {
-        trial_period_days: 7,
         metadata: {
           client_id: clientId,
           client_slug: clientSlug,
           intake_id: intakeId,
+          planId: selectedPlanId,
+          activation_minutes_included: '50',
         },
       },
       metadata: {

@@ -50,6 +50,7 @@ function StatusContent() {
 
   // Success screen: poll for Twilio number
   const [twilioNumber, setTwilioNumber] = useState<string | null>(null);
+  const [activationError, setActivationError] = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
 
   const fetchActivationStatus = useCallback(async () => {
@@ -57,7 +58,12 @@ function StatusContent() {
     try {
       const res = await fetch(`/api/public/activation-status?intakeId=${intakeId}`);
       if (!res.ok) return;
-      const json = await res.json() as { status: string; twilio_number: string | null };
+      const json = await res.json() as { status: string; twilio_number: string | null; message?: string };
+      if (json.status === "failed") {
+        setActivationError(json.message || `Activation needs manual help. Email ${SUPPORT_EMAIL} and we'll finish it.`);
+        setPolling(false);
+        return;
+      }
       if (json.twilio_number) {
         setTwilioNumber(json.twilio_number);
         setPolling(false);
@@ -143,6 +149,18 @@ function StatusContent() {
 
   // ── Success state ──────────────────────────────────────────────────────────
   if (success) {
+    if (activationError) {
+      return (
+        <div className="max-w-md w-full text-center space-y-4 py-12">
+          <div className="w-14 h-14 mx-auto rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold">!</div>
+          <h1 className="text-2xl font-bold text-foreground">We need to finish your activation manually.</h1>
+          <p className="text-sm text-muted-foreground">{activationError}</p>
+          <Link href="/login" className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white">
+            Sign in
+          </Link>
+        </div>
+      );
+    }
     return <SuccessView twilioNumber={twilioNumber} />;
   }
 

@@ -84,7 +84,7 @@ export default function HoursCard({
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">{mode === 'onboarding' ? 'When Are You Open?' : 'Business Hours'}</p>
-            <p className="text-[11px] t3 mt-0.5">{mode === 'onboarding' ? 'Your agent answers every call 24/7 — these hours tell it when your business is actually open' : 'Your agent always answers — these hours shape what it says when you\'re closed.'}</p>
+            <p className="text-[11px] t3 mt-0.5">{mode === 'onboarding' ? 'Your agent can answer forwarded missed calls 24/7 — these hours tell it when your business is actually open' : 'Your agent can answer whenever calls forward — these hours shape what it says when you\'re closed.'}</p>
           </div>
           <button
             onClick={save}
@@ -198,7 +198,7 @@ export default function HoursCard({
             </>
           )}
           {mode === 'onboarding' && (
-            <p className="text-[11px] t3 mt-1">Your agent answers every call 24/7. These hours let it tell callers when you&apos;re open vs. after-hours.</p>
+            <p className="text-[11px] t3 mt-1">Your agent can answer forwarded missed calls 24/7. These hours let it tell callers when you&apos;re open vs. after-hours.</p>
           )}
         </div>
       </div>

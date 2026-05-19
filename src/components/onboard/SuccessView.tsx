@@ -82,14 +82,14 @@ export function SuccessView({ twilioNumber }: { twilioNumber: string | null }) {
               <p className="text-amber-300 font-semibold text-sm">Forward your calls to your AI agent</p>
             </div>
             <p className="text-slate-400 text-xs leading-relaxed">
-              Set up call forwarding on your phone so incoming calls ring your AI number.
-              Step-by-step instructions are in your dashboard.
+              Check your email or SMS for your secure setup link. Once signed in,
+              open Go Live and forward missed calls from your normal business number.
             </p>
             <a
-              href="/dashboard/go-live"
+              href="/login"
               className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 hover:text-amber-200 transition-colors"
             >
-              View setup instructions
+              Sign in for setup instructions
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
@@ -117,11 +117,11 @@ export function SuccessView({ twilioNumber }: { twilioNumber: string | null }) {
 
         {/* CTA */}
         <a
-          href="/dashboard/go-live"
+          href="/login"
           className="block w-full text-center py-3 px-6 rounded-full text-white font-semibold text-sm transition-opacity hover:opacity-90"
           style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)" }}
         >
-          Go Live &rarr;
+          Sign in to Go Live &rarr;
         </a>
 
         {/* Footer */}

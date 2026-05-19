@@ -1,16 +1,22 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 export default function ProvisioningWait() {
   const router = useRouter()
+  const [isTakingLong, setIsTakingLong] = useState(false)
 
   useEffect(() => {
-    // Reload every 3 seconds until the Twilio number is provisioned
-    const id = setTimeout(() => router.refresh(), 3000)
-    return () => clearTimeout(id)
+    const interval = setInterval(() => router.refresh(), 3000)
+    return () => clearInterval(interval)
   }, [router])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => setIsTakingLong(true), 90_000)
+    return () => clearTimeout(timeout)
+  }, [])
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -21,8 +27,27 @@ export default function ProvisioningWait() {
             <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.72A2 2 0 012 1h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" />
           </svg>
         </div>
-        <h1 className="text-lg font-semibold t1 mb-2">Activating your plan…</h1>
-        <p className="text-sm t3">Assigning your phone number. This takes just a few seconds.</p>
+        <h1 className="text-lg font-semibold t1 mb-2">
+          {isTakingLong ? 'Activation is taking longer than expected' : 'Activating your plan…'}
+        </h1>
+        <p className="text-sm t3">
+          {isTakingLong
+            ? 'Your payment is complete, but your AI number has not appeared yet. You can keep moving or contact support.'
+            : 'Assigning your phone number. This takes just a few seconds.'}
+        </p>
+        {isTakingLong && (
+          <div className="mt-5 flex flex-col gap-2 text-sm">
+            <Link href="/dashboard/go-live" className="rounded-lg bg-primary px-4 py-2 text-white font-medium">
+              Open Go Live
+            </Link>
+            <Link href="/dashboard/billing" className="rounded-lg border px-4 py-2 font-medium">
+              Check billing
+            </Link>
+            <a href="mailto:support@endvoicemail.ai" className="text-xs underline underline-offset-2 t3">
+              Contact support
+            </a>
+          </div>
+        )}
         <div className="flex justify-center gap-1 mt-6">
           {[0, 1, 2].map(i => (
             <div key={i} className="w-1.5 h-1.5 rounded-full"

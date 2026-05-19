@@ -167,7 +167,7 @@ export default function PrivacyPage() {
                 <p className="text-gray-400 mt-1">
                   Your data flows through US-based infrastructure: Twilio (telephony, US),
                   Ultravox (voice AI processing, US), Supabase (call logs and recordings, US-East),
-                  Resend (transactional email, US), Stripe (billing, US). PIPEDA-compliant
+                  Resend (transactional email, US), Stripe (billing, US). PIPEDA-aware
                   cross-border disclosure: your customers&apos; call recordings and transcripts
                   may be processed and stored outside Canada. If this is a hard requirement for
                   your business, contact us before subscribing — we can discuss Canadian-resident

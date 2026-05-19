@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { X, Check } from 'lucide-react'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { trackEvent } from '@/lib/analytics'
-import { PLANS, PUBLIC_PLANS } from '@/lib/pricing'
+import { PLANS, PUBLIC_PLANS, getPlanDisplayMonthly } from '@/lib/pricing'
 
 // ── Per-plan short highlights for the modal (3 lines max) ────────────
 // Edit these to change what shows inside the upgrade modal.
@@ -192,7 +192,7 @@ export default function UpgradeModal() {
               >
                 {loading
                   ? 'Setting up…'
-                  : `Continue with ${plan.name} — $${plan.monthly}/mo`}
+                  : `Continue with ${plan.name} — $${getPlanDisplayMonthly(plan)}/mo`}
               </button>
 
               {/* Dismiss */}

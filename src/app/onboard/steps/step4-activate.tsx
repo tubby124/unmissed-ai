@@ -492,7 +492,7 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
             Your plan
           </p>
           <span className="text-xs font-bold text-foreground">
-            {planData.name} — ${planData.monthly}/mo
+            {planData.name} — ${planData.foundingMonthly ?? planData.monthly}/mo
           </span>
         </div>
         <p className="text-sm font-medium text-foreground">

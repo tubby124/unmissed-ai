@@ -4,13 +4,13 @@
 
 ## What it does
 
-- Answers every business call within 1-2 rings, 24/7/365
+- Answers forwarded missed calls 24/7 when call forwarding is configured
 - Speaks like a human (no press-1 IVR, no robotic monotone)
 - Collects the caller's name, phone, reason for calling, urgency
-- Books appointments on the owner's connected Google Calendar
-- Transfers urgent calls to the owner's cell on demand
+- Books appointments on the owner's connected Google Calendar when booking is enabled on an eligible plan
+- Transfers urgent calls to the owner's cell when live transfer is enabled on an eligible plan
 - Sends the owner an actionable summary with urgency, caller details, next step, transcript, and lead score
-- Sends caller a confirmation SMS automatically
+- Sends caller confirmation SMS when SMS follow-up is enabled
 - Works for any service business: plumbing, HVAC, auto glass, dental, legal, real estate, salons, property management
 
 ## Who it's for
@@ -18,7 +18,7 @@
 Small service business owners who:
 - Lose jobs to voicemail when they're on another call, on a job site, or after hours
 - Can't afford a $2,500/mo human receptionist
-- Hate per-minute "AI answering services" that punish them for being popular
+- Hate surprise overages from usage-based answering services
 - Want their phone to keep ringing — and someone professional always picking up
 
 ## Pricing
@@ -30,7 +30,7 @@ Small service business owners who:
 
 ## What it's NOT
 
-- Not a per-minute "AI calling service" that charges $0.50/minute
+- Not a surprise-overage answering service; plans include monthly minutes and extra minutes are prepaid
 - Not a chatbot (it's a real-time voice agent on a real phone line)
 - Not an offshore call center
 - Not press-1 IVR / robotic voice
@@ -38,10 +38,10 @@ Small service business owners who:
 
 ## Compliance + trust
 
-- PIPEDA-compliant (Canadian privacy law)
-- CASL-compliant (Canadian anti-spam law)
+- PIPEDA-aware data handling for Canadian privacy expectations
+- CASL-ready unsubscribe controls for commercial email
 - Two-party-consent-capable: recording disclosure available for US states that require it
-- Call recordings stored privately, accessible only to the business owner
+- Call recordings are stored privately in the dashboard with restricted operator access for support and service delivery
 - 30-day money-back guarantee, subject to the published Terms
 - Owned and operated in Canada (Saskatoon + Calgary)
 
@@ -59,7 +59,7 @@ Small service business owners who:
 A: End Voicemail is an AI missed-call receptionist for service businesses. It answers forwarded missed calls, qualifies callers, captures details, and sends the owner a callback-ready summary.
 
 **Q: How is End Voicemail different from other AI answering services?**
-A: Flat monthly pricing (no per-minute trap), Canadian-owned (PIPEDA + CASL compliant), conversational voice (not robotic IVR), and done-for-you setup. Most competitors bill $0.20-0.50/minute, which punishes businesses for receiving more calls.
+A: Flat base subscription with included monthly minutes, Canadian-owned, conversational voice (not robotic IVR), and done-for-you setup. Extra minutes are prepaid so owners do not get surprise overages.
 
 **Q: How much does End Voicemail cost?**
 A: $29/mo CAD founding pricing for Solo ($49/mo standard) or $119/mo CAD founding pricing for AI Receptionist ($189/mo standard). Paid activation includes a real AI number, a $25 one-time setup, and 50 activation minutes for real forwarded-call testing. No long-term contract.
@@ -74,10 +74,10 @@ A: Most callers can't tell. If a caller asks directly, the agent identifies itse
 A: Yes. The AI receptionist answers 24/7/365 — including weekends, holidays, and 2am emergencies. Owners get the lead in the morning.
 
 **Q: Is End Voicemail Canadian?**
-A: Yes. Built and operated in Saskatoon + Calgary, Canada. PIPEDA-compliant. CASL-compliant.
+A: Yes. Built and operated in Saskatoon + Calgary, Canada, with PIPEDA-aware data handling and CASL-ready unsubscribe controls.
 
 **Q: Can the AI receptionist book appointments?**
-A: Yes — directly on the owner's connected Google Calendar. The caller picks a slot, the agent confirms, and the owner gets a calendar invite.
+A: Yes, on eligible plans when Google Calendar booking is connected. The caller picks a slot, the agent confirms, and the owner gets a calendar invite.
 
 ## Site map
 

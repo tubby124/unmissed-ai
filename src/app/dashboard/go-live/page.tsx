@@ -65,17 +65,31 @@ export default async function GoLivePage({
     )
   }
 
-  // Go Live proof should come from the real phone path, not browser/direct test calls.
-  // Cheapest possible existence check: head + count + limit(1).
-  const { count: testCallCount } = await supabase
+  // Go Live proof should come from a completed real phone-path call, not a
+  // browser/direct test call or a merely connected Twilio leg.
+  const { data: proofCalls } = await supabase
     .from('call_logs')
-    .select('id', { count: 'exact', head: true })
+    .select('id')
     .eq('client_id', targetClientId)
-    .neq('call_status', 'test')
+    .in('call_status', ['HOT', 'WARM', 'COLD'])
     .not('twilio_call_sid', 'is', null)
-    .limit(1)
+    .not('ultravox_call_id', 'is', null)
+    .order('started_at', { ascending: false })
+    .limit(5)
 
-  const hasTestCall = (testCallCount ?? 0) > 0
+  const proofCallIds = (proofCalls ?? []).map((row) => row.id as string)
+  let hasTestCall = proofCallIds.length > 0
+  const requiresEmailProof = client.email_notifications_enabled !== false && !!client.contact_email
+  if (requiresEmailProof && proofCallIds.length > 0) {
+    const { count: sentEmailCount } = await supabase
+      .from('notification_logs')
+      .select('id', { count: 'exact', head: true })
+      .in('call_id', proofCallIds)
+      .eq('channel', 'email')
+      .eq('status', 'sent')
+      .limit(1)
+    hasTestCall = (sentEmailCount ?? 0) > 0
+  }
 
   return (
     <GoLiveView

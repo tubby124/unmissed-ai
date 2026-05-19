@@ -1,77 +1,24 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { CircleCheck } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PLANS, TRIAL, POLICIES, CURRENCY, FOUNDING_PROMO } from "@/lib/pricing";
+import { PLANS, TRIAL, POLICIES, CURRENCY, FOUNDING_PROMO, getPlanDisplayMonthly } from "@/lib/pricing";
 
 export default function PricingCards({ compact = false }: { compact?: boolean }) {
-  const [isAnnual, setIsAnnual] = useState(false);
+  const isAnnual = false;
   const shouldReduceMotion = useReducedMotion();
 
   return (
     <div>
-      {/* Annual/Monthly toggle — full (pricing page) mode only */}
       {!compact && (
         <div
-          className="flex items-center justify-center gap-1 p-1 rounded-xl mb-10 w-fit mx-auto"
+          className="flex items-center justify-center px-4 py-2 rounded-xl mb-10 w-fit mx-auto text-sm font-medium"
           style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
-          role="tablist"
-          aria-label="Billing period"
         >
-          {(["monthly", "annual"] as const).map((period) => (
-            <button
-              key={period}
-              role="tab"
-              aria-selected={period === (isAnnual ? "annual" : "monthly")}
-              onClick={() => setIsAnnual(period === "annual")}
-              className="relative text-sm font-medium px-4 py-2 rounded-lg transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 flex items-center gap-2"
-              style={{ color: "var(--color-text-3)" }}
-            >
-              {(period === "monthly" ? !isAnnual : isAnnual) && (
-                <motion.div
-                  layoutId="billing-period-bg"
-                  className="absolute inset-0 rounded-lg"
-                  style={{ backgroundColor: "var(--color-primary)" }}
-                  transition={
-                    shouldReduceMotion
-                      ? { duration: 0 }
-                      : { type: "spring", stiffness: 400, damping: 30 }
-                  }
-                />
-              )}
-              <span
-                className="relative z-10"
-                style={{
-                  color:
-                    (period === "monthly" ? !isAnnual : isAnnual)
-                      ? "white"
-                      : "var(--color-text-3)",
-                }}
-              >
-                {period === "monthly" ? (
-                  "Monthly"
-                ) : (
-                  <>
-                    Annual{" "}
-                    <span
-                      className="text-xs font-semibold px-1.5 py-0.5 rounded"
-                      style={
-                        isAnnual
-                          ? { backgroundColor: "rgba(255,255,255,0.2)", color: "white" }
-                          : { backgroundColor: "rgba(16,185,129,0.15)", color: "#10B981" }
-                      }
-                    >
-                      Save 20%
-                    </span>
-                  </>
-                )}
-              </span>
-            </button>
-          ))}
+          Monthly billing. Annual plans coming later.
         </div>
       )}
 
@@ -83,7 +30,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
           const isFoundingRate =
             !isAnnual && FOUNDING_PROMO.enabled && !!plan.foundingMonthly;
           const displayPrice = isFoundingRate
-            ? plan.foundingMonthly!
+            ? getPlanDisplayMonthly(plan)
             : isAnnual
             ? plan.annual
             : plan.monthly;

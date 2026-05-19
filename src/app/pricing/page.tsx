@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: `Pricing — ${BRAND_NAME}`,
-    description: `AI receptionist from $${getPlanDisplayMonthly(PLANS[0])}/mo CAD founding rate. ${TRIAL.label}. No contracts, no per-minute charges.`,
+    description: `AI receptionist from $${getPlanDisplayMonthly(PLANS[0])}/mo CAD founding rate. ${TRIAL.label}. No contracts, no surprise overages.`,
   },
 };
 
@@ -106,10 +106,10 @@ export default function PricingPage() {
                   ))}
                   <tr style={{ backgroundColor: "var(--color-accent,#EEF2FF)", borderBottom: "1px solid var(--color-border)" }}>
                     <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>{BRAND_NAME}</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>from ${PLANS[0].monthly}/mo</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>from ${getPlanDisplayMonthly(PLANS[0])}/mo</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Flat rate per plan</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Predictable</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>No per-minute billing</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Prepaid extra minutes</td>
                   </tr>
                 </tbody>
               </table>

@@ -9,8 +9,8 @@
  *   - §10 (mobile interaction — confetti once, safe-area inset, single brand accent)
  *   - §13 (a11y)
  *
- * Renders nothing when `isLive` is false. When live: green pill with the
- * Twilio number, tap-to-copy, and "Callers reach your agent." subcopy.
+ * Renders nothing when `isLive` is false. The parent only passes true after
+ * forwarding is marked done and a completed phone-path proof call exists.
  *
  * Confetti fires once per mount on the first transition into live state.
  * The page can derive `isLive` from the four conditions in §6 and pass it in.
@@ -71,7 +71,7 @@ export default function GoLiveBanner({ isLive, twilioNumber }: GoLiveBannerProps
           <AnimatePresence>{showConfetti && <ConfettiBurst />}</AnimatePresence>
 
           <div className="rounded-2xl bg-emerald-500 text-white shadow-lg px-5 py-4 flex items-center gap-3">
-            <span className="font-semibold text-base whitespace-nowrap">✓ You&apos;re live</span>
+            <span className="font-semibold text-base whitespace-nowrap">✓ Phone path proved</span>
             {formatted && (
               <button
                 type="button"
@@ -85,7 +85,7 @@ export default function GoLiveBanner({ isLive, twilioNumber }: GoLiveBannerProps
             )}
           </div>
           <p className="text-center text-xs text-emerald-900/80 mt-1.5">
-            Callers reach your agent.
+            Your normal business number has reached the agent.
           </p>
         </div>
       </div>

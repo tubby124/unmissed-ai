@@ -46,7 +46,7 @@ const RAILS: GuardRail[] = [
   },
   {
     title: `It can transfer to you (on the right plan)`,
-    body: `If a caller insists on a human, or hits a transfer keyword you set ("emergency", "complaint", "press 0"), the agent transfers the call to your phone. Available on the AI Receptionist plan ($40/mo).`,
+    body: `If a caller insists on a human, or hits a transfer keyword you set ("emergency", "complaint", "press 0"), the agent can transfer the call to your phone when live transfer is enabled on an eligible plan.`,
   },
   {
     title: `It hangs up on abuse and spam`,
@@ -109,7 +109,7 @@ export default function GuardrailsPage() {
             className="inline-block px-8 py-4 rounded-xl text-white font-semibold transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
-            Try your agent free for 7 days →
+            Start with 50 activation minutes →
           </Link>
           <p className="text-xs mt-3" style={{ color: 'var(--color-text-3)' }}>
             Listen to every call. Approve every change. Cancel anytime.

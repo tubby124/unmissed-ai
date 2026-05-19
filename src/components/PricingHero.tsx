@@ -45,7 +45,7 @@ export default function PricingHero() {
         >
           {FOUNDING_PROMO.enabled
             ? `Plans from $${FOUNDING_PROMO.foundingMonthly}/mo. Activate a real AI number.`
-            : `From $${PLANS[0].monthly}/mo. Your agent answers every call, 24/7.`}
+            : `From $${PLANS[0].monthly}/mo. Your agent answers forwarded missed calls.`}
         </motion.h1>
         <motion.p
           className="text-gray-400 text-xl leading-relaxed mb-2"

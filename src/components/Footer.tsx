@@ -33,8 +33,8 @@ export default function Footer() {
             </div>
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: "var(--color-text-2)" }}>
               Done-for-you AI receptionist for service businesses. Your agent
-              answers every call, captures every lead, and sends you instant
-              notifications — 24/7.
+              answers forwarded missed calls, captures lead details, and sends
+              callback-ready summaries.
             </p>
 
             {/* Email capture */}

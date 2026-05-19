@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: `%s | ${BRAND_NAME}`,
   },
   description:
-    "Stop losing leads to voicemail. Your AI receptionist answers every call 24/7, collects lead info, and sends you instant notifications. AI receptionist for small businesses.",
+    "Stop losing leads to voicemail. Your AI receptionist answers forwarded missed calls, collects lead info, and sends callback-ready summaries.",
   keywords: [
     "AI receptionist",
     "AI answering service",
@@ -58,7 +58,7 @@ export const metadata: Metadata = {
     siteName: BRAND_NAME,
     title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
     description:
-      "Stop losing leads to voicemail. Your AI agent answers every call 24/7, knows your business, and sends you the lead instantly. AI receptionist for small businesses.",
+      "Stop losing leads to voicemail. Your AI agent answers forwarded missed calls, knows your business, and sends you the lead details.",
     images: [
       {
         url: "/og-image.png",
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
     description:
-      "Stop losing leads to voicemail. AI agent answers every call 24/7. AI receptionist for small businesses.",
+      "Stop losing leads to voicemail. AI agent answers forwarded missed calls for small businesses.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -106,7 +106,7 @@ const organizationSchema = {
   url: siteUrl,
   logo: `${siteUrl}/logo.png`,
   description:
-    "Done-for-you AI receptionist service for small businesses. AI voice agents that answer every call, collect lead info, and send instant notifications.",
+    "Done-for-you AI receptionist service for small businesses. AI voice agents answer forwarded missed calls, collect lead info, and send call summaries.",
   contactPoint: {
     "@type": "ContactPoint",
     contactType: "customer service",

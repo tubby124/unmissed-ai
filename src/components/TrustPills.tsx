@@ -7,8 +7,8 @@ interface TrustPillsProps {
 
 const PILLS = [
   { icon: MapPin, label: "Built in Canada", title: "Saskatoon + Calgary" },
-  { icon: Shield, label: "PIPEDA-compliant", title: "Canadian privacy law" },
-  { icon: FileCheck, label: "CASL-compliant", title: "Canadian anti-spam law" },
+  { icon: Shield, label: "PIPEDA-aware", title: "Canadian privacy-law aware data handling" },
+  { icon: FileCheck, label: "CASL-ready", title: "Unsubscribe controls for commercial email" },
   { icon: PhoneCall, label: "Two-party-consent capable", title: "Recording disclosure available for US states that require it" },
 ];
 

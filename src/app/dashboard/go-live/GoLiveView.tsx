@@ -8,11 +8,10 @@
  *   HERO        — Twilio number, tap to copy
  *   FORWARDING  — <CallForwardingCard /> — carrier dial code + self-attest
  *   ALERTS      — email-first notification indicator + optional Telegram link
- *   BANNER      — <GoLiveBanner /> sticky pill when forwarding is attested
+ *   BANNER      — <GoLiveBanner /> sticky pill after forwarding and first proof call
  *
  * Live definition (derived, no `is_live` DB column):
- *   isLive = forwarding_self_attested || forwarding_verified_at is set.
- *   Forwarding is the only thing that gates going live.
+ *   forwarding is marked done, then a real missed-call proof has been captured.
  *
  * SMS auto-text + voicemail greeting + voice picker live on Settings only —
  * not duplicated here.
@@ -57,7 +56,8 @@ export default function GoLiveView({ client, hasTestCall = false, isAdmin }: Pro
   )
 
   // ── Live derivation ─────────────────────────────────────────────────────
-  const isLive = !!client.forwarding_verified_at || !!client.forwarding_self_attested
+  const forwardingReady = !!client.forwarding_verified_at || !!client.forwarding_self_attested
+  const isLive = forwardingReady && hasTestCall
 
   // ── Hero ────────────────────────────────────────────────────────────────
   const twilioNumber = client.twilio_number
@@ -150,7 +150,7 @@ export default function GoLiveView({ client, hasTestCall = false, isAdmin }: Pro
           knowledgeReady={knowledgeReady}
           knowledgeDetail={knowledgeSources.length > 0 ? knowledgeSources.join(', ') : null}
           alertsReady={emailReady || telegramConnected}
-          forwardingReady={isLive}
+          forwardingReady={forwardingReady}
           hasTestCall={hasTestCall}
         />
 
@@ -257,7 +257,7 @@ function ReadinessChecklist({
     {
       label: 'Forwarding tested',
       done: forwardingReady,
-      detail: forwardingReady ? 'Owner marked forwarding complete' : 'Call your normal number and let it miss',
+      detail: forwardingReady ? 'Forwarding marked done' : 'Forward missed calls, then call your normal number and let it miss',
     },
     {
       label: 'First test captured',

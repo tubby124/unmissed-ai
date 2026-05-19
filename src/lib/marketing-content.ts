@@ -15,7 +15,7 @@
 import { Phone, Zap, Clock } from 'lucide-react'
 import { PhoneIncoming, Bot, BellRing, CircleCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { PLANS, SETUP, MINUTE_RELOAD, POLICIES } from './pricing'
+import { PLANS, SETUP, MINUTE_RELOAD, POLICIES, getPlanDisplayMonthly } from './pricing'
 
 // ─── Hero ────────────────────────────────────────────────────────────
 export const HERO = {
@@ -175,12 +175,12 @@ export const FAQ_ITEMS = [
   {
     question: `What do I actually get?`,
     answer:
-      `Every plan includes generous minutes, an agent trained on your trade and services, instant call notifications, and a weekly review that improves your agent from real calls. No per-minute billing — you pay a flat base rate starting at $${PLANS[0].monthly}/mo. Need more minutes? Reload packs are $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} extra minutes.`,
+      `Every plan includes generous minutes, an agent trained on your trade and services, instant call notifications, and a weekly review that improves your agent from real calls. No surprise overages — you pay a flat base rate starting at $${getPlanDisplayMonthly(PLANS[0])}/mo. Need more minutes? Prepaid reload packs are $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} extra minutes.`,
   },
   {
     question: 'How are you different from Dialzara, Rosie, or My AI Front Desk?',
     answer:
-      `Three differences. First, pricing: they all charge per minute or per caller — your bill spikes when you're busy. We charge a flat rate starting at $${PLANS[0].monthly}/mo. Second, setup: they're self-serve platforms where you configure everything. We build your agent from your Google Business Profile and website during signup — you answer a few questions, we handle the rest. Third, specificity: your agent is trained on your trade, not a generic script. Booking and live call transfer are available on the ${PLANS[2].name} plan ($${PLANS[2].monthly}/mo).`,
+      `Three differences. First, pricing: many alternatives charge per minute or per caller — your bill rises when you're busy. We charge a flat base rate starting at $${getPlanDisplayMonthly(PLANS[0])}/mo, with prepaid reload packs when you need extra minutes. Second, setup: they're self-serve platforms where you configure everything. We build your agent from your Google Business Profile and website during signup — you answer a few questions, we handle the rest. Third, specificity: your agent is trained on your trade, not a generic script. Booking and live call transfer are available on eligible plans.`,
   },
   {
     question: 'What does the $25 setup fee cover?',
@@ -195,7 +195,7 @@ export const FAQ_ITEMS = [
   {
     question: 'Does it work after hours and on weekends?',
     answer:
-      "That's the whole point. Your agent answers every call, 24/7/365 — including 2am emergencies, Christmas Day, and while you're elbow-deep in a job. You'll get an email summary by default, with Telegram available for faster alerts, so you can decide whether to call back immediately or in the morning.",
+      "That's the whole point. Once missed-call forwarding is configured, your agent can answer 24/7/365 — including 2am emergencies, Christmas Day, and while you're elbow-deep in a job. You'll get an email summary by default, with Telegram available for faster alerts, so you can decide whether to call back immediately or in the morning.",
   },
   {
     question: 'How do I update what my agent knows?',
@@ -230,6 +230,6 @@ export const FAQ_ITEMS = [
   {
     question: `What if I subscribe and hate it?`,
     answer:
-      `${POLICIES.moneyBack} Email Hasan directly (hasan@endvoicemail.ai), full refund processed within 48 hours. ${POLICIES.moneyBackFineprint} After day 30 of paid use, you can still cancel anytime from your dashboard — no notice period, no fees — but the 30-day guarantee window has passed.`,
+      `${POLICIES.moneyBack} Email support@endvoicemail.ai and eligible refunds are processed promptly. ${POLICIES.moneyBackFineprint} After day 30 of paid use, you can still cancel anytime from your dashboard — no notice period, no fees — but the 30-day guarantee window has passed.`,
   },
 ]

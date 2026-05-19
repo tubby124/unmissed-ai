@@ -57,7 +57,7 @@ export const pricingSchema = {
   "@type": "Product",
   name: `${BRAND_NAME} ${BRAND_PRODUCT}`,
   description:
-    "Done-for-you AI receptionist service. AI voice agent answers every call 24/7, collects lead info, and sends instant notifications to your phone.",
+    "Done-for-you AI receptionist service. AI voice agent answers forwarded missed calls, collects lead info, and sends call summaries.",
   url: `${siteUrl}/pricing`,
   brand: {
     "@type": "Brand",
@@ -118,7 +118,7 @@ export const localBusinessSchema = {
   name: BRAND_NAME,
   url: siteUrl,
   description:
-    "AI receptionist service for small businesses. Answers every call 24/7, qualifies leads, and sends instant notifications to the owner.",
+    "AI receptionist service for small businesses. Answers forwarded missed calls, qualifies leads, and sends call summaries to the owner.",
   image: `${siteUrl}/brand/logo-dark.png`,
   priceRange: "$$",
   telephone: "",

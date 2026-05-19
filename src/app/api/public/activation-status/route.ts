@@ -5,7 +5,7 @@
  * Used by the /onboard/status success screen to show the assigned Twilio number.
  *
  * The intakeId UUID is the "secret" — possession of it is sufficient authorization.
- * Returns: { status: 'pending' | 'activated', twilio_number: string | null, business_name: string }
+ * Returns: { status: 'pending' | 'activated' | 'failed', twilio_number: string | null, business_name: string }
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -33,8 +33,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  // If not yet activated, return pending
-  if (intake.progress_status !== 'activated' || !intake.client_id) {
+  if (!intake.client_id) {
     return NextResponse.json({
       status: 'pending',
       twilio_number: null,
@@ -42,12 +41,38 @@ export async function GET(req: NextRequest) {
     })
   }
 
-  // Fetch the Twilio number from the clients row
+  // Fetch the activation state from the clients row. A paid buyer should never
+  // sit on a happy success screen if the webhook logged a critical failure.
   const { data: client } = await svc
     .from('clients')
-    .select('twilio_number, business_name')
+    .select('twilio_number, business_name, activation_log')
     .eq('id', intake.client_id)
     .single()
+
+  const activationLog = (client?.activation_log ?? null) as Record<string, unknown> | null
+  const stepFailures = Array.isArray(activationLog?.steps)
+    ? activationLog.steps.some((step) => {
+        const row = step as Record<string, unknown>
+        return row.ok === false && !row.skipped && ['twilio_purchase', 'twilio_inventory', 'ultravox_agent'].includes(String(row.step))
+      })
+    : false
+
+  if (activationLog?.aborted || stepFailures) {
+    return NextResponse.json({
+      status: 'failed',
+      twilio_number: client?.twilio_number ?? null,
+      business_name: client?.business_name || intake.business_name || null,
+      message: 'Activation needs manual help. Contact support@endvoicemail.ai and we will finish your setup.',
+    })
+  }
+
+  if (intake.progress_status !== 'activated' || !client?.twilio_number) {
+    return NextResponse.json({
+      status: 'pending',
+      twilio_number: client?.twilio_number ?? null,
+      business_name: client?.business_name || intake.business_name || null,
+    })
+  }
 
   return NextResponse.json({
     status: 'activated',

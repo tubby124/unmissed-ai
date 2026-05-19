@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       subject: `That demo you just tried — get the real thing in 10 min`,
       html: `<h2 style="margin-bottom:4px">Liked talking to ${BRAND_NAME}?</h2>
 <p>${greeting}</p>
-<p>Thanks for trying the demo. The agent you just spoke with is the same one we'd set up for your business — it answers every call, captures lead details, and pings you the second a real opportunity comes in.</p>
+<p>Thanks for trying the demo. The agent you just spoke with is the same one we'd set up for your business — it answers forwarded missed calls, captures lead details, and sends you the summary after the call.</p>
 <p><strong>Setup takes about 10 minutes.</strong> You forward your line, we train it on your services, and it's live for your next missed call.</p>
 <a href="${onboardUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Get my agent live</a>
 <p style="font-size:14px;color:#555"><strong>50 activation minutes included.</strong> Card required to activate your AI number. Cancel anytime if it doesn't earn its keep.</p>
