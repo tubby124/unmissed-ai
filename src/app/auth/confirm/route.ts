@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-
-/** Reject external redirects — only allow same-origin relative paths */
-function safeNext(raw: string | null): string {
-  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/dashboard'
-  return raw
-}
+import { safeAuthNext } from '@/lib/auth-redirect'
 
 // Handles recovery/magic-link tokens from Supabase emails.
 // Called from our own email links as:
@@ -15,7 +10,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const token_hash = searchParams.get('token_hash')
   const type = (searchParams.get('type') ?? 'recovery') as 'recovery' | 'email' | 'invite'
-  const next = safeNext(searchParams.get('next'))
+  const next = safeAuthNext(searchParams.get('next'))
 
   // On Railway, request.url has localhost as origin — use forwarded headers for the real public URL
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? 'localhost:8080'

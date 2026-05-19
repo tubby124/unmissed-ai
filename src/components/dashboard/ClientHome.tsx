@@ -502,7 +502,7 @@ export default function ClientHome() {
           </div>
 
           {recentCalls.length === 0 ? (
-            <p className="text-xs t3 py-4 text-center">No calls yet. Test your agent above to get started.</p>
+            <p className="text-xs t3 py-4 text-center">No calls yet. Run a browser preview or open Go Live to test the real missed-call path.</p>
           ) : (
             <div className="space-y-1">
               {recentCalls.map(call => {

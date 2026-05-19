@@ -16,6 +16,7 @@ memory/
 .env
 .env.*
 *.env
+!.env.example
 
 # E2E screenshots and reports
 e2e-screenshots/

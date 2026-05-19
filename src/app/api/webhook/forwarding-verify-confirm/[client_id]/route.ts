@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { APP_URL } from '@/lib/app-url'
 import { validateSignature } from '@/lib/twilio'
 import { createServiceClient } from '@/lib/supabase/server'
+import { experimentalForwardingVerifyEnabled } from '@/lib/forwarding-verification'
 
 export const maxDuration = 10
 
@@ -25,6 +26,13 @@ export async function POST(
   const fullUrl = `${APP_URL}/api/webhook/forwarding-verify-confirm/${client_id}`
   if (!validateSignature(signature, fullUrl, params_)) {
     return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  if (!experimentalForwardingVerifyEnabled()) {
+    return new NextResponse(
+      `<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>`,
+      { status: 200, headers: { 'Content-Type': 'text/xml; charset=utf-8' } },
+    )
   }
 
   const digit = (params_['Digits'] || '').trim()

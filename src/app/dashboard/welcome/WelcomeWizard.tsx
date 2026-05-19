@@ -144,7 +144,7 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
   const steps = [
     {
       title: `Your AI number is ready`,
-      subtitle: `${agentName} is ready on the ${planLabel} plan. Forward your business line before calling it live.`,
+      subtitle: `${agentName} is ready on the ${planLabel} plan. Forward your business line before calling it ready for real missed calls.`,
     },
     {
       title: 'Forward your business number',

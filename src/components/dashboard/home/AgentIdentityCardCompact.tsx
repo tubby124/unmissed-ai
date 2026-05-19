@@ -196,8 +196,8 @@ export default function AgentIdentityCardCompact({
           {(isTrial || !hasForwarding) && twilioNumber && (
             <p className="text-[10px] t3 leading-snug px-0.5">
               {isTrial
-                ? 'Trial — your agent is live. Forward your business line to the number above to start receiving real calls. SMS / Voicemail / Telegram activate when you upgrade.'
-                : 'Calls to the number above reach your agent. Forwarding from your business line activates after upgrade.'}
+                ? 'Trial preview — this number reaches the agent. Voicemail replacement starts after checkout, forwarding, and a real missed-call test.'
+                : 'This number reaches the agent. Forward your normal business line on Go Live before calling it a voicemail replacement.'}
             </p>
           )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">

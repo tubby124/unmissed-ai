@@ -36,7 +36,7 @@ export function formatClientSetup(setup: ClientSetup): string {
 
   const statusLabels: Record<string, string> = {
     setup: 'Setting up — your agent is not live yet',
-    active: 'Active — your AI agent is live and receiving calls',
+    active: 'Active — your AI agent is ready; Go Live proves the forwarded missed-call path',
     paused: 'Paused — your agent is temporarily offline',
     churned: 'Inactive — your account has been deactivated',
   }

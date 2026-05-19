@@ -34,7 +34,7 @@ export default function EmptyState({ phone }: { phone?: string | null }) {
       <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--color-text-3)' }}>
         {phone
           ? <>Your AI number is <span className="font-mono" style={{ color: 'var(--color-text-2)' }}>{phone}</span>. Forward your business line, then make a missed-call test.</>
-          : "Your agent is ready for a browser test. Add a number before calling it live."
+          : "Your agent is ready for a browser test. Add a number before calling it ready for real missed calls."
         }
       </p>
 

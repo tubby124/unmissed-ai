@@ -105,4 +105,16 @@ describe('approve-website-knowledge: client_website_sources sync after approve',
       'must pass effectiveSourceUrl into seedKnowledgeFromScrape',
     )
   })
+
+  test('route requires explicit sourceUrl when multiple website source rows exist', () => {
+    const src = fs.readFileSync(path.join(PROJECT_ROOT, ROUTE), 'utf-8')
+    assert.ok(
+      /resolveWebsiteApproveSourceUrl/.test(src),
+      'route must use the shared source attribution resolver',
+    )
+    assert.ok(
+      /client_website_sources/.test(src),
+      'route must inspect registered website sources before falling back to clients.website_url',
+    )
+  })
 })

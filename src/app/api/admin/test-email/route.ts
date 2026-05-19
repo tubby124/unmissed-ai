@@ -66,10 +66,10 @@ export async function POST(req: NextRequest) {
     clientSlug: client.slug,
     purpose: 'system',
     tag: 'admin_test_email',
-    subject: `[TEST] ${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`,
+    subject: `[TEST] ${businessName} — your AI number is ready${twilioNumber ? ` (${twilioNumber})` : ''}`,
     html: `<p style="background:#fef3c7;padding:8px 12px;border-radius:6px;font-size:12px;color:#92400e;margin-bottom:16px">This is a <strong>test email</strong> sent from the admin panel. Not a real activation.</p>
 <h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
-<p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
+<p style="color:#555;margin-top:0">Your AI receptionist number is ready. Go Live is what proves voicemail replacement.</p>
 ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : '<p><em>No Twilio number assigned (skipTwilio was on)</em></p>'}
 <p><strong>Set up your dashboard password</strong></p>
 <p><a href="${APP_URL}/login" style="display:inline-block;padding:10px 20px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;font-weight:600">Go to Dashboard</a></p>`,

@@ -217,8 +217,8 @@ export async function activateClient(params: {
 
           const isTrial = mode === 'trial'
           const subjectLine = isTrial
-            ? `${businessName} — your AI agent trial is live`
-            : `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`
+            ? `${businessName} — your AI agent preview is ready`
+            : `${businessName} — your AI number is ready${twilioNumber ? ` (${twilioNumber})` : ''}`
 
           const result = await sendBrandedEmail({
             to: contactEmail,

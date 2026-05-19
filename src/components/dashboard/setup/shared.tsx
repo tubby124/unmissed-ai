@@ -169,14 +169,14 @@ export function ConfirmActivation({ onConfirmed }: { onConfirmed: () => void }) 
   return (
     <div className="space-y-3">
       <p className="text-[11px] t3 text-center">
-        Call your business number from another phone. If your AI agent answers, forwarding is live.
+        Call your business number from another phone. If your AI agent answers, forwarding is working.
       </p>
       <button
         onClick={onConfirmed}
         className="w-full py-3.5 rounded-xl bg-emerald-500/[0.07] border border-emerald-500/20 text-emerald-400 font-semibold text-sm hover:bg-emerald-500/[0.12] hover:border-emerald-500/35 transition-all duration-150 cursor-pointer flex items-center justify-center gap-2"
       >
         {CheckIcon}
-        Yes, it worked — agent is live
+        Yes, missed-call test worked
       </button>
     </div>
   )

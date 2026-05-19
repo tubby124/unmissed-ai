@@ -4,6 +4,8 @@
  * S13h: Prevents runtime crashes from undefined env vars.
  */
 
+import { assertStripeEnvSafety } from './stripe-env-guard'
+
 const REQUIRED_ENV_VARS = [
   'NEXT_PUBLIC_SUPABASE_URL',
   'NEXT_PUBLIC_SUPABASE_ANON_KEY',
@@ -53,6 +55,8 @@ export function validateEnv() {
     console.error(msg)
     throw new Error(msg)
   }
+
+  assertStripeEnvSafety()
 
   console.log('[env-check] All required environment variables present')
 }

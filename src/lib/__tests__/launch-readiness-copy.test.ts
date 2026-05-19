@@ -32,10 +32,12 @@ describe('End Voicemail launch-readiness contracts', () => {
     const forgot = read('src/app/auth/forgot-password/page.tsx')
     const adminCreate = read('src/app/api/admin/create-client-account/route.ts')
     const login = read('src/app/login/page.tsx')
+    const activation = read('src/lib/activate-client.ts')
 
     assert.match(forgot, /\/auth\/callback\?next=\/auth\/set-password/)
     assert.match(adminCreate, /\/auth\/callback\?next=\/auth\/set-password/)
     assert.match(login, /emailRedirectTo: `\$\{window\.location\.origin\}\/auth\/callback\?next=\/dashboard`/)
+    assert.match(activation, /\/auth\/confirm\?token_hash=\$\{tokenHash\}&type=recovery&next=\$\{encodeURIComponent\(setupDestination\)\}/)
   })
 
   test('Go Live final banner requires a first real proof call', () => {
@@ -45,5 +47,34 @@ describe('End Voicemail launch-readiness contracts', () => {
     assert.match(view, /const isLive = forwardingReady && hasTestCall/)
     assert.match(page, /\.not\('ultravox_call_id', 'is', null\)/)
     assert.match(page, /\.eq\('channel', 'email'\)/)
+  })
+
+  test('automated forwarding verification stays gated behind an explicit experimental flag', () => {
+    const route = read('src/app/api/dashboard/forwarding-verify/route.ts')
+    const twiml = read('src/app/api/webhook/forwarding-verify-twiml/[client_id]/route.ts')
+    const confirm = read('src/app/api/webhook/forwarding-verify-confirm/[client_id]/route.ts')
+
+    assert.match(route, /experimentalForwardingVerifyEnabled/)
+    assert.match(route, /status: 410/)
+    assert.match(twiml, /experimentalForwardingVerifyEnabled/)
+    assert.match(confirm, /experimentalForwardingVerifyEnabled/)
+  })
+
+  test('activation surfaces do not call direct preview or setup live before forwarding proof', () => {
+    const files = [
+      'src/lib/activate-client.ts',
+      'src/app/api/admin/test-activate/route.ts',
+      'src/app/api/admin/test-email/route.ts',
+      'src/components/dashboard/home/AgentIdentityCardCompact.tsx',
+      'src/components/dashboard/EmptyState.tsx',
+      'src/components/dashboard/setup/shared.tsx',
+    ]
+
+    for (const file of files) {
+      const source = read(file)
+      assert.doesNotMatch(source, /AI agent is live/i, file)
+      assert.doesNotMatch(source, /agent is live/i, file)
+      assert.doesNotMatch(source, /trial is live/i, file)
+    }
   })
 })

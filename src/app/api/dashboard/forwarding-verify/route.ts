@@ -3,13 +3,23 @@ import twilio from 'twilio'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 import { normalizePhoneNA } from '@/lib/utils/phone'
+import {
+  experimentalForwardingVerifyDisabledPayload,
+  experimentalForwardingVerifyEnabled,
+} from '@/lib/forwarding-verification'
 
 export const maxDuration = 15
 
 const TEST_TIMEOUT_MS = 30_000 // spec: UI polls every 2s up to 30s
 
 /**
- * Go Live Tab Section 4 — carrier-chain forwarding verification.
+ * Experimental carrier-chain forwarding verification.
+ *
+ * Disabled in normal launch environments. The production Go Live proof path is
+ * the customer's own missed-call test: forward the normal business number,
+ * call that normal number from another phone, then confirm a captured call and
+ * owner summary. This route stays gated until the automated carrier test is
+ * redesigned and re-proven end to end.
  *
  * Distinct from the legacy /api/dashboard/forwarding/verify route, which dials
  * the user's callback_phone directly and therefore can't actually prove that
@@ -32,6 +42,10 @@ export async function POST(req: NextRequest) {
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
+
+  if (!experimentalForwardingVerifyEnabled()) {
+    return NextResponse.json(experimentalForwardingVerifyDisabledPayload(), { status: 410 })
+  }
 
   const { data: cu } = await supabase
     .from('client_users')

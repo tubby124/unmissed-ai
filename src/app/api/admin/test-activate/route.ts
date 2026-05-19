@@ -417,12 +417,12 @@ export async function POST(req: NextRequest) {
     if (resendKey) {
       const { data: linkData } = await svc.auth.admin.generateLink({ type: 'recovery', email: contactEmail })
       const actionLink = linkData?.properties?.action_link ?? ''
-      let setupUrl = `${APP_URL}/dashboard`
+      let setupUrl = `${APP_URL}/dashboard/go-live`
       if (actionLink) {
         try {
           const parsed = new URL(actionLink)
           const tokenHash = parsed.searchParams.get('token') ?? parsed.searchParams.get('token_hash')
-          if (tokenHash) setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard`
+          if (tokenHash) setupUrl = `${APP_URL}/auth/confirm?token_hash=${tokenHash}&type=recovery&next=/dashboard/go-live`
         } catch { setupUrl = `${APP_URL}/login` }
       }
       const result = await sendBrandedEmail({
@@ -432,9 +432,9 @@ export async function POST(req: NextRequest) {
         purpose: 'marketing',
         tag: 'test_activate_welcome',
         reason: `You just signed up for ${BRAND_NAME}.`,
-        subject: `${businessName} — your AI agent is live${twilioNumber ? ` (${twilioNumber})` : ''}`,
+        subject: `${businessName} — your AI number is ready${twilioNumber ? ` (${twilioNumber})` : ''}`,
         html: `<h2 style="margin-bottom:4px">Welcome to ${BRAND_NAME}</h2>
-<p style="color:#555;margin-top:0">Your AI receptionist is now live.</p>
+<p style="color:#555;margin-top:0">Your AI receptionist number is ready. Open Go Live, forward missed calls from the normal business number, then test the real path from another phone.</p>
 ${twilioNumber ? `<p><strong>Your AI phone number:</strong> ${twilioNumber}</p>` : ''}
 <p><strong>Set up your dashboard password</strong></p>
 <a href="${setupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-bottom:8px">Create my password &rarr;</a>

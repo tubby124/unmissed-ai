@@ -3,6 +3,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { seedKnowledgeFromScrape } from '@/lib/seed-knowledge'
 import { validateApprovedPackage } from '@/lib/scrape-validation'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
+import { resolveWebsiteApproveSourceUrl } from '@/lib/website-source-attribution'
 import {
   resolveAdminScope,
   rejectIfEditModeRequired,
@@ -115,9 +116,28 @@ export async function POST(req: NextRequest) {
   const runId = `website-scrape-${Date.now()}`
 
   // ── Resolve sourceUrl ─────────────────────────────────────────────────────
-  // Prefer URL passed in body (multi-URL flow). Fall back to client.website_url
-  // for backward compat with callers that don't thread the URL through.
-  const effectiveSourceUrl = bodySourceUrl ?? (client.website_url as string | null) ?? undefined
+  // Multi-URL approve must carry explicit provenance. For backward compat, a
+  // missing sourceUrl is allowed only when there is at most one website source.
+  const { data: websiteSources, error: websiteSourcesErr } = await svc
+    .from('client_website_sources')
+    .select('url')
+    .eq('client_id', clientId)
+
+  if (websiteSourcesErr) {
+    return NextResponse.json({ error: websiteSourcesErr.message }, { status: 500 })
+  }
+
+  const sourceUrlResult = resolveWebsiteApproveSourceUrl({
+    bodySourceUrl,
+    primaryWebsiteUrl: client.website_url as string | null,
+    knownSourceUrls: (websiteSources ?? []).map(source => source.url as string),
+  })
+
+  if (!sourceUrlResult.ok) {
+    return NextResponse.json({ error: sourceUrlResult.error }, { status: 400 })
+  }
+
+  const effectiveSourceUrl = sourceUrlResult.sourceUrl
 
   // ── Seed knowledge chunks via shared utility ──────────────────────────────
   // Handles: SCRAPE7 cleanup (per-URL when sourceUrl is set), serviceTags, embeddings, syncClientTools
