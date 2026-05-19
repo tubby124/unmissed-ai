@@ -33,8 +33,8 @@ export default function EmptyState({ phone }: { phone?: string | null }) {
       <h3 className="font-semibold mb-1" style={{ color: 'var(--color-text-2)' }}>No calls yet</h3>
       <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--color-text-3)' }}>
         {phone
-          ? <>Your agent is live at <span className="font-mono" style={{ color: 'var(--color-text-2)' }}>{phone}</span>. Make a test call to see it in action.</>
-          : "Your agent is live. Make a test call to see it in action."
+          ? <>Your AI number is <span className="font-mono" style={{ color: 'var(--color-text-2)' }}>{phone}</span>. Forward your business line, then make a missed-call test.</>
+          : "Your agent is ready for a browser test. Add a number before calling it live."
         }
       </p>
 
@@ -51,8 +51,8 @@ export default function EmptyState({ phone }: { phone?: string | null }) {
           <p className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--color-text-2)' }}>How to make your first test call</p>
           <ol className="space-y-3">
             {[
-              { num: '1', title: 'Call your AI number', desc: <>Dial <span className="font-mono" style={{ color: 'var(--color-text-2)' }}>{phone}</span> from your personal phone</> },
-              { num: '2', title: 'Have a test conversation', desc: 'Try asking a question or leaving a message' },
+              { num: '1', title: 'Forward missed calls', desc: <>Send unanswered calls from your business line to <span className="font-mono" style={{ color: 'var(--color-text-2)' }}>{phone}</span></> },
+              { num: '2', title: 'Call your business number', desc: 'Use another phone, let it ring unanswered, and confirm the agent picks up' },
               { num: '3', title: 'Check back here', desc: 'The call log updates in real-time after the call ends' },
             ].map((step, index) => (
               <motion.li

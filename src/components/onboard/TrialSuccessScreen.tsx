@@ -457,8 +457,8 @@ export function TrialSuccessScreen({
 
   const trialCountdown = snapshot?.trialExpiresAt ? getTrialCountdown(snapshot.trialExpiresAt) : null;
   const subtitle = liveCount > 0
-    ? `${agentName ?? "Your agent"} is ready to answer calls — trained on ${liveCount} facts from your business.`
-    : `${agentName ?? "Your agent"} is ready to answer calls.`;
+    ? `${agentName ?? "Your agent"} is ready for a browser test — trained on ${liveCount} facts from your business.`
+    : `${agentName ?? "Your agent"} is ready for a browser test.`;
 
   return (
     <div className="max-w-md w-full space-y-6 py-12">
@@ -470,11 +470,11 @@ export function TrialSuccessScreen({
           </svg>
         </div>
         <div className="space-y-1.5">
-          <h1 className="text-2xl font-bold text-foreground">Your agent is live.</h1>
+          <h1 className="text-2xl font-bold text-foreground">Your agent preview is ready.</h1>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
           {trialCountdown && (
             <p className="text-xs font-semibold text-amber-400">
-              {trialCountdown} — no card needed
+              {trialCountdown} — browser preview only
             </p>
           )}
         </div>
@@ -507,7 +507,7 @@ export function TrialSuccessScreen({
               Tell {agentName ?? "your agent"} something right now
             </p>
             <p className="text-[11px] text-white/30 leading-relaxed">
-              Anything time-sensitive — out sick, running late, special hours, a promotion. Goes live instantly.
+              Anything time-sensitive — out sick, running late, special hours, a promotion. It applies to the next browser test call.
             </p>
           </div>
           <textarea
@@ -528,7 +528,7 @@ export function TrialSuccessScreen({
               {noteSaving ? "Saving…" : "Update agent"}
             </button>
             {noteSaved && (
-              <span className="text-xs text-emerald-400 font-semibold">Live on next call ✓</span>
+              <span className="text-xs text-emerald-400 font-semibold">Ready for next test call ✓</span>
             )}
             {noteText.trim() && (
               <span className="text-xs text-white/25 ml-auto">{noteText.length}/500</span>
@@ -603,7 +603,7 @@ export function TrialSuccessScreen({
             <CallProvider>
               <BrowserTestCall
                 joinUrl={joinUrl}
-                onEnd={(_transcripts) => {
+                onEnd={() => {
                   setShowCall(false);
                   setCallComplete(true);
                 }}
@@ -623,9 +623,9 @@ export function TrialSuccessScreen({
       <div className="rounded-2xl border border-white/10 bg-white/5 p-4 space-y-2.5">
         <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-1">What to do next</p>
         {[
-          { n: "1", text: `Call ${agentName ?? "your agent"} — test it yourself first` },
-          { n: "2", text: "Sign in to your dashboard to see call logs + tweak settings" },
-          { n: "3", text: "Share the number with customers before the trial ends" },
+          { n: "1", text: `Talk to ${agentName ?? "your agent"} in the browser — test the voice and knowledge first` },
+          { n: "2", text: "Sign in to your dashboard to see call logs and tweak settings" },
+          { n: "3", text: "Activate a real AI number when you're ready to forward missed calls" },
         ].map(({ n, text }) => (
           <div key={n} className="flex items-start gap-2.5">
             <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-600/30 text-indigo-400 text-[10px] font-bold flex items-center justify-center mt-0.5">{n}</span>
@@ -639,7 +639,7 @@ export function TrialSuccessScreen({
               <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors">
                 Connect Telegram
               </a>{" "}
-              to get instant call alerts on your phone
+              if you want instant phone pings after activation
             </p>
           </div>
         )}

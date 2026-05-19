@@ -2,7 +2,6 @@
 
 import { ActivationProgressDark } from "./ActivationProgress";
 import { SUPPORT_EMAIL } from "@/lib/brand";
-import { buildTelegramBotUrl } from "@/lib/telegram-link";
 
 export function SuccessView({ twilioNumber }: { twilioNumber: string | null }) {
   return (
@@ -60,7 +59,7 @@ export function SuccessView({ twilioNumber }: { twilioNumber: string | null }) {
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.5"/></svg>
               </button>
             </div>
-            <p className="text-xs text-emerald-400/60">Call this number to test your agent</p>
+            <p className="text-xs text-emerald-400/60">Forward missed calls here. Then call your normal business number to prove it works.</p>
             <p className="text-[11px] text-emerald-400/50">50 activation minutes included</p>
           </div>
         ) : (
@@ -115,20 +114,6 @@ export function SuccessView({ twilioNumber }: { twilioNumber: string | null }) {
             </div>
           ))}
         </div>
-
-        {/* Download Telegram CTA */}
-        <a
-          href={buildTelegramBotUrl()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full py-3 px-6 rounded-full font-semibold text-sm transition-opacity hover:opacity-90"
-          style={{ background: "rgba(41,182,246,0.15)", border: "1px solid rgba(41,182,246,0.30)", color: "#7dd3fc" }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L7.17 13.9l-2.972-.924c-.643-.204-.657-.643.136-.953l11.567-4.461c.537-.194 1.006.131.993.659z"/>
-          </svg>
-          Download Telegram
-        </a>
 
         {/* CTA */}
         <a

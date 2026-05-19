@@ -201,16 +201,16 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
 
   const steps = [
     {
-      title: `Your agent is live`,
-      subtitle: `${agentName} is ready to answer calls on the ${planLabel} plan.`,
+      title: `Your AI number is ready`,
+      subtitle: `${agentName} is ready on the ${planLabel} plan. Forward your business line before calling it live.`,
     },
     {
       title: 'Forward your business number',
       subtitle: 'Route unanswered calls from your existing number to your agent.',
     },
     {
-      title: 'Test it now',
-      subtitle: `Call your agent's number from any phone to hear it in action.`,
+      title: 'Test the real path',
+      subtitle: `Call your normal business number from another phone and let it miss.`,
     },
   ]
 
@@ -248,11 +248,11 @@ export default function WelcomeWizard({ twilioNumber, agentName, selectedPlan }:
           {step === 0 && (
             <div className="space-y-4">
               <div className="rounded-xl border b-theme bg-hover px-4 py-3">
-                <p className="text-[10px] font-medium t3 uppercase tracking-widest mb-1">Your agent's number</p>
+                <p className="text-[10px] font-medium t3 uppercase tracking-widest mb-1">Your agent&apos;s number</p>
                 <p className="text-2xl font-bold t1 tracking-tight font-mono">{formatted}</p>
               </div>
               <p className="text-xs t3 leading-relaxed">
-                This is the phone number assigned to {agentName}. Callers who dial this number will reach your AI agent immediately. Save it — you'll forward your business line to it in the next step.
+                This is the phone number assigned to {agentName}. Callers who dial this number will reach your AI agent immediately. Save it — you&apos;ll forward your business line to it in the next step.
               </p>
             </div>
           )}

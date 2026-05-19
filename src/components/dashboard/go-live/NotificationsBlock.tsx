@@ -106,7 +106,7 @@ export default function NotificationsBlock({
           <p className="text-xs text-zinc-600 mt-0.5 leading-relaxed">
             {telegramConnected
               ? "We'll ping you the moment a call comes in."
-              : 'Connect Telegram to get instant call alerts on your phone.'}
+              : 'Email summaries work by default. Connect Telegram only if you want faster phone pings.'}
           </p>
         </div>
         <Link

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createBrowserClient } from '@/lib/supabase/client'
@@ -10,27 +10,17 @@ import ThemeToggle from '@/components/ThemeToggle'
 
 const spring = { type: "spring" as const, stiffness: 300, damping: 24 }
 
-/* ── Testimonial data ──────────────────────────────────────────────── */
-const testimonials = [
-  {
-    quote: "Our front desk used to miss 40% of after-hours calls. Now every single one gets answered.",
-    name: "Sarah Chen",
-    role: "Operations Manager",
-    company: "Precision Auto Glass",
-  },
-  {
-    quote: "Setup took 10 minutes. The AI handles bookings better than our old answering service.",
-    name: "Marcus Williams",
-    role: "Owner",
-    company: "Urban Vibe Barbershop",
-  },
-]
-
 /* ── Stats for the showcase panel ──────────────────────────────────── */
 const stats = [
-  { value: "AI", label: "Answers missed calls" },
-  { value: "24/7", label: "Availability" },
-  { value: "<3s", label: "Avg. pickup" },
+  { value: "50", label: "activation minutes" },
+  { value: "Email", label: "summaries first" },
+  { value: "24/7", label: "missed-call coverage" },
+]
+
+const activationSteps = [
+  'Forward missed calls from your business number',
+  'Run one real missed-call test',
+  'Get the call summary before calling back',
 ]
 
 /* ── Reusable glass input ──────────────────────────────────────────── */
@@ -76,15 +66,6 @@ function PhoneIcon({ className }: { className?: string }) {
    SHOWCASE PANEL — left side (desktop only)
    ══════════════════════════════════════════════════════════════════════ */
 function ShowcasePanel() {
-  const [activeTestimonial, setActiveTestimonial] = useState(0)
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setActiveTestimonial(prev => (prev + 1) % testimonials.length)
-    }, 6000)
-    return () => clearInterval(timer)
-  }, [])
-
   return (
     <div className="hidden lg:flex relative flex-col justify-between overflow-hidden rounded-3xl p-10 xl:p-14"
       style={{
@@ -96,16 +77,6 @@ function ShowcasePanel() {
       <div className="absolute inset-0 opacity-[0.07]" style={{
         backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
         backgroundSize: '32px 32px',
-      }} />
-
-      {/* Floating glow orbs */}
-      <div className="absolute top-20 right-20 w-64 h-64 rounded-full blur-3xl" style={{
-        background: 'rgba(255,255,255,0.08)',
-        animation: 'pulseGlow 4s ease-in-out infinite',
-      }} />
-      <div className="absolute bottom-32 left-10 w-48 h-48 rounded-full blur-3xl" style={{
-        background: 'rgba(255,255,255,0.05)',
-        animation: 'pulseGlow 5s ease-in-out infinite 1s',
       }} />
 
       {/* Top: brand + tagline */}
@@ -121,7 +92,7 @@ function ShowcasePanel() {
           Your {BRAND_PRODUCT},<br />always on.
         </h2>
         <p className="text-white/70 text-base max-w-sm" style={{ animation: 'slideRightIn 0.6s ease-out 0.2s both' }}>
-          Never miss a call again. AI answers, books, and follows up — while you focus on what matters.
+          Your AI answers missed calls, qualifies the lead, and sends you the summary before the callback.
         </p>
       </div>
 
@@ -149,47 +120,20 @@ function ShowcasePanel() {
         </div>
       </div>
 
-      {/* Bottom: testimonial + stats */}
+      {/* Bottom: activation proof + stats */}
       <div className="relative z-10">
-        {/* Testimonial */}
-        <div className="mb-8" style={{ animation: 'testimonialIn 0.7s ease-out 0.5s both' }}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTestimonial}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4 }}
-            >
-              <blockquote className="text-white/90 text-sm leading-relaxed mb-4">
-                &ldquo;{testimonials[activeTestimonial].quote}&rdquo;
-              </blockquote>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">
-                  {testimonials[activeTestimonial].name[0]}
-                </div>
-                <div>
-                  <p className="text-white text-sm font-medium">{testimonials[activeTestimonial].name}</p>
-                  <p className="text-white/50 text-xs">{testimonials[activeTestimonial].role}, {testimonials[activeTestimonial].company}</p>
-                </div>
+        <div className="mb-8 rounded-2xl bg-white/10 border border-white/15 p-4" style={{ animation: 'testimonialIn 0.7s ease-out 0.5s both' }}>
+          <p className="text-white/50 text-xs uppercase tracking-[0.16em] font-semibold mb-3">
+            Replacement checklist
+          </p>
+          <div className="space-y-2.5">
+            {activationSteps.map((step) => (
+              <div key={step} className="flex items-start gap-2.5">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/15 text-white text-[10px] font-bold">
+                  ✓
+                </span>
+                <p className="text-white/85 text-sm leading-snug">{step}</p>
               </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Dots */}
-          <div className="flex gap-1.5 mt-4">
-            {testimonials.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setActiveTestimonial(i)}
-                className="transition-all duration-300"
-                style={{
-                  width: i === activeTestimonial ? 24 : 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: i === activeTestimonial ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)',
-                }}
-              />
             ))}
           </div>
         </div>

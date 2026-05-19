@@ -52,7 +52,7 @@ export default function KeepYourNumberPage() {
                   <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: 'var(--color-primary)' }}>2</span>
                   <div>
                     <p className="font-semibold" style={{ color: 'var(--color-text-1)' }}>Your phone rings first</p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>Always. You decide whether to pick up. If you do, the AI doesn&apos;t involved at all — it&apos;s your customer talking to you.</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>Always. You decide whether to pick up. If you do, the AI isn&apos;t involved at all — it&apos;s your customer talking to you.</p>
                   </div>
                 </li>
                 <li className="flex gap-4">
@@ -65,8 +65,8 @@ export default function KeepYourNumberPage() {
                 <li className="flex gap-4">
                   <span className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-white" style={{ backgroundColor: 'var(--color-primary)' }}>4</span>
                   <div>
-                    <p className="font-semibold" style={{ color: 'var(--color-text-1)' }}>You get an SMS summary in 30 seconds</p>
-                    <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>Caller name, phone, what they need. Tap a button to call them back — your number shows on their phone, not ours.</p>
+                    <p className="font-semibold" style={{ color: 'var(--color-text-1)' }}>You get a call summary</p>
+                    <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>Caller name, phone, what they need, and who to call back first. Email is the default; Telegram can be connected for faster phone pings.</p>
                   </div>
                 </li>
               </ol>
@@ -87,7 +87,7 @@ export default function KeepYourNumberPage() {
                 <h3 className="text-lg font-bold mb-3" style={{ color: 'var(--color-text-1)' }}>What&apos;s new</h3>
                 <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text-2)' }}>
                   <li>• Calls get answered when you can&apos;t</li>
-                  <li>• Instant SMS summaries after each call</li>
+                  <li>• Email summaries, with Telegram optional for faster alerts</li>
                   <li>• A dashboard of every conversation</li>
                   <li>• One-tap call-back on hot leads</li>
                 </ul>

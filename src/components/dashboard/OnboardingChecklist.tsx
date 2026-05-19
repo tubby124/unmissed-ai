@@ -85,7 +85,7 @@ export default function OnboardingChecklist({
       description: isTrial
         ? 'After upgrading: forward your existing business line. Callers reach your agent automatically.'
         : 'Forward your business line so calls reach your agent.',
-      doneDescription: isTrial ? 'Upgrade to go live' : 'Your agent is live',
+      doneDescription: isTrial ? 'Upgrade to go live' : 'Forwarding tested',
       done: liveDone,
       link: isTrial ? undefined : '/dashboard/setup',
       linkLabel: isTrial ? 'Upgrade to go live' : 'Setup instructions',

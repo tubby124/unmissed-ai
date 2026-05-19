@@ -87,7 +87,7 @@ export async function activateClient(params: {
 
   await notifyAdmin(adminBot, adminChat, `${mode === 'trial' ? '🧪' : '💳'} ${mode === 'trial' ? 'Trial started' : 'Payment received'} — activating <b>${businessName}</b>…`)
 
-  // ── Load intake for contact_email, area_code, callbackPhone ───────────────
+  // ── Load intake for contact_email and callbackPhone ───────────────────────
   const { data: intake } = await adminSupa
     .from('intake_submissions')
     .select('contact_email, intake_json')
@@ -96,7 +96,6 @@ export async function activateClient(params: {
 
   const contactEmail = intake?.contact_email ?? null
   const intakeJson = (intake?.intake_json as Record<string, unknown> | null) ?? {}
-  const areaCode = intakeJson.area_code as string | null
   const callbackPhone = (intakeJson.callback_phone as string | null) || null
   const callerAutoText = intakeJson.callerAutoText !== false  // default true
   const callerAutoTextMessage = (intakeJson.callerAutoTextMessage as string | null) || null
@@ -227,8 +226,8 @@ export async function activateClient(params: {
             tag: isTrial ? 'welcome_trial' : 'welcome_activation',
             reason: `You just signed up for ${BRAND_NAME}.`,
             subject: subjectLine,
-            html: `<h2 style="margin-bottom:4px;font-size:24px">${isTrial ? `Your trial is on. Voicemail is over.` : `Your agent is on duty. Voicemail is over.`}</h2>
-<p style="color:#555;margin-top:0">${isTrial ? `7 days. No card. ${BRAND_NAME} answers every call so you don't have to.` : `${BRAND_NAME} is now picking up every call to your business.`}</p>
+            html: `<h2 style="margin-bottom:4px;font-size:24px">${isTrial ? `Your agent preview is ready.` : `Your AI number is ready.`}</h2>
+<p style="color:#555;margin-top:0">${isTrial ? `Test the agent in your browser, then activate a real number when you're ready to replace voicemail.` : `Forward missed calls from your business line to start replacing voicemail with ${BRAND_NAME}.`}</p>
 
 ${twilioNumber ? `<table style="width:100%;border-collapse:collapse;margin:20px 0;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:0">
   <tr><td style="padding:16px">
@@ -242,14 +241,15 @@ ${isTrial && !twilioNumber ? '<p style="margin:16px 0">Test your agent right now
 <h3 style="margin:24px 0 8px;font-size:16px">Set up takes 3 minutes</h3>
 <ol style="line-height:1.7;padding-left:20px">
   <li><strong>Open your secure dashboard link</strong> using the button below</li>
-  ${twilioNumber ? '<li><strong>Forward your business line</strong> — your phone carrier app has the option, dashboard has step-by-step</li>' : ''}
-  ${telegramLink ? '<li><strong>Connect Telegram</strong> for real-time call alerts</li>' : '<li><strong>Run a test call</strong> from the dashboard to hear your agent</li>'}
+  ${twilioNumber ? '<li><strong>Open Go Live and forward your business line</strong> — the dashboard walks you through the carrier steps</li>' : ''}
+  ${twilioNumber ? '<li><strong>Call your normal business number from another phone</strong> and let it miss to prove forwarding works</li>' : '<li><strong>Run a browser test call</strong> from the dashboard to hear your agent</li>'}
+  <li><strong>Keep email summaries on</strong>; connect Telegram only if you want faster phone pings</li>
 </ol>
 
 <a href="${emailSetupUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0;font-size:15px">Open my dashboard →</a>
 <p style="font-size:13px;color:#888;margin-top:4px">Login link expires in 24h. If it does, hit "forgot password" on the login page.</p>
 
-${!isTrial && telegramLink ? `<hr style="border:none;border-top:1px solid #eee;margin:24px 0"><p><strong>📱 Connect Telegram for instant call alerts:</strong><br><a href="${telegramLink}" style="color:#4f46e5">${telegramLink}</a></p>` : ''}
+${!isTrial && telegramLink ? `<hr style="border:none;border-top:1px solid #eee;margin:24px 0"><p><strong>Optional faster phone alerts:</strong><br>Telegram is optional. Email summaries are the default. If you want Telegram pings too, connect here:<br><a href="${telegramLink}" style="color:#4f46e5">${telegramLink}</a></p>` : ''}
 
 <p style="font-size:14px;color:#555;margin-top:24px">Reply to this email if anything's broken or confusing — Hasan answers personally.</p>`,
           })
@@ -311,7 +311,7 @@ ${!isTrial && telegramLink ? `<hr style="border:none;border-top:1px solid #eee;m
       const smsBody = new URLSearchParams({
         From: twilioNumber,
         To: callbackPhone,
-        Body: `Your AI agent is live!\n\nSet up your dashboard:\n${setupUrl}\n\nYour AI number: ${twilioNumber}\n\nConnect Telegram for instant call alerts:\n${telegramLink}\n\nReply STOP to opt out.`,
+        Body: `Your AI number is ready.\n\nOpen Go Live and forward missed calls:\n${setupUrl}\n\nAI number: ${twilioNumber}\n\nEmail summaries are on by default. Telegram is optional:\n${telegramLink}\n\nReply STOP to opt out.`,
       })
       const smsRes = await fetch(
         `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,

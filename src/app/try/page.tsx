@@ -48,12 +48,15 @@ export default function TryPage() {
 
   // Load saved visitor info on mount
   useEffect(() => {
-    const saved = loadVisitor()
-    if (saved) {
-      setNameInput(saved.name)
-      setEmailInput(saved.email)
-      setPhoneInput(saved.phone)
-    }
+    const timer = window.setTimeout(() => {
+      const saved = loadVisitor()
+      if (saved) {
+        setNameInput(saved.name)
+        setEmailInput(saved.email)
+        setPhoneInput(saved.phone)
+      }
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [])
 
   const demoNumber = process.env.NEXT_PUBLIC_DEMO_TWILIO_NUMBER
@@ -296,7 +299,7 @@ export default function TryPage() {
               Ready to get your own agent?
             </h2>
             <p className="mb-6" style={{ color: "var(--color-text-2)" }}>
-              Set up takes under 5 minutes. Your agent is live within 24 hours.
+              Set up your agent, activate a real AI number, then forward missed calls from your business line.
             </p>
             <Link
               href={state.step !== "select" ? `/onboard?niche=${state.agentId}` : "/onboard"}
