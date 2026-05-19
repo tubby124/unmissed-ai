@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const denied = rejectIfEditModeRequired(scope)
   if (denied) return denied
 
-  const FIELD_KEYS = ['forwarding_verified_at', 'forwarding_self_attested'] as const
+  const FIELD_KEYS = ['forwarding_verified_at', 'forwarding_self_attested', 'setup_complete'] as const
 
   const svc = createServiceClient()
 
@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
   const updates = {
     forwarding_verified_at: nowIso,
     forwarding_self_attested: true,
+    setup_complete: true,
   }
 
   const { error } = await svc

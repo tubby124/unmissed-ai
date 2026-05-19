@@ -45,6 +45,7 @@ export async function POST(
     .update({
       forwarding_verified_at: nowIso,
       forwarding_self_attested: false,
+      setup_complete: true,
     })
     .eq('id', client_id)
 

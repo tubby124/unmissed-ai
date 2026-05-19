@@ -7,7 +7,7 @@
  *
  *   HERO        — Twilio number, tap to copy
  *   FORWARDING  — <CallForwardingCard /> — carrier dial code + self-attest
- *   TELEGRAM    — one-line connected indicator + Manage link to Settings
+ *   ALERTS      — email-first notification indicator + optional Telegram link
  *   BANNER      — <GoLiveBanner /> sticky pill when forwarding is attested
  *
  * Live definition (derived, no `is_live` DB column):
@@ -30,14 +30,11 @@ import GoLiveBanner from '@/components/dashboard/go-live/GoLiveBanner'
 
 interface Props {
   client: ClientConfig
-  // hasTestCall is no longer part of the live definition but the page-level
-  // server query still passes it through; ignored here, kept on the prop
-  // contract so the page.tsx call site doesn't need to change.
   hasTestCall?: boolean
   isAdmin: boolean
 }
 
-export default function GoLiveView({ client, isAdmin }: Props) {
+export default function GoLiveView({ client, hasTestCall = false, isAdmin }: Props) {
   const router = useRouter()
 
   // ── Carrier dropdown — local UI state (not a DB column) ─────────────────
@@ -77,18 +74,30 @@ export default function GoLiveView({ client, isAdmin }: Props) {
   }, [twilioNumber])
 
   const telegramConnected = !!client.telegram_chat_id
+  const emailReady = client.email_notifications_enabled !== false && !!client.contact_email
+  const knowledgeReady = Boolean(
+    client.website_knowledge_approved ||
+    client.gbp_summary ||
+    (client.business_facts?.length ?? 0) > 0 ||
+    client.custom_niche_config,
+  )
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto max-w-[600px] px-4 py-10 lg:py-12 space-y-10 lg:space-y-12">
         {/* ═══════════ HERO — Your number ═══════════ */}
         <section aria-labelledby="go-live-hero-heading">
-          <h1 id="go-live-hero-heading" className="sr-only">Your number</h1>
+          <h1 id="go-live-hero-heading" className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-950 text-center">
+            Replace voicemail
+          </h1>
+          <p className="mt-3 text-center text-base text-zinc-600 max-w-md mx-auto">
+            Your agent is not truly live until missed calls from your normal business number reach it.
+          </p>
 
           {twilioNumber ? (
-            <div className="text-center">
+            <div className="text-center mt-8">
               <p className="text-sm font-medium uppercase tracking-wider text-zinc-500 mb-3">
-                Your number
+                Your AI number
               </p>
               <button
                 type="button"
@@ -104,27 +113,35 @@ export default function GoLiveView({ client, isAdmin }: Props) {
                 </span>
               </button>
               <p className="mt-4 text-base text-zinc-600 max-w-md mx-auto">
-                Calls to this number reach your agent once forwarding is set up.
+                Forward missed calls here. Customers can keep calling your existing number.
               </p>
             </div>
           ) : (
-            <div className="text-center">
+            <div className="text-center mt-8">
               <p className="text-sm font-medium uppercase tracking-wider text-zinc-500 mb-3">
-                Your number
+                Your AI number
               </p>
               <p className="text-2xl font-semibold text-zinc-900">
-                You&apos;ll get a number when you upgrade.
+                Your number is being assigned.
               </p>
               <Link
                 href="/dashboard/billing"
                 className="inline-flex items-center gap-1 mt-4 px-4 py-2 rounded-full bg-zinc-100 hover:bg-zinc-200 text-sm font-medium text-zinc-900 transition-colors"
               >
-                Upgrade plan
+                Check billing
                 <span aria-hidden="true">→</span>
               </Link>
             </div>
           )}
         </section>
+
+        <ReadinessChecklist
+          hasNumber={!!twilioNumber}
+          knowledgeReady={knowledgeReady}
+          alertsReady={emailReady || telegramConnected}
+          forwardingReady={isLive}
+          hasTestCall={hasTestCall || isLive}
+        />
 
         {/* ═══════════ Forwarding (the centerpiece) ═══════════ */}
         <section aria-labelledby="go-live-forwarding-heading">
@@ -141,7 +158,7 @@ export default function GoLiveView({ client, isAdmin }: Props) {
           />
         </section>
 
-        {/* ═══════════ Telegram (advisory one-liner) ═══════════ */}
+        {/* ═══════════ Alerts (email-first, Telegram optional) ═══════════ */}
         <section aria-labelledby="go-live-telegram-heading">
           <SectionHeader id="go-live-telegram-heading" title="Get notified" />
           <div className="rounded-3xl shadow-sm bg-white p-6 border border-zinc-100 flex items-center justify-between gap-4">
@@ -149,17 +166,19 @@ export default function GoLiveView({ client, isAdmin }: Props) {
               <span
                 aria-hidden="true"
                 className={`shrink-0 inline-block w-2.5 h-2.5 rounded-full ${
-                  telegramConnected ? 'bg-emerald-500' : 'bg-zinc-300'
+                  emailReady || telegramConnected ? 'bg-emerald-500' : 'bg-zinc-300'
                 }`}
               />
               <div className="min-w-0">
                 <p className="text-base font-semibold text-zinc-900">
-                  Telegram {telegramConnected ? 'connected' : 'not set up'}
+                  {emailReady ? 'Email summaries on' : telegramConnected ? 'Telegram connected' : 'Alerts not set up'}
                 </p>
                 <p className="text-sm text-zinc-600 mt-0.5">
-                  {telegramConnected
-                    ? "You'll get a ping the moment a call comes in."
-                    : 'Connect Telegram to get instant call alerts on your phone.'}
+                  {emailReady
+                    ? `Call summaries go to ${client.contact_email}. Telegram is optional for faster pings.`
+                    : telegramConnected
+                      ? "You'll get a Telegram ping the moment a call comes in."
+                      : 'Add an email or connect Telegram so every captured call reaches you.'}
                 </p>
               </div>
             </div>
@@ -167,7 +186,7 @@ export default function GoLiveView({ client, isAdmin }: Props) {
               href="/dashboard/settings?tab=notifications"
               className="shrink-0 text-sm font-medium text-zinc-700 hover:text-zinc-900 underline underline-offset-2"
             >
-              {telegramConnected ? 'Manage' : 'Connect'}
+              {emailReady || telegramConnected ? 'Manage' : 'Set up'}
             </Link>
           </div>
         </section>
@@ -189,6 +208,87 @@ function SectionHeader({ id, title }: { id: string; title: string }) {
     <h2 id={id} className="text-2xl font-semibold text-zinc-900 mb-4 px-1">
       {title}
     </h2>
+  )
+}
+
+function ReadinessChecklist({
+  hasNumber,
+  knowledgeReady,
+  alertsReady,
+  forwardingReady,
+  hasTestCall,
+}: {
+  hasNumber: boolean
+  knowledgeReady: boolean
+  alertsReady: boolean
+  forwardingReady: boolean
+  hasTestCall: boolean
+}) {
+  const items = [
+    {
+      label: 'AI number assigned',
+      done: hasNumber,
+      detail: hasNumber ? 'Ready for forwarding' : 'Usually finishes after checkout',
+    },
+    {
+      label: 'Business knowledge loaded',
+      done: knowledgeReady,
+      detail: knowledgeReady ? 'Agent has business context' : 'Add website, GBP, services, or facts',
+    },
+    {
+      label: 'Owner alerts ready',
+      done: alertsReady,
+      detail: alertsReady ? 'Summaries can reach you' : 'Email is the easiest default',
+    },
+    {
+      label: 'Forwarding tested',
+      done: forwardingReady,
+      detail: forwardingReady ? 'Business number reaches the agent' : 'Call your normal number and let it miss',
+    },
+    {
+      label: 'First test captured',
+      done: hasTestCall,
+      detail: hasTestCall ? 'Proof exists in call logs' : 'Run one real missed-call test',
+    },
+  ]
+  const doneCount = items.filter(item => item.done).length
+
+  return (
+    <section aria-labelledby="voicemail-readiness-heading" className="rounded-3xl shadow-sm bg-white p-6 border border-zinc-100">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h2 id="voicemail-readiness-heading" className="text-base font-semibold text-zinc-900">
+            Voicemail replacement readiness
+          </h2>
+          <p className="text-sm text-zinc-600 mt-1">
+            {doneCount === items.length
+              ? 'You are live: missed calls can be answered and summarized.'
+              : 'Finish the pieces that make this a real voicemail replacement.'}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-700">
+          {doneCount}/{items.length}
+        </span>
+      </div>
+      <div className="space-y-3">
+        {items.map(item => (
+          <div key={item.label} className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                item.done ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-500'
+              }`}
+            >
+              {item.done ? '✓' : '·'}
+            </span>
+            <div>
+              <p className="text-sm font-medium text-zinc-900">{item.label}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{item.detail}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
   )
 }
 

@@ -70,7 +70,7 @@ export default async function GoLivePage({
   const { count: testCallCount } = await supabase
     .from('call_logs')
     .select('id', { count: 'exact', head: true })
-    .eq('client_id', cu.client_id)
+    .eq('client_id', targetClientId)
     .eq('call_status', 'test')
     .limit(1)
 

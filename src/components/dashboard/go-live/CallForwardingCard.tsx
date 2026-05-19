@@ -6,7 +6,7 @@
  * Spec revised 2026-04-27:
  *   - Drop the Twilio verify-call flow from the UI. The verify endpoint
  *     was never tested end-to-end against a live carrier-forwarded call.
- *   - Lead with: pick carrier → show dial code → "Now call your own number
+ *   - Lead with: pick carrier → show dial code → "Now call your business number
  *     to test" → user clicks "It worked — I heard the agent" → self-attest.
  *
  * The self-attest endpoint stamps both `forwarding_self_attested=true` and
@@ -19,7 +19,7 @@
  * Trial branch: when `twilioNumber` is null, render the unlock notice only.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { CARRIER_CODES, type CarrierKey } from '@/lib/carrier-codes'
 import { formatPhone } from '@/lib/format-phone'
@@ -52,18 +52,15 @@ export default function CallForwardingCard({
 }: CallForwardingCardProps) {
   const verified = !!forwardingVerifiedAt || forwardingSelfAttested
   // Hooks must run unconditionally — trial early-return comes AFTER all hooks.
-  const [expanded, setExpanded] = useState<boolean>(!verified)
-
-  useEffect(() => {
-    setExpanded(!verified)
-  }, [verified])
+  const [forceExpanded, setForceExpanded] = useState(false)
+  const expanded = !verified || forceExpanded
 
   if (!twilioNumber) {
     return (
       <div className="rounded-3xl shadow-sm bg-white p-6 border border-zinc-100">
         <h2 className="text-base font-semibold text-zinc-900 mb-1">Forward your phone</h2>
         <p className="text-sm text-zinc-600">
-          This unlocks when you upgrade — your number gets activated automatically.
+          Your AI number is still being assigned. Once it appears, you&apos;ll use this page to forward missed calls and run a real test.
         </p>
       </div>
     )
@@ -77,7 +74,7 @@ export default function CallForwardingCard({
         <CollapsedPill
           twilioNumber={twilioNumber}
           carrier={carrier}
-          onExpand={() => setExpanded(true)}
+          onExpand={() => setForceExpanded(true)}
         />
       ) : (
         <SetupForm
@@ -232,7 +229,7 @@ function SetupForm({
         <div className="rounded-2xl bg-zinc-50 border border-zinc-100 px-5 py-4 text-sm text-zinc-700 leading-relaxed">
           Most Canadian carriers use <span className="font-semibold text-zinc-900">*72&lt;your number&gt;</span> to forward
           and <span className="font-semibold text-zinc-900">*73</span> to turn off. If that doesn&apos;t work, search
-          &ldquo;[your carrier] call forwarding&rdquo; or text Hasan.
+          &ldquo;[your carrier] call forwarding&rdquo; or contact support.
         </div>
       ) : (
         enableCode && (
@@ -274,32 +271,10 @@ function SetupForm({
           <li className="flex gap-3">
             <span className="shrink-0 inline-flex w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 items-center justify-center text-xs font-semibold">3</span>
             <span className="pt-0.5">
-              Call <span className="font-semibold text-zinc-900">{formatPhone(twilioNumber)}</span> from another phone — you should hear your agent. Tap below.
+              Call your regular business number from another phone, let it ring unanswered, and confirm the AI agent picks up.
             </span>
           </li>
         </ol>
-
-        <details className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-          <summary className="cursor-pointer text-xs font-medium text-amber-200 select-none list-none flex items-center gap-2">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
-              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-            Test went to voicemail instead?
-          </summary>
-          <div className="mt-2 text-[11px] text-amber-100/85 leading-relaxed space-y-2">
-            <p>
-              Your carrier voicemail is grabbing the call before the forward fires. You need to <strong>fully remove voicemail</strong> from this line at the carrier level — toggling Visual Voicemail off in iOS settings is not enough.
-            </p>
-            <p>
-              <strong>Call your carrier and say:</strong> <em>&ldquo;Please fully remove voicemail from my line. I&apos;m using a third-party answering service and it&apos;s blocking my call forwarding.&rdquo;</em> Takes 5 min, free on postpaid. Once they confirm removal, your forward starts firing automatically — no need to re-dial the code.
-            </p>
-            <p className="font-mono text-[10px] text-amber-200/70">
-              Rogers 1-800-764-3771 · Bell 1-800-668-6878 · Telus 1-866-558-2273 · Fido 1-888-481-3436 · SaskTel 1-800-727-5835
-            </p>
-          </div>
-        </details>
 
         <button
           type="button"
@@ -318,7 +293,7 @@ function SetupForm({
               </motion.span>
             ) : (
               <motion.span key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                It worked — I heard the agent
+                It worked — my business number reached the agent
               </motion.span>
             )}
           </AnimatePresence>
@@ -343,6 +318,17 @@ function SetupForm({
             <p className="font-mono text-[10px] text-amber-900/70">
               Rogers 1-800-764-3771 · Bell 1-800-668-6878 · Telus 1-866-558-2273 · Fido 1-888-481-3436 · SaskTel 1-800-727-5835
             </p>
+          </div>
+        </details>
+
+        <details className="rounded-xl bg-zinc-50 border border-zinc-200 px-4 py-3">
+          <summary className="cursor-pointer text-xs font-medium text-zinc-900 select-none list-none">
+            Test rang forever or code failed?
+          </summary>
+          <div className="mt-2 text-[11px] text-zinc-700 leading-relaxed space-y-2">
+            <p><strong>Rang forever:</strong> missed-call forwarding is not active yet. Re-dial the code, then wait for the carrier confirmation tone or success message.</p>
+            <p><strong>Code failed:</strong> your plan may need call forwarding enabled by carrier support. Ask them to enable conditional call forwarding to {formatPhone(twilioNumber)}.</p>
+            <p><strong>Agent answers only when calling the AI number directly:</strong> the agent is fine; the forwarding chain is the part still blocked.</p>
           </div>
         </details>
 
