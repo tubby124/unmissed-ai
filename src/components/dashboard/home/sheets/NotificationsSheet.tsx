@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * NotificationsSheet — Telegram + email + SMS notification settings.
+ * NotificationsSheet — email + Telegram + SMS notification settings.
  * Shows connection status and live toggles for all notification channels.
  */
 
@@ -53,6 +53,24 @@ export default function NotificationsSheet({
         Get notified after every call so you never miss a hot lead.
       </p>
 
+      {/* Email */}
+      <div
+        className="rounded-xl p-4 flex items-center gap-3"
+        style={{ border: '1px solid var(--color-border)' }}
+      >
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary)', opacity: 0.15 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2"/>
+            <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold t1">Email Alerts</p>
+          <p className="text-[11px] t3">Callback-ready call summaries in your inbox</p>
+        </div>
+        <span className="text-[10px] font-semibold text-green-400 bg-green-400/10 px-2 py-1 rounded-full">Default</span>
+      </div>
+
       {/* Telegram */}
       <div
         className="rounded-xl p-4 space-y-3"
@@ -66,7 +84,7 @@ export default function NotificationsSheet({
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold t1">Telegram Alerts</p>
-            <p className="text-[11px] t3">Instant call summaries with lead score</p>
+            <p className="text-[11px] t3">Optional faster phone pings with lead score</p>
           </div>
           {telegramConnected ? (
             <span className="text-[10px] font-semibold text-green-400 bg-green-400/10 px-2 py-1 rounded-full">Connected</span>
@@ -83,24 +101,6 @@ export default function NotificationsSheet({
             Connect Telegram →
           </a>
         )}
-      </div>
-
-      {/* Email */}
-      <div
-        className="rounded-xl p-4 flex items-center gap-3"
-        style={{ border: '1px solid var(--color-border)' }}
-      >
-        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'var(--color-primary)', opacity: 0.15 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ color: 'var(--color-primary)' }}>
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2"/>
-            <path d="M22 6l-10 7L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold t1">Email Alerts</p>
-          <p className="text-[11px] t3">Daily summaries in your inbox</p>
-        </div>
-        <span className="text-[10px] font-semibold text-green-400 bg-green-400/10 px-2 py-1 rounded-full">Active</span>
       </div>
 
       {/* SMS Follow-up */}

@@ -23,10 +23,10 @@ Small service business owners who:
 
 ## Pricing
 
-- **Solo** — $29/mo CAD (founding pricing). Manual concierge onboarding. For solo operators.
-- **AI Receptionist** — $49/mo CAD. Self-serve dashboard. For growing businesses.
-- All plans: flat-rate, no per-minute billing, 30-day money-back guarantee.
-- No setup fee, no long-term contract.
+- **Solo** — $29/mo CAD founding pricing ($49/mo standard). For solo operators that need missed calls captured and summarized.
+- **AI Receptionist** — $119/mo CAD founding pricing ($189/mo standard). Includes 250 monthly minutes, business knowledge, lead ranking, and booking-capable setup when connected.
+- Paid activation includes a real AI number, a $25 one-time setup, and 50 activation minutes for forwarded-call testing.
+- No long-term contract.
 
 ## What it's NOT
 
@@ -42,7 +42,7 @@ Small service business owners who:
 - CASL-compliant (Canadian anti-spam law)
 - Two-party-consent-capable: recording disclosure available for US states that require it
 - Call recordings stored privately, accessible only to the business owner
-- 30-day money-back guarantee
+- 30-day money-back guarantee, subject to the published Terms
 - Owned and operated in Canada (Saskatoon + Calgary)
 
 ## How to start
@@ -62,7 +62,7 @@ A: End Voicemail is an AI missed-call receptionist for service businesses. It an
 A: Flat monthly pricing (no per-minute trap), Canadian-owned (PIPEDA + CASL compliant), conversational voice (not robotic IVR), and done-for-you setup. Most competitors bill $0.20-0.50/minute, which punishes businesses for receiving more calls.
 
 **Q: How much does End Voicemail cost?**
-A: $29/mo CAD for the Solo plan (founding pricing) or $49/mo CAD for the AI Receptionist plan. Flat rate, no per-minute charges, no setup fee, no long-term contract, 30-day money-back guarantee.
+A: $29/mo CAD founding pricing for Solo ($49/mo standard) or $119/mo CAD founding pricing for AI Receptionist ($189/mo standard). Paid activation includes a real AI number, a $25 one-time setup, and 50 activation minutes for real forwarded-call testing. No long-term contract.
 
 **Q: What businesses use End Voicemail?**
 A: Service businesses where missing a call costs real money: plumbers, HVAC contractors, auto glass shops, dental practices, law firms, real estate agents, property managers, and other appointment-based service businesses.

@@ -205,8 +205,8 @@ export default function UnifiedHomeSection({
         href: '/dashboard/knowledge',
       }
     }
-    if (!onboarding.telegramConnected) {
-      return { text: 'Email summaries are default; Telegram is optional for faster pings', cta: 'Manage alerts', href: '/dashboard/settings?tab=notifications' }
+    if (!onboarding.emailNotificationsEnabled && !onboarding.telegramConnected) {
+      return { text: 'Turn on at least one owner alert channel', cta: 'Manage alerts', href: '/dashboard/settings?tab=notifications' }
     }
     return null
   })()
@@ -809,6 +809,7 @@ export default function UnifiedHomeSection({
             hasContextData={data.editableFields.hasContextData}
             selectedPlan={data.selectedPlan}
             hasTelegramAlerts={onboarding.telegramConnected}
+            hasEmailAlerts={onboarding.emailNotificationsEnabled}
             runtimeNotLive={runtimeToolTruth.notLive}
           />
 

@@ -63,10 +63,15 @@ export default function NotificationsTile({ telegramConnected, emailEnabled, age
         </div>
       </div>
 
-      {/* Nudge if Telegram not connected */}
-      {!telegramConnected && (
+      {/* Nudge when fast phone alerts are not connected */}
+      {!telegramConnected && emailEnabled && (
         <p className="text-[11px] t3 leading-relaxed">
-          Connect Telegram to get instant call alerts for <span className="t2">{agentName}</span>.
+          Email summaries are on. Connect Telegram only if you want faster phone pings for <span className="t2">{agentName}</span>.
+        </p>
+      )}
+      {!telegramConnected && !emailEnabled && (
+        <p className="text-[11px] t3 leading-relaxed">
+          Turn on email summaries first; Telegram can be added later for faster phone pings.
         </p>
       )}
     </button>

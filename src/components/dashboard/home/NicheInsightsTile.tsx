@@ -197,8 +197,8 @@ function buildNudges(
     pending.push({
       id: 'telegram',
       icon: <BellIcon />,
-      text: 'Connect Telegram to get instant call alerts sent to your phone.',
-      cta: 'Connect',
+      text: 'Email summaries are on by default. Add Telegram only if you want faster phone pings.',
+      cta: 'Manage',
       done: false,
       onAction: () => sheet.open('notifications'),
     })

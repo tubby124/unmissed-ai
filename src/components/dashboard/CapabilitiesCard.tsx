@@ -26,6 +26,7 @@ interface CapabilitiesCardProps {
   hasContextData: boolean
   selectedPlan?: string | null
   hasTelegramAlerts?: boolean
+  hasEmailAlerts?: boolean
   runtimeNotLive?: ToolBackedCapabilities
 }
 
@@ -227,6 +228,7 @@ export default function CapabilitiesCard({
   hasContextData,
   selectedPlan,
   hasTelegramAlerts = false,
+  hasEmailAlerts = false,
   runtimeNotLive,
 }: CapabilitiesCardProps) {
   const { openUpgradeModal } = useUpgradeModal()
@@ -317,11 +319,11 @@ export default function CapabilitiesCard({
       syncIssue: runtimeNotLive?.hasBooking,
     },
     {
-      id: 'telegram',
-      label: 'Call alerts (Telegram)',
-      enabledDesc: 'Instant call summaries after every call',
-      disabledDesc: 'Tap to get instant call alerts',
-      enabled: hasTelegramAlerts,
+      id: 'owner_alerts',
+      label: 'Owner alerts',
+      enabledDesc: hasEmailAlerts ? 'Email summaries after every call' : 'Telegram summaries after every call',
+      disabledDesc: 'Turn on email or connect Telegram',
+      enabled: hasEmailAlerts || hasTelegramAlerts,
       dotType: 'always',
       link: '/dashboard/settings?tab=notifications',
     },

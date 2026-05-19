@@ -18,8 +18,8 @@ export const CURRENCY = "CAD";
 export const SETUP = {
   price: 25,
   label: "$25 one-time setup",
-  includes: "Built from your Google Business Profile and website — live before your first call",
-  description: "Your agent is built from your business info as you onboard. Live before you forward your first call.",
+  includes: "Built from your Google Business Profile and website before your first forwarded-call test",
+  description: "Your agent is built from your business info as you onboard. It becomes live after you forward missed calls and complete the real phone-path test.",
 };
 
 // ─── Activation Minutes ─────────────────────────────────────────────
@@ -161,7 +161,7 @@ export const POLICIES = {
   cancellation: "Cancel anytime — no notice period, no fees. Billing stops at end of current period.",
   dataOwnership: "Your call log data lives in your dashboard — you own it.",
   dataNeverTrains: "Your call recordings and transcripts are never used to train AI models, sold, or shared.",
-  setupTime: "Live before your first call — built during setup",
+  setupTime: "Built during setup; live after forwarding is tested",
 };
 
 // ─── Competitor Data (for comparison tables) ────────────────────────
