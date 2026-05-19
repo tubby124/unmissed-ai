@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
+import { BRAND_DOMAIN } from '@/lib/brand'
+import { shouldRedirectRailwayPublicHost } from '@/lib/host-canonicalization'
 
 async function getSupabaseUser(request: NextRequest) {
   let response = NextResponse.next({ request })
@@ -32,6 +34,15 @@ async function getSupabaseUser(request: NextRequest) {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host')
+
+  if (shouldRedirectRailwayPublicHost(request.method, host, pathname)) {
+    const url = request.nextUrl.clone()
+    url.protocol = 'https:'
+    url.hostname = BRAND_DOMAIN
+    url.port = ''
+    return NextResponse.redirect(url, 308)
+  }
 
   // ── /dashboard/* — Supabase session auth ───────────────────────────────────
   if (pathname.startsWith('/dashboard')) {
@@ -121,5 +132,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|favicon.svg|apple-touch-icon.png).*)',
+  ],
 }
