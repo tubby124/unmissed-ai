@@ -2,12 +2,13 @@ name = "unmissed-voice-fallback"
 main = "src/index.ts"
 compatibility_date = "2026-05-20"
 
-# Custom domain — set DNS record fallback.endvoicemail.ai → this worker
-# in the Cloudflare dashboard under Workers → Routes (custom_domain = true).
+# Custom domain — set DNS record fallback.endvoicemail.ai → this worker.
+# Custom Domains must be bare hostnames (no path, no wildcards) — the Worker
+# itself handles internal route dispatch via url.pathname.
 # Until DNS is provisioned, the worker is reachable at
 # unmissed-voice-fallback.<account>.workers.dev for smoke testing.
 routes = [
-  { pattern = "fallback.endvoicemail.ai/*", custom_domain = true },
+  { pattern = "fallback.endvoicemail.ai", custom_domain = true },
 ]
 
 # Secrets (set via `wrangler secret put NAME`):
