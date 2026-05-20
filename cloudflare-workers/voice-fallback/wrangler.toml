@@ -1,0 +1,22 @@
+name = "unmissed-voice-fallback"
+main = "src/index.ts"
+compatibility_date = "2026-05-20"
+
+# Custom domain — set DNS record fallback.endvoicemail.ai → this worker
+# in the Cloudflare dashboard under Workers → Routes (custom_domain = true).
+# Until DNS is provisioned, the worker is reachable at
+# unmissed-voice-fallback.<account>.workers.dev for smoke testing.
+routes = [
+  { pattern = "fallback.endvoicemail.ai/*", custom_domain = true },
+]
+
+# Secrets (set via `wrangler secret put NAME`):
+#   TELEGRAM_BOT_TOKEN         — operator alert bot
+#   TELEGRAM_OPERATOR_CHAT_ID  — chat to ping on fallback fire
+#
+# Why we keep these as Worker secrets, not env vars:
+# Cloudflare secrets are encrypted at rest + redacted from logs. Env vars are
+# plain text in the dashboard. Same threat model as Railway secrets.
+
+[observability]
+enabled = true

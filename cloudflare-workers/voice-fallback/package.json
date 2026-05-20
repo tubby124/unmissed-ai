@@ -1,0 +1,16 @@
+{
+  "name": "unmissed-voice-fallback",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker that serves a Twilio voicemail TwiML fallback when the primary Railway voice route is down.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240512.0",
+    "typescript": "^5.4.5",
+    "wrangler": "^4.86.0"
+  }
+}
