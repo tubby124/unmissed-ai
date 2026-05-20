@@ -216,6 +216,142 @@ Vault update rule:
 - If it teaches a reusable unmissed.ai pattern, summarize it into the Obsidian unmissed knowledge area after the repo change is verified.
 - Do not put secrets, private customer details, or raw transcripts in the vault.
 
+## 1M MRR Demo Intelligence Layer
+
+This project should not stop at "better prompt." A top-tier SaaS demo agent should turn every call into conversion signal, product learning, and proof of value.
+
+### Demo Call Scorecard
+
+Every completed Zara demo should produce a scorecard, either in the post-call analysis or a dedicated demo analysis step:
+
+- clarity: did Zara explain what the product does in plain language?
+- capability proof: did Zara send SMS when available?
+- knowledge use: did Zara call `queryKnowledge` for detailed feature, customer-type, competitor, or roadmap questions?
+- qualification: did Zara learn the caller's business type and missed-call pain?
+- close quality: did Zara move toward trial, Pro, booking, or Hasan transfer when appropriate?
+- objection handling: what objection came up and was it answered?
+- fault detection: did she sound robotic, repeat herself, expose stale pricing, fake a tool, or miss a capability?
+
+The scorecard should feed the fault log and future knowledge updates.
+
+### Buyer Intent Capture
+
+The system should capture structured sales intelligence from demo calls:
+
+- business type
+- rough business size or call volume if mentioned
+- missed-call pain
+- features they cared about: SMS, booking, transfer, knowledge, voicemail replacement, analytics
+- objection or hesitation
+- plan fit: trial, Pro, or not qualified
+- next best action
+- exact phrase that showed buying intent
+
+This should be usable for the owner notification and later CRM/lead queue work.
+
+### Demo-To-Onboarding Continuity
+
+If a caller signs up after talking to Zara, onboarding should not start cold.
+
+Preserve safe demo context where possible:
+
+- business type
+- feature interests
+- pain points
+- objections
+- requested setup path
+- whether they wanted a booking or human follow-up
+
+Do not store or reuse sensitive personal details beyond what is already allowed in existing lead/call logging.
+
+### Proof Mode
+
+Zara should be able to demonstrate the owner-side value, not only caller-side SMS.
+
+Target behavior:
+
+- If the caller asks what the owner receives, Zara explains the owner gets a concise call summary with lead quality, reason, next step, transcript/recording when enabled, and booking details when applicable.
+- When runtime supports it, send or show a demo owner-alert preview.
+- Do not claim Telegram is live unless the demo row actually has the bot token configured.
+
+This becomes a key conversion moment: the caller sees what their own business would receive after each missed call.
+
+### Knowledge Gap Auto-Queue
+
+When Zara cannot answer a question:
+
+- log the question as a knowledge gap
+- classify whether the fix belongs in prompt, knowledge, runtime/tooling, pricing/product truth, or docs
+- if the answer is safe and reusable, create a suggested knowledge chunk
+- if repeated across calls, promote it into product docs and the vault
+
+The goal is that every unanswered demo question improves the next demo.
+
+### Private Customer Example Rules
+
+Zara may explain patterns by industry:
+
+- "property managers use it for after-hours maintenance"
+- "auto glass shops use it for quote calls while technicians are on jobs"
+- "real estate agents use it for showings, buyer calls, and listing inquiries"
+
+Zara must not expose private customer names, call details, tenant details, owner numbers, transcripts, or internal client performance. Use named examples only if they are public and approved.
+
+### Pricing Drift Guard
+
+Before deploying Zara, check that pricing agrees across:
+
+- `clients/unmissed-demo/SYSTEM_PROMPT.txt`
+- `clients/unmissed-demo/domain-knowledge.md`
+- approved `knowledge_chunks`
+- public pricing copy, if touched in the same phase
+- Stripe/product config, if touched in the same phase
+- promptfoo expectations
+
+For this phase, the source of truth is Pro `$119/month` with `250 minutes`, and trial `$29/month` with `50 minutes`.
+
+### Owner Notification Truth
+
+Zara should describe owner alerts truthfully:
+
+- confirmed today: owner email can be sent when email notifications are enabled
+- confirmed today: caller SMS and booking confirmation SMS can be sent when SMS is enabled
+- not confirmed today for `unmissed-demo`: Telegram owner alert, because `telegram_bot_token` is missing
+
+Prompt language should say owners can receive SMS, email, or Telegram depending on setup. After implementation, verification must prove which channels actually fired for the demo row.
+
+### Demo Analytics
+
+Track and review:
+
+- demo calls started
+- calls completed
+- SMS sent during call
+- booking stage entered
+- booking created
+- `queryKnowledge` used
+- hot/warm/cold classification
+- owner alert sent
+- top questions
+- top objections
+- knowledge misses
+- conversion action taken: trial, Pro, booking, transfer, no action
+
+This is how Zara improves toward revenue instead of vibes.
+
+### Hot Lead Owner Alert
+
+If a caller is hot, Zara should not only offer Hasan. The system should create a high-signal owner alert:
+
+- hot lead
+- business type
+- what they asked
+- pricing or buying intent
+- requested next step
+- caller phone/email if available
+
+This can initially ride on the existing completed-call notification path, then later become a live in-call owner page/Telegram alert.
+
 ## Files To Change
 
 Expected implementation files:
@@ -251,7 +387,10 @@ Then deploy and verify:
 - Confirm booking reaches the booking stage and creates a calendar event.
 - Confirm caller receives booking confirmation SMS.
 - Confirm owner email notification fires after the completed webhook.
-- Confirm Telegram behavior separately after the missing bot token is fixed.
+- Confirm Telegram behavior separately after the missing bot token is fixed, or explicitly document it as unavailable for `unmissed-demo`.
+- Confirm demo scorecard captures SMS, booking, knowledge, close quality, and faults.
+- Confirm knowledge gaps are logged when Zara cannot answer a safe product question.
+- Confirm hot demo leads produce an actionable owner summary.
 
 ## Non-Goals
 
@@ -261,6 +400,7 @@ Then deploy and verify:
 - Do not expose real customer/private data in demo knowledge.
 - Do not fix Telegram configuration unless explicitly included in the implementation plan.
 - Do not deploy until prompt tests pass and the change is reviewed.
+- Do not build a full CRM in this phase; only capture lead intelligence in existing demo/call analysis surfaces or a narrow new helper.
 
 ## Risks
 
@@ -268,6 +408,7 @@ Then deploy and verify:
 - If `queryKnowledge` is added to demo tools without approved chunk gating, empty or irrelevant results can hurt the demo.
 - If the prompt remains too long, GLM may keep sounding rigid or repeat itself.
 - If Telegram config remains incomplete, owner notification claims should say email/SMS are confirmed and Telegram depends on setup.
+- If demo scorecards are too broad, the implementation can become an analytics project. Keep the first version narrow and tied to Zara demo calls only.
 
 ## Success Criteria
 
@@ -278,3 +419,6 @@ Then deploy and verify:
 - Zara books through the existing booking stage instead of referencing direct calendar tools.
 - Prompt and knowledge are documented so future improvements are easy.
 - New call faults have a clear place to be logged and converted into prompt/knowledge/runtime fixes.
+- Demo calls produce structured scorecards and buyer-intent summaries.
+- Knowledge gaps from demo calls can be turned into approved knowledge updates.
+- Owner notification claims match what the demo row can actually send.
