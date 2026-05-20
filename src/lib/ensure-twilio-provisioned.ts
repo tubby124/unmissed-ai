@@ -92,7 +92,13 @@ export async function ensureTwilioProvisioned(
   const twilioAuth = Buffer.from(`${accountSid}:${authToken}`).toString('base64')
 
   const voiceUrl = `${APP_URL}/api/webhook/${clientSlug}/inbound`
-  const fallbackUrl = `${APP_URL}/api/webhook/${clientSlug}/fallback`
+  // Twilio per-number VoiceFallbackUrl points at the Cloudflare Worker on a
+  // different failure domain. Pre-2026-05-20 this pointed at APP_URL/.../fallback
+  // — same Railway host that took the system down on 2026-05-19, making the
+  // Twilio fallback useless. The Worker serves a static voicemail TwiML and
+  // alerts the operator via Telegram during an outage. Override-able via env
+  // for staging/dev.
+  const fallbackUrl = process.env.VOICE_FALLBACK_URL ?? 'https://fallback.endvoicemail.ai/voice'
   const smsUrl = `${APP_URL}/api/webhook/${clientSlug}/sms-inbound`
 
   let twilioNumber: string | null = null
