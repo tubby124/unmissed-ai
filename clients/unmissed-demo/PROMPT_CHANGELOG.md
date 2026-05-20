@@ -75,3 +75,15 @@ To check drift: `python3 scripts/prompt_status.py unmissed-demo`
 **Chars:** 11074 | **Hash:** 3f4c790a60e4d158
 **Supabase version_id:** 58c69c38-e94c-4945-b927-179499968dbc
 **Ultravox revision:** d5325717-a53a-4bd7-9aa7-8a636f36df24
+
+## v14 — 2026-05-20 23:22 UTC
+**Change:** Zara v14 compressed prompt + RAG demo runtime
+**Chars:** 7836 | **Hash:** 6e379d35b1e90b20
+**Supabase version_id:** 0c40fbd9-7e8e-4cba-b301-7a01d3333b85
+**Ultravox revision:** 11e08d3a-92fd-4840-9337-a6b5cb4e18ea
+
+## v15 — 2026-05-20 23:23 UTC
+**Change:** Zara v14 final promptfoo cleanups
+**Chars:** 7836 | **Hash:** 6e379d35b1e90b20
+**Supabase version_id:** 64a01f27-a63c-4eec-bf5c-a2831bc0d376
+**Ultravox revision:** 2cf6ece2-d10a-4939-90f8-53b8c4f38b05

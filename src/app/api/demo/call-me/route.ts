@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import twilio from 'twilio'
-import { createDemoCall, buildDemoTools, signCallbackUrl } from '@/lib/ultravox'
+import { createDemoCall, signCallbackUrl } from '@/lib/ultravox'
+import { buildDemoRuntimeTools, formatDemoToolList } from '@/lib/demo-runtime-tools'
 import { buildStreamTwiml } from '@/lib/twilio'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest) {
   // Fetch live prompt from Supabase if configured
   let basePrompt = demo.systemPrompt
   let voiceId = demo.voiceId
+  let knowledgeEnabled = false
   if (demo.useLivePrompt && demo.clientSlug) {
     try {
       const supabase = createServiceClient()
@@ -71,6 +73,15 @@ export async function POST(req: NextRequest) {
         .select('id, slug, niche, business_name, system_prompt, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
         .eq('slug', demo.clientSlug)
         .single()
+
+      if (demo.clientSlug && client?.id && client.knowledge_backend === 'pgvector') {
+        const { count } = await supabase
+          .from('knowledge_chunks')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', client.id)
+          .eq('status', 'approved')
+        knowledgeEnabled = (count ?? 0) > 0
+      }
 
       if (client?.system_prompt) {
         // Resolve {{templateContext}} placeholders — live prompts have these from Agents API
@@ -91,9 +102,7 @@ export async function POST(req: NextRequest) {
           knowledge_backend: (client.knowledge_backend as string | null) ?? undefined,
           injected_note: (client.injected_note as string | null) ?? undefined,
         }
-        const knowledgeBackend = client.knowledge_backend as string | null
-        const corpusAvailable = knowledgeBackend === 'pgvector'
-        const ctx = buildAgentContext(clientRow, phone, [], new Date(), corpusAvailable)
+        const ctx = buildAgentContext(clientRow, phone, [], new Date(), knowledgeEnabled)
 
         const callerContextRaw = ctx.assembled.callerContextBlock.slice(1, -1)
         let knowledgeBlockStr = ctx.knowledge.block
@@ -120,21 +129,24 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const promptWithContext = basePrompt + `\n\n[DEMO MODE — PHONE\nCALLER NAME: ${callerName}\nCALLER PHONE: ${phone}\n${callerEmail ? `CALLER EMAIL: ${callerEmail}\n` : ''}Outbound demo — visitor requested callback. Tools: hangUp, calendar, SMS, transfer.]`
-
   // Build tools from demo capabilities config (call-me = Twilio medium + known phone)
   let demoTools: object[] = []
+  let toolList = 'none'
   let demoCallbackUrl: string | undefined
   if (demo.capabilities && demo.clientSlug) {
-    demoTools = buildDemoTools(demo.clientSlug, {
+    demoTools = buildDemoRuntimeTools(demo.clientSlug, {
       hasPhoneMedium: true,     // Twilio outbound call
       hasCallerPhone: true,     // Phone number validated above
       calendarEnabled: !!demo.capabilities.calendarEnabled,
       transferEnabled: !!demo.capabilities.transferEnabled,
+      knowledgeEnabled,
     })
+    toolList = formatDemoToolList(demoTools)
     demoCallbackUrl = signCallbackUrl(`${APP_URL}/api/webhook/${demo.clientSlug}/completed`, demo.clientSlug)
     console.log(`[call-me] ${demo.clientSlug}: injecting ${demoTools.length} tools + callbackUrl`)
   }
+
+  const promptWithContext = basePrompt + `\n\n[DEMO MODE — PHONE\nCALLER NAME: ${callerName}\nCALLER PHONE: ${phone}\n${callerEmail ? `CALLER EMAIL: ${callerEmail}\n` : ''}Outbound demo — visitor requested callback. Tools: ${toolList}.]`
 
   try {
     // 1. Create Ultravox call with Twilio medium

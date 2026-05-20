@@ -282,7 +282,7 @@ interface UltravoxToolDefinition {
   }
 }
 
-interface UltravoxTool {
+export interface UltravoxTool {
   toolName?: string
   temporaryTool?: UltravoxToolDefinition
   toolId?: string

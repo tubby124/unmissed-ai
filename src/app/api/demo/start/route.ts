@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createDemoCall, buildDemoTools, signCallbackUrl } from '@/lib/ultravox'
+import { createDemoCall, signCallbackUrl } from '@/lib/ultravox'
+import { buildDemoRuntimeTools, formatDemoToolList } from '@/lib/demo-runtime-tools'
 import { createServiceClient } from '@/lib/supabase/server'
 import { DEMO_AGENTS } from '@/lib/demo-prompts'
 import { OnboardingData } from '@/types/onboarding'
@@ -156,6 +157,7 @@ HANG-UP RULES (mandatory — follow exactly):
   // Fetch live prompt from Supabase if flagged (for testing production prompt changes)
   let basePrompt = demo.systemPrompt
   let liveVoiceId: string | null = null
+  let knowledgeEnabled = false
   if (demo.useLivePrompt && demo.clientSlug) {
     const supabase = createServiceClient()
     const { data: client } = await supabase
@@ -163,6 +165,15 @@ HANG-UP RULES (mandatory — follow exactly):
       .select('id, slug, niche, business_name, system_prompt, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
       .eq('slug', demo.clientSlug)
       .single()
+
+    if (demo.clientSlug && client?.id && client.knowledge_backend === 'pgvector') {
+      const { count } = await supabase
+        .from('knowledge_chunks')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', client.id)
+        .eq('status', 'approved')
+      knowledgeEnabled = (count ?? 0) > 0
+    }
 
     if (client?.system_prompt) {
       // Resolve {{templateContext}} placeholders — live prompts have these from Agents API
@@ -183,10 +194,8 @@ HANG-UP RULES (mandatory — follow exactly):
         knowledge_backend: (client.knowledge_backend as string | null) ?? undefined,
         injected_note: (client.injected_note as string | null) ?? undefined,
       }
-      const knowledgeBackend = client.knowledge_backend as string | null
-      const corpusAvailable = knowledgeBackend === 'pgvector'
       // Pass 'unknown' — synthetic +15555550100 must not appear in Zara's context
-      const ctx = buildAgentContext(clientRow, 'unknown', [], new Date(), corpusAvailable)
+      const ctx = buildAgentContext(clientRow, 'unknown', [], new Date(), knowledgeEnabled)
 
       // Build demo-specific callerContext with DEMO MODE signal FIRST.
       // Zara's OPENING checks "if [DEMO MODE] in callerContext" — it must be in {{callerContext}},
@@ -225,14 +234,6 @@ HANG-UP RULES (mandatory — follow exactly):
     }
   }
 
-  // Build context block — same UPPERCASE format as buildAgentContext()
-  const contextParts = [`DEMO MODE — BROWSER`]
-  contextParts.push(`CALLER NAME: ${callerName}`)
-  if (callerPhone) contextParts.push(`CALLER PHONE: ${callerPhone}`)
-  if (callerEmail) contextParts.push(`CALLER EMAIL: ${callerEmail}`)
-  if (!callerPhone) contextParts.push('No SMS or transfer — browser has no phone number')
-  const promptWithContext = basePrompt + `\n\n[${contextParts.join('\n')}]`
-
   const voiceId = liveVoiceId || demo.voiceId
   const FALLBACK_MALE = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark voice
   const FALLBACK_FEMALE = 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a'  // Jacqueline voice
@@ -240,17 +241,29 @@ HANG-UP RULES (mandatory — follow exactly):
 
   // Build tools from demo capabilities config (browser = WebRTC: no phone medium, no caller phone)
   let demoTools: object[] = []
+  let toolList = 'none'
   let demoCallbackUrl: string | undefined
   if (demo.capabilities && demo.clientSlug) {
-    demoTools = buildDemoTools(demo.clientSlug, {
+    demoTools = buildDemoRuntimeTools(demo.clientSlug, {
       hasPhoneMedium: false,    // WebRTC — no Twilio SID
       hasCallerPhone: !!callerPhone,  // SMS enabled when visitor provides phone
       calendarEnabled: !!demo.capabilities.calendarEnabled,
       transferEnabled: false,   // Transfer requires Twilio SID — always false for browser
+      knowledgeEnabled,
     })
+    toolList = formatDemoToolList(demoTools)
     demoCallbackUrl = signCallbackUrl(`${APP_URL}/api/webhook/${demo.clientSlug}/completed`, demo.clientSlug)
     console.log(`[demo] ${demo.clientSlug} browser: injecting ${demoTools.length} tools + callbackUrl`)
   }
+
+  // Build context block — same UPPERCASE format as buildAgentContext()
+  const contextParts = [`DEMO MODE — BROWSER`]
+  contextParts.push(`CALLER NAME: ${callerName}`)
+  if (callerPhone) contextParts.push(`CALLER PHONE: ${callerPhone}`)
+  if (callerEmail) contextParts.push(`CALLER EMAIL: ${callerEmail}`)
+  if (!callerPhone) contextParts.push('No SMS or transfer — browser has no phone number')
+  contextParts.push(`Tools: ${toolList}`)
+  const promptWithContext = basePrompt + `\n\n[${contextParts.join('\n')}]`
 
   try {
     let call: { joinUrl: string; callId: string }

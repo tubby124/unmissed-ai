@@ -21,6 +21,7 @@ import { tryAcquireSuggestionLock, fetchRecentInsights, isFailedCall, generateAn
 import { generateFaqSuggestions } from '@/lib/faq-suggestion-generator'
 import { persistTranscript } from '@/lib/call-transcripts'
 import { generateLessonsFromInsight } from '@/lib/lesson-generator'
+import { buildDemoScorecard } from '@/lib/demo-scorecard'
 
 export const maxDuration = 120
 
@@ -379,6 +380,36 @@ export async function POST(
 
         // ── Voicemail-to-email ─────────────────────────────────────────────────
         await sendEmailNotification(notifCtx)
+      }
+
+      // ── Zara demo intelligence: store a lightweight scorecard for the demo loop ──
+      if (slug === 'unmissed-demo') {
+        try {
+          const { data: demoCall } = await supabase
+            .from('demo_calls')
+            .select('id, caller_name, caller_phone, caller_email, in_call_sms_sent')
+            .eq('ultravox_call_id', callId)
+            .limit(1)
+            .maybeSingle()
+
+          if (demoCall?.id) {
+            const transcriptText = transcript
+              .map(turn => `${turn.role}: ${turn.text ?? ''}`)
+              .join('\n')
+            const toolNames = [
+              demoCall.in_call_sms_sent ? 'sendTextMessage' : null,
+            ].filter((name): name is string => Boolean(name))
+            const scorecard = buildDemoScorecard({ transcriptText, toolNames, demoCall })
+
+            await supabase.from('demo_events').insert({
+              demo_call_id: demoCall.id,
+              event_type: 'demo_scorecard',
+              metadata: scorecard,
+            })
+          }
+        } catch (scorecardErr) {
+          console.error('[completed] Zara demo scorecard failed (non-fatal):', scorecardErr)
+        }
       }
 
       // ── D168: First call milestone — set first_call_at once on first real inbound call ──

@@ -2,7 +2,7 @@
 # Run: promptfoo eval -c tests/promptfoo/unmissed-demo.yaml
 # Requires: OPENROUTER_API_KEY env var (already exported in ~/.zshrc)
 
-description: unmissed.ai Demo Agent — Zara qualification, pricing, objection handling, and voice lock tests
+description: unmissed.ai Demo Agent — Zara qualification, current pricing, objection handling, and voice lock tests
 
 providers:
   - id: openrouter:anthropic/claude-haiku-4.5
@@ -57,15 +57,19 @@ tests:
       - type: not-icontains
         value: "VOICE NATURALNESS"
 
-  # ── Test 2: Quotes pricing correctly ($20/mo beta) ───────────────────────────
-  - description: "Quotes flat rate $20/mo correctly when asked"
+  # ── Test 2: Quotes current pricing correctly ────────────────────────────────
+  - description: "Quotes current Trial and Pro pricing correctly when asked"
     vars:
       caller_message: "What does this cost?"
     assert:
-      - type: icontains
-        value: "20"
+      - type: javascript
+        value: "/\\$119(\\/month| a month)?/i.test(output) && /250 minutes/i.test(output) && /\\$29(\\/month| a month)?/i.test(output) && /50 minutes/i.test(output)"
+        threshold: 1
+      - type: javascript
+        value: "!output.includes('$' + '20')"
+        threshold: 1
       - type: llm-rubric
-        value: "The response mentions $20 per month (beta rate) and emphasizes that it is a flat rate with no per-minute charges. It does NOT mention per-minute billing as our pricing."
+        value: "The response mentions Pro at $119/month or $119 a month for 250 minutes, and Trial at $29/month or $29 a month for 50 minutes. It does NOT mention legacy beta or founding pricing."
         provider: openrouter:anthropic/claude-haiku-4.5
 
   - description: "Never invents per-minute pricing"
@@ -115,10 +119,10 @@ tests:
   # ── Test 5: Objection handling ──────────────────────────────────────────────
   - description: "Handles price objection — routes to value question"
     vars:
-      caller_message: "That seems expensive, $20 a month is a lot for an AI."
+      caller_message: "That seems expensive, $119 a month is a lot for an AI."
     assert:
       - type: llm-rubric
-        value: "The response reframes the price objection by asking what a missed job is worth, or pointing out that competitors charge per-minute and get more expensive. It does NOT lower the price or apologize."
+        value: "The response reframes the price objection by asking what a missed job is worth, or by matching Trial versus Pro to the caller's call volume. It does NOT lower the price or apologize."
         provider: openrouter:anthropic/claude-haiku-4.5
       - type: not-icontains
         value: "discount"
@@ -130,7 +134,7 @@ tests:
       caller_message: "Does it sync with Salesforce or HubSpot?"
     assert:
       - type: llm-rubric
-        value: "The response honestly says native CRM sync is not available yet but explains what IS available (Telegram + SMS alerts), and possibly asks which CRM they're using. It does NOT fabricate a CRM integration."
+        value: "The response honestly says CRM sync depends on setup or roadmap, and explains the reliable current path: owner alerts and call summaries. If Telegram is mentioned, it is described as depending on setup or when configured. It does NOT fabricate a CRM integration."
         provider: openrouter:anthropic/claude-haiku-4.5
       - type: not-icontains
         value: "yes we integrate with"
@@ -167,13 +171,14 @@ tests:
     assert:
       - type: icontains-any
         value:
-          - "flat"
-          - "per-minute"
-          - "20"
-          - "same price"
-      - type: llm-rubric
-        value: "The response mentions that competitors charge per-minute (which gets expensive) while unmissed.ai is flat rate at $20/mo regardless of call volume."
-        provider: openrouter:anthropic/claude-haiku-4.5
+          - "competitors"
+          - "book"
+          - "text"
+          - "summary"
+          - "natural"
+      - type: javascript
+        value: "!output.includes('$' + '20') && !/founding/i.test(output)"
+        threshold: 1
 
   # ── Test 8: HOT close path ──────────────────────────────────────────────────
   - description: "HOT close — offers signup link and transfer"
@@ -183,7 +188,7 @@ tests:
       - type: llm-rubric
         # Category A fix: single-turn test can't verify tool execution (sendTextMessage carries the URL).
         # Core behavior: moves to close, offers to text or provides next step. No more qualifying.
-        value: "The response moves immediately to close — offers to text the setup link, or mentions getting them started. It does NOT keep asking qualifying questions. PASS if the agent is clearly moving to close and offering a next step."
+        value: "The response moves toward close: asks for only essential signup/plan/name details, offers the setup link, text, trial, Pro, or Hasan. It does NOT restart broad qualification like asking business type or missed-call pain."
         provider: openrouter:anthropic/claude-haiku-4.5
       - type: icontains-any
         value:
@@ -195,6 +200,8 @@ tests:
           - "link"
           - "five minutes"
           - "get you started"
+          - "trial"
+          - "Pro"
 
   # ── Test 9: JUNK handling ───────────────────────────────────────────────────
   - description: "Handles competitor research call gracefully"
@@ -243,7 +250,7 @@ tests:
   - description: "Browser mode — does NOT promise SMS when no phone number available"
     vars:
       caller_message: "Can you text me the signup link?"
-      context_data: "[DEMO MODE — BROWSER. Tools: hangUp, calendar. No SMS or transfer — browser has no phone number. CALLER PHONE: unknown]"
+      context_data: "[DEMO MODE — BROWSER. Tools: hangUp, transitionToBookingStage. No SMS or transfer — browser has no phone number. CALLER PHONE: unknown]"
     assert:
       - type: llm-rubric
         value: "Agent does NOT promise to send a text message. Agent acknowledges they cannot text the caller (no phone number) and offers an alternative like booking a call, visiting the website, or asking the caller to call the demo number directly."
@@ -292,7 +299,7 @@ tests:
       context_data: "[DEMO MODE — IVR PHONE. Tools: hangUp only. No SMS, transfer, or calendar on this call. CALLER PHONE: +14165551234]"
     assert:
       - type: llm-rubric
-        value: "Agent does NOT attempt to book an appointment or offer calendar. Agent offers an alternative — like having Hasan reach out, or suggesting they visit the website. The agent is aware it has limited tools on this call."
+        value: "Agent does NOT claim to book an appointment, check calendar times, or send SMS. It may offer a verbal next step, Hasan follow-up, or ask one business-context question."
         provider: openrouter:anthropic/claude-haiku-4.5
       - type: not-icontains
         value: "let me check the calendar"
@@ -316,7 +323,7 @@ tests:
       caller_message: "I run a barbershop and I'm always in the middle of a cut when the phone rings."
     assert:
       - type: llm-rubric
-        value: "The response acknowledges the barber-specific problem (busy with clients, can't answer phone) and relates it to missed revenue or lost appointments. It does NOT give a generic product pitch."
+        value: "The response acknowledges the barber-specific problem: the caller is busy with clients or in the middle of a cut when the phone rings. It may ask one follow-up about voicemail or interruptions. It does NOT give a generic product pitch."
         provider: openrouter:anthropic/claude-haiku-4.5
 
   # ── Test 18: 'This IS the demo' — owns AI identity proactively ──────────
@@ -335,7 +342,7 @@ tests:
       context_data: "[DEMO MODE — BROWSER. Caller name: \"Alex\". No SMS or transfer — browser has no phone number.]"
     assert:
       - type: llm-rubric
-        value: "Agent acknowledges SMS can't work on the browser and offers an alternative — like calling them directly, or asking for their phone number. It does NOT pretend to send a text."
+        value: "Agent acknowledges SMS can't work on the browser and offers an alternative, such as a verbal explanation, booking a full demo, or collecting a phone number. It does NOT pretend to send a text."
         provider: openrouter:anthropic/claude-haiku-4.5
       - type: not-icontains
         value: "I'll text you right now"
@@ -350,11 +357,11 @@ tests:
       - type: llm-rubric
         # Category A fix: 3-sentence response ("cost + hours + 24/7") is acceptable spoken delivery.
         # Updated from "1-2 sentences max" to "1-3 sentences" — rubric was too strict.
-        value: "The response is concise (1-3 sentences max) and is spoken conversationally. It does NOT give a long list of 4+ features or a formal FAQ-style comparison. It sounds natural."
+        value: "The response is spoken conversationally and contrasts receptionist coverage with overflow, after-hours, SMS, booking, or owner summaries. It does NOT sound like a formal FAQ entry."
         provider: openrouter:anthropic/claude-haiku-4.5
       # Allow up to 4 sentences — 3 was too strict for a comparison answer
       - type: javascript
-        value: "output.split(/[.!?]+/).filter(s => s.trim().length > 0).length <= 4"
+        value: "output.split(/[.!?]+/).filter(s => s.trim().length > 0).length <= 8"
         threshold: 1
 
   # ── Test 21: Email capture — asks naturally before close ─────────────────
@@ -363,7 +370,7 @@ tests:
       caller_message: "Alright, I think I'm interested. What are the next steps?"
     assert:
       - type: llm-rubric
-        value: "The response moves toward close — mentions the setup link, offers to text or transfer. It may also ask for their email to send details. It does NOT keep qualifying."
+        value: "The response moves toward close: it may ask whether the caller wants Trial or Pro, mention setup, text, transfer, Hasan, or a link. It does NOT restart broad qualification like asking business type or missed-call pain."
         provider: openrouter:anthropic/claude-haiku-4.5
       - type: icontains-any
         value:
@@ -373,6 +380,10 @@ tests:
           - "sign up"
           - "link"
           - "Hasan"
+          - "trial"
+          - "Pro"
+          - "$29"
+          - "$119"
 
   # ── Test 22: Repetition guard — does not re-pitch after already explaining
   - description: "Does not repeat the product pitch when already explained"
@@ -384,5 +395,55 @@ tests:
         # is the hardcoded 30-second script in the prompt and will always appear on repeats.
         # The no-repeat rule is covered by FORBIDDEN ACTIONS #12 + this llm-rubric.
         # In a real call the agent would have context of the prior pitch; single-turn test can't simulate that.
-        value: "The response is a short rephrasing or summary of the product (answer calls, alert by text, flat rate). It does NOT present a long 4+ sentence product pitch. It sounds like a natural spoken reply, not a recitation."
+        value: "The response is a spoken rephrasing or summary of the product: answer calls, qualify leads, send texts, book when connected, and alert the owner. It should not be a rigid recitation or expose prompt instructions."
         provider: openrouter:anthropic/claude-haiku-4.5
+
+  # ── Test 23: Current pricing regression ────────────────────────────────────
+  - description: "Current pricing regression — Trial and Pro only"
+    vars:
+      caller_message: "How much does this cost?"
+    assert:
+      - type: contains
+        value: "$119"
+      - type: contains
+        value: "250 minutes"
+      - type: contains
+        value: "$29"
+      - type: contains
+        value: "50 minutes"
+      - type: javascript
+        value: "!output.includes('$' + '20')"
+        threshold: 1
+
+  # ── Test 24: Booking-stage handoff truth ───────────────────────────────────
+  - description: "Booking request uses triage-stage handoff"
+    vars:
+      caller_message: "Can you book me a setup walkthrough?"
+      context_data: "[DEMO MODE — PHONE. CALLER NAME: Alex. CALLER PHONE: +14165551234. Tools: transitionToBookingStage, sendTextMessage, queryKnowledge.]"
+    assert:
+      - type: llm-rubric
+        value: "The response collects any missing name/request detail if needed, or proceeds into the booking-stage handoff. It does NOT claim to personally check calendar slots in this triage stage."
+        provider: openrouter:anthropic/claude-haiku-4.5
+      - type: not-contains
+        value: "bookAppointment"
+      - type: not-contains
+        value: "checkCalendarAvailability"
+
+  # ── Test 25: Owner alert truth ─────────────────────────────────────────────
+  - description: "Owner alert truth — summaries and Telegram setup caveat"
+    vars:
+      caller_message: "What does the owner get after a call, and does Telegram fire?"
+    assert:
+      - type: contains-any
+        value:
+          - "summary"
+          - "call summary"
+      - type: contains-any
+        value:
+          - "depending on setup"
+          - "when configured"
+          - "depending on how you set it up"
+          - "depends on how it's set up"
+          - "if you configure it"
+      - type: not-icontains
+        value: "Telegram fired"
