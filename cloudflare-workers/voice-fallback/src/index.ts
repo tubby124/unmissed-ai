@@ -33,16 +33,18 @@ interface Env {
 
 // Twilio-number → client-slug map. Update when provisioning a new client.
 // Keep in code (not KV) — it's tiny, rarely changes, and removes a runtime
-// dependency for the fallback path.
+// dependency for the fallback path. Source of truth: Supabase `clients`
+// table queried via `scripts/set-twilio-voice-fallback.ts` dry-run.
+// Last reconciled: 2026-05-20 post-deploy.
 const NUMBER_TO_SLUG: Record<string, string> = {
   '+15873296845': 'urban-vibe',
   '+15877421507': 'hasan-sharif',
   '+15873551834': 'windshield-hub',
-  '+15878014602': 'manzil-isa',
-  '+14036693068': 'calgary-property-leasing',
-  '+15875905770': 'exp-realty',
-  '+15873275902': 'unmissed-demo',
-  '+14039003237': 'bowness-property-management',
+  '+15878014602': 'unmissed-demo',
+  '+16397393885': 'calgary-property-leasing',
+  '+16393850876': 'exp-realty',
+  '+15753325085': 'bowness-property-management',
+  '+13069887699': 'velly-remodeling',
 }
 
 function twimlVoicemail(slug: string | null): string {
