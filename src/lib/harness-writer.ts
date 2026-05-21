@@ -36,6 +36,7 @@ export type HarnessName =
   | 'prompt-injection'
   | 'schemathesis'
   | 'promptfoo'
+  | 'provisioning-completeness'
 
 export interface Finding {
   /** Sub-check identifier within the harness. Stable, kebab-case. */

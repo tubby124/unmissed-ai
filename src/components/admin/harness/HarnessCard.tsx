@@ -25,6 +25,7 @@ const PRETTY_NAME: Record<HarnessName, string> = {
   'telegram-health': 'Telegram health',
   'calendar-oauth': 'Calendar OAuth',
   'prompt-injection': 'Prompt injection',
+  'provisioning-completeness': 'Provisioning completeness',
 }
 
 function formatRelative(iso: string | null): string {

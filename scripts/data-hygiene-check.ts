@@ -135,7 +135,9 @@ function loadFlags(): FlagsConfig {
 }
 
 function buildConciergeAllowList(): Set<string> {
-  const base = ['hasan-sharif', 'exp-realty']
+  // Hardcoded concierge clients — owner-billed manually, no Stripe subscription. Keep in sync
+  // with provisioning-completeness-check.ts CONCIERGE_ALLOW (same list, same purpose).
+  const base = ['hasan-sharif', 'exp-realty', 'urban-vibe', 'windshield-hub', 'calgary-property-leasing', 'velly-remodeling', 'emon']
   const extra = (process.env.CONCIERGE_CLIENTS ?? '')
     .split(',')
     .map(s => s.trim())

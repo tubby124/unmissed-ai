@@ -27,6 +27,7 @@ const VALID_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>([
   'prompt-injection',
   'schemathesis',
   'promptfoo',
+  'provisioning-completeness',
 ])
 const VALID_SEVERITIES: ReadonlySet<Severity> = new Set<Severity>(['P0', 'P1', 'P2', 'PASS'])
 const VALID_STATUSES: ReadonlySet<Status | 'all'> = new Set<Status | 'all'>([

@@ -41,12 +41,16 @@ export const PROMPT_CHAR_TARGET = 15000
  * real_estate baseline composes at ~19k due to its 10-branch TRIAGE_DEEP and would
  * silently fail provisioning at 18k. 20k was the safe block; raised to 21k on
  * 2026-05-06 when ANSWER-FIRST + TOOL-LATENCY BRIDGE (~530 chars combined) were
- * promoted from PM-only into universal FORBIDDEN rules 9 + 10 — every niche pays
- * the cost, and real_estate now lands at ~20,040. 21k still blocks Brian-level
- * (24k+) bloat and leaves ~500 chars of headroom.
+ * promoted from PM-only into universal FORBIDDEN rules 9 + 10.
+ *
+ * Raised back to 25k on 2026-05-21 — Emon manual-provision trace showed real_estate +
+ * scrape-derived facts + Sonar intent buckets land at 21.7k consistently, and the
+ * existing Brian (22.9k) + Urban Vibe (22.7k) prompts already run fine above the
+ * old 21k cap in production. The 21k cap was hypothetical; 25k matches operational
+ * reality and unblocks new signups whose data is richer than minimal trial intake.
  * Tightening to 12-15k deferred to post-Phase-9 (after promotion loop reduces FAQ pressure).
  */
-export const PROMPT_CHAR_HARD_MAX = 21000
+export const PROMPT_CHAR_HARD_MAX = 25000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
