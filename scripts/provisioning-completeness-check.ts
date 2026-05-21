@@ -200,22 +200,33 @@ async function checkClient(sb: SupabaseClient, slug: string): Promise<{ slug: st
   }
 
   // ── J. Email/Auth ────────────────────────────────────────────────
+  // Bug fix (2026-05-21): direct getUserById per link instead of listUsers + filter.
+  // listUsers paginates at 50 by default — falsely flagged 4 frozen clients as
+  // "links to deleted auth users" when the users existed but were past page 1.
   {
     const { data: links } = await sb.from('client_users').select('user_id, role').eq('client_id', c.id)
     if (!links?.length) {
       results.push({ dim: 'J_email_auth', status: 'FAIL', severity: 'P1', message: 'no client_users link — nobody can log in' })
     } else {
-      const { data: { users } } = await sb.auth.admin.listUsers()
-      const linkedIds = new Set(links.map(l => l.user_id))
-      const matching = (users ?? []).filter(u => linkedIds.has(u.id))
-      const unconfirmed = matching.filter(u => !u.email_confirmed_at)
-      if (matching.length === 0) {
-        results.push({ dim: 'J_email_auth', status: 'FAIL', severity: 'P1', message: 'client_users links to deleted auth users' })
+      const resolved: Array<{ link: { user_id: string; role: string }; user: any | null; error?: string }> = []
+      for (const link of links) {
+        const { data: ures, error } = await sb.auth.admin.getUserById(link.user_id)
+        resolved.push({ link, user: ures?.user ?? null, error: error?.message })
+      }
+      const deletedLinks = resolved.filter(r => !r.user)
+      const validUsers = resolved.filter(r => r.user).map(r => r.user)
+      const unconfirmed = validUsers.filter(u => !u.email_confirmed_at)
+      if (validUsers.length === 0) {
+        results.push({ dim: 'J_email_auth', status: 'FAIL', severity: 'P1', message: 'client_users links to deleted auth users', detail: deletedLinks })
+      } else if (deletedLinks.length > 0) {
+        results.push({ dim: 'J_email_auth', status: 'FAIL', severity: 'P2',
+          message: `${deletedLinks.length} client_users link(s) point to deleted auth users (other ${validUsers.length} ok)`, detail: deletedLinks })
       } else if (unconfirmed.length > 0) {
         results.push({ dim: 'J_email_auth', status: 'FAIL', severity: 'P2',
-          message: `${unconfirmed.length}/${matching.length} auth users have no email_confirmed_at` })
+          message: `${unconfirmed.length}/${validUsers.length} auth users have no email_confirmed_at` })
       } else {
-        results.push({ dim: 'J_email_auth', status: 'PASS', message: `${matching.length} confirmed auth user(s); roles: ${links.map(l => l.role).join(',')}` })
+        const emails = validUsers.map(u => u.email).join(', ')
+        results.push({ dim: 'J_email_auth', status: 'PASS', message: `${validUsers.length} confirmed auth user(s): ${emails}` })
       }
     }
   }
