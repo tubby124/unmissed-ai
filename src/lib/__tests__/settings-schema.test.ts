@@ -168,6 +168,10 @@ describe('SYNC_TRIGGER_FIELDS (snapshot)', () => {
     //   'sms_enabled' in updates ||
     //   'twilio_number' in updates
     // Phase 4 addition: 'agent_mode' — deep-mode rebuild triggers Ultravox sync
+    // 2026-05-20: after_hours_behavior + after_hours_emergency_phone removed —
+    // both are PER_CALL_CONTEXT_ONLY (injected via buildAgentContext at call time,
+    // never in stored system_prompt), so triggering an updateAgent PATCH was a
+    // wasted round-trip with no behavior change.
     const expectedSyncFields = [
       'system_prompt',
       'forwarding_number',
@@ -179,8 +183,6 @@ describe('SYNC_TRIGGER_FIELDS (snapshot)', () => {
       'knowledge_backend',
       'sms_enabled',
       'twilio_number',
-      'after_hours_behavior',
-      'after_hours_emergency_phone',
     ].sort()
 
     const actual = [...SYNC_TRIGGER_FIELDS].sort()
