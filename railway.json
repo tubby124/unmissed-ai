@@ -1,4 +1,5 @@
 {
+  "_crons": "Scheduled crons live in .github/workflows/crons.yml. Railway never honored the cron[] array (not valid Railway schema). See commit 6bb3e3b for full context.",
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm run test:all && npm run build"
@@ -9,63 +10,5 @@
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
-  },
-  "cron": [
-    {
-      "schedule": "0 2 * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/analyze-calls -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{\"all_clients\":true}'"
-    },
-    {
-      "schedule": "0 14 * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/daily-digest -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "0 6 1 * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/reset-minutes -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "0 7 * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/trial-expiry -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "*/30 * * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/follow-up-reminders -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "0 * * * *",
-      "command": "curl -s http://localhost:3000/api/cron/notification-health -H \"Authorization: Bearer $CRON_SECRET\""
-    },
-    {
-      "schedule": "0 15 * * 0",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/weekly-digest-client -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "0 13 * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/daily-digest-client -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "15 * * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/minute-usage-alert -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "30 * * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/demo-followup -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "*/5 * * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/scheduled-callbacks -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "0 * * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/cleanup-tokens -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "0 */6 * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/drift-check -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    },
-    {
-      "schedule": "45 * * * *",
-      "command": "curl -s -X POST http://localhost:3000/api/cron/fleet-drift -H \"Authorization: Bearer $CRON_SECRET\" -H \"Content-Type: application/json\" -d '{}'"
-    }
-  ]
+  }
 }
