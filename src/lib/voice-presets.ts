@@ -55,6 +55,32 @@ export interface GoLiveVoice {
   vibe: string
 }
 
+export type VoiceGender = 'female' | 'male' | 'unknown'
+
+const FEMALE_NAME_HINTS = [
+  'monika', 'ashley', 'jacqueline', 'olivia', 'sarah', 'luna', 'deborah',
+  'hana', 'hannah', 'emily', 'tanya', 'claire', 'wendy', 'priya', 'pixie',
+  'julia', 'cassidy', 'noushin', 'paulina', 'cheyenne', 'louisamay',
+  'elizabeth', 'kai', 'gabrielle', 'karri', 'veronica', 'jess',
+]
+
+const MALE_NAME_HINTS = [
+  'mark', 'grant', 'shaun', 'blake', 'dennis', 'timothy', 'brandon',
+  'clive', 'arlo', 'matt', 'eanna', 'chris', 'carter', 'alex', 'craig',
+  'edward', 'hades', 'ronald', 'aaron', 'steve', 'muyiwa', 'david', 'troy',
+]
+
+export function inferVoiceGender(name: string, description = ''): VoiceGender {
+  const normalizedDescription = description.toLowerCase()
+  const normalizedName = name.toLowerCase()
+
+  if (/\bfemale\b|\bwoman\b|\bwomen\b/.test(normalizedDescription)) return 'female'
+  if (/\bmale\b|\bman\b|\bmen\b/.test(normalizedDescription)) return 'male'
+  if (FEMALE_NAME_HINTS.some(hint => normalizedName.includes(hint))) return 'female'
+  if (MALE_NAME_HINTS.some(hint => normalizedName.includes(hint))) return 'male'
+  return 'unknown'
+}
+
 export const GO_LIVE_VOICES: GoLiveVoice[] = [
   // Female
   { voiceId: 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', name: 'Jacqueline', gender: 'female', vibe: 'Warm, friendly, empathetic' },

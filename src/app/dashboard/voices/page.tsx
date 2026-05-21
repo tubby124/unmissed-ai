@@ -12,6 +12,7 @@ interface UltravoxVoice {
   languageLabel: string
   provider: 'Cartesia' | 'Eleven Labs' | 'Inworld'
   previewAvailable?: boolean
+  gender?: 'female' | 'male' | 'unknown'
 }
 
 interface Client {
@@ -25,6 +26,7 @@ interface Client {
 type UseVoiceState = 'idle' | 'loading' | 'done'
 
 type Provider = 'All' | 'Cartesia' | 'Eleven Labs' | 'Inworld'
+type GenderFilter = 'All' | 'Female' | 'Male'
 
 const PROVIDER_COLORS: Record<string, string> = {
   Cartesia: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
@@ -57,6 +59,7 @@ function VoiceCard({
   clients,
   isAdmin,
   isPlaying,
+  isPreviewLoading,
   previewErrored,
   myVoiceId,
   myPreviousVoiceId,
@@ -68,6 +71,7 @@ function VoiceCard({
   clients: Client[]
   isAdmin: boolean
   isPlaying: boolean
+  isPreviewLoading: boolean
   previewErrored: boolean
   myVoiceId: string | null
   myPreviousVoiceId: string | null
@@ -141,14 +145,17 @@ function VoiceCard({
         {/* Play button */}
         <button
           onClick={() => (isPlaying ? onStop() : onPlay(voice.voiceId))}
+          disabled={isPreviewLoading}
           className={`mt-0.5 w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${
             isPlaying
               ? 'bg-blue-500 text-white shadow-[0_0_16px_rgba(59,130,246,0.4)]'
               : 'bg-hover t3 hover:bg-[var(--color-border)] hover:t1'
           }`}
-          title={isPlaying ? 'Stop preview' : 'Play preview'}
+          title={isPreviewLoading ? 'Loading preview' : isPlaying ? 'Stop preview' : 'Play preview'}
         >
-          {isPlaying ? (
+          {isPreviewLoading ? (
+            <div className="w-4 h-4 rounded-full border border-zinc-600 border-t-zinc-200 animate-spin" />
+          ) : isPlaying ? (
             /* Animated waveform bars — scaleY from bottom, GPU-composited */
             <div className="flex items-end gap-px justify-center" style={{ width: 20, height: 16 }}>
               {[0, 120, 240, 120, 0].map((delay, i) => (
@@ -312,7 +319,9 @@ export default function VoicesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [provider, setProvider] = useState<Provider>('All')
+  const [gender, setGender] = useState<GenderFilter>('All')
   const [playingId, setPlayingId] = useState<string | null>(null)
+  const [previewLoadingId, setPreviewLoadingId] = useState<string | null>(null)
   const [previewErrorId, setPreviewErrorId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
@@ -354,17 +363,25 @@ export default function VoicesPage() {
     // in the API response silently fail to play; only voices missing previewUrl worked.
     const url = `/api/dashboard/voices/${voiceId}/preview`
     const audio = new Audio(url)
+    audio.preload = 'auto'
+    setPreviewLoadingId(voiceId)
     audio.onended = () => setPlayingId(null)
     audio.onerror = () => {
+      setPreviewLoadingId(null)
       setPlayingId(null)
       setPreviewErrorId(voiceId)
     }
-    audio.play().catch(() => {
-      setPlayingId(null)
-      setPreviewErrorId(voiceId)
-    })
+    audio.play()
+      .then(() => {
+        setPreviewLoadingId(null)
+        setPlayingId(voiceId)
+      })
+      .catch(() => {
+        setPreviewLoadingId(null)
+        setPlayingId(null)
+        setPreviewErrorId(voiceId)
+      })
     audioRef.current = audio
-    setPlayingId(voiceId)
   }
 
   function stopVoice() {
@@ -374,6 +391,7 @@ export default function VoicesPage() {
       audioRef.current.pause()
       audioRef.current.src = ''
     }
+    setPreviewLoadingId(null)
     setPlayingId(null)
   }
 
@@ -381,13 +399,15 @@ export default function VoicesPage() {
   useEffect(() => () => { audioRef.current?.pause() }, [])
 
   const providers: Provider[] = ['All', 'Cartesia', 'Eleven Labs', 'Inworld']
+  const genders: GenderFilter[] = ['All', 'Female', 'Male']
 
   const filtered = voices.filter(v => {
     const matchProvider = provider === 'All' || v.provider === provider
+    const matchGender = gender === 'All' || v.gender === gender.toLowerCase()
     const matchSearch = !search ||
       v.name.toLowerCase().includes(search.toLowerCase()) ||
       (v.description || '').toLowerCase().includes(search.toLowerCase())
-    return matchProvider && matchSearch
+    return matchProvider && matchGender && matchSearch
   })
 
   const providerCounts: Record<Provider, number> = {
@@ -395,6 +415,12 @@ export default function VoicesPage() {
     Cartesia: voices.filter(v => v.provider === 'Cartesia').length,
     'Eleven Labs': voices.filter(v => v.provider === 'Eleven Labs').length,
     Inworld: voices.filter(v => v.provider === 'Inworld').length,
+  }
+
+  const genderCounts: Record<GenderFilter, number> = {
+    All: voices.length,
+    Female: voices.filter(v => v.gender === 'female').length,
+    Male: voices.filter(v => v.gender === 'male').length,
   }
 
   return (
@@ -451,6 +477,28 @@ export default function VoicesPage() {
             </button>
           ))}
         </div>
+
+        {/* Gender filter tabs */}
+        <div className="flex gap-1 p-1 rounded-xl bg-hover border b-theme">
+          {genders.map(g => (
+            <button
+              key={g}
+              onClick={() => setGender(g)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                gender === g
+                  ? 'bg-[var(--color-border)] t1 shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              {g}
+              {!loading && (
+                <span className={`ml-1.5 text-[10px] ${gender === g ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                  {genderCounts[g]}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Results count */}
@@ -475,7 +523,7 @@ export default function VoicesPage() {
           </div>
           <p className="text-zinc-500 text-sm">No voices match your filters</p>
           <button
-            onClick={() => { setSearch(''); setProvider('All') }}
+            onClick={() => { setSearch(''); setProvider('All'); setGender('All') }}
             className="mt-3 text-xs text-blue-400 hover:text-blue-300 transition-colors"
           >
             Clear filters
@@ -490,6 +538,7 @@ export default function VoicesPage() {
               clients={visibleClients}
               isAdmin={isAdmin}
               isPlaying={playingId === voice.voiceId}
+              isPreviewLoading={previewLoadingId === voice.voiceId}
               previewErrored={previewErrorId === voice.voiceId}
               myVoiceId={myVoiceId}
               myPreviousVoiceId={myPreviousVoiceId}

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { inferVoiceGender } from '@/lib/voice-presets'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
 
@@ -50,6 +51,8 @@ export async function GET() {
     name: v.name,
     description: v.description || '',
     provider: v.provider || 'Unknown',
+    previewAvailable: true,
+    gender: inferVoiceGender(v.name, v.description || ''),
   }))
 
   return NextResponse.json(

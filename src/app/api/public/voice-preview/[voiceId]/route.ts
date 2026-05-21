@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+async function fetchPreview(voiceId: string): Promise<Response> {
+  let lastResponse: Response | null = null
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const res = await fetch(
+      `https://api.ultravox.ai/api/voices/${voiceId}/preview`,
+      { headers: { 'X-API-Key': process.env.ULTRAVOX_API_KEY! } }
+    )
+    if (res.ok) return res
+    lastResponse = res
+    await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)))
+  }
+  return lastResponse ?? new Response(null, { status: 404 })
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ voiceId: string }> }
@@ -11,10 +25,7 @@ export async function GET(
     return new NextResponse('Invalid voice ID', { status: 400 })
   }
 
-  const res = await fetch(
-    `https://api.ultravox.ai/api/voices/${voiceId}/preview`,
-    { headers: { 'X-API-Key': process.env.ULTRAVOX_API_KEY! } }
-  )
+  const res = await fetchPreview(voiceId)
 
   if (!res.ok) return new NextResponse('Not found', { status: 404 })
 
