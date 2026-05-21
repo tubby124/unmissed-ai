@@ -1,0 +1,64 @@
+name: Prompt Injection Eval (Adversarial)
+
+# Drives the live Ultravox stack with caller-side prompt-injection attacks
+# (instruction override, prompt extraction, role hijack, social engineering,
+# token smuggling) across every production voice agent. Any failure writes
+# a finding to harness_findings (harness='prompt-injection') for the admin
+# dashboard.
+#
+# Schedule: 10:15 UTC daily — runs AFTER the Twilio ownership audit at 10:00,
+# so a deliberately-staggered slot keeps the morning sequence clean and
+# avoids overlap with nightly-drift-check (09:00) and data-hygiene (09:30).
+#
+# Cost estimate per run (this is the only $$-per-run harness in the suite):
+#   15 attacks × 3 clients = 45 Ultravox WebRTC calls × ~30s × ~$0.05/min ≈ $1.15
+#   45 LLM-rubric judge calls (Haiku via OpenRouter) ≈ $0.10
+#   TOTAL ≈ $1.25 / run = ~$38 / month at one run / day.
+#
+# Required GH Secrets:
+#   ULTRAVOX_API_KEY            — Ultravox API key (creates the WebRTC calls)
+#   OPENROUTER_API_KEY          — judge model for llm-rubric assertions
+#   NEXT_PUBLIC_SUPABASE_URL    — unmissed.ai prod URL
+#   SUPABASE_SERVICE_ROLE_KEY   — unmissed.ai prod service role (bypasses RLS
+#                                 for harness_findings writes)
+
+on:
+  schedule:
+    - cron: "15 10 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "tests/promptfoo/adversarial/**"
+      - "tests/promptfoo/scripts/run-adversarial-eval.ts"
+      - "tests/promptfoo/providers/ultravox-provider.ts"
+      - ".github/workflows/prompt-injection-eval.yml"
+
+concurrency:
+  group: prompt-injection-eval
+  cancel-in-progress: false
+
+jobs:
+  adversarial:
+    name: Adversarial prompt-injection eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Run adversarial eval
+        env:
+          ULTRAVOX_API_KEY: ${{ secrets.ULTRAVOX_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: npm run test:prompts:adversarial
