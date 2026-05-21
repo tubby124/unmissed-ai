@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from typing import Any, Iterable
 
 import pytest
@@ -214,3 +215,149 @@ def supabase_url() -> str:
 def test_slug() -> str:
     """Slug for the test client used by webhook idempotency tests."""
     return os.environ.get("TEST_CLIENT_SLUG", "schemathesis-fuzz")
+
+
+# ── Harness findings recorder ──────────────────────────────────────────────
+#
+# Collects every failed pytest report into a module-level list, then POSTs them
+# to public.harness_findings at session end. Mirrors the recordFindings() TS
+# API in src/lib/harness-writer.ts:
+#   - upsert by (harness_name, check_name, client_slug)
+#   - existing row re-flips status='open' if it was 'resolved'
+#   - service-role write bypasses RLS
+#
+# Why a Python REST POST instead of shelling out to a TS shim: keeps the fuzz
+# job a single language stack and avoids spawning Node mid-pytest. The TS
+# helper exists; the same upsert semantics are implementable in 30 lines of
+# requests-based UPSERT calls.
+
+_FAILED_REPORTS: list[dict[str, Any]] = []
+
+
+def _classify_check_name(nodeid: str, longrepr: str) -> str:
+    """Map a pytest nodeid + longrepr to a stable harness_findings.check_name.
+
+    Schemathesis tests live in `test_*` files and check names come either from
+    our @schemathesis.check decorators (e.g. settings_patch_landed) or from
+    raw schema-generated negative tests (status_code_conformance,
+    response_schema_conformance, content_type_conformance, etc.).
+    """
+    lr = (longrepr or "").lower()
+    # Custom checks (defined above)
+    if "settings_patch_landed" in nodeid or "round-trip mismatch" in lr:
+        return "settings_patch_round_trip"
+    if "webhook" in nodeid and "idempot" in nodeid:
+        return "webhook_idempotency"
+    # Schemathesis built-in checks — string-match the failure type
+    if "status_code_conformance" in lr or "undocumented http status" in lr:
+        return "status_code_conformance"
+    if "response_schema_conformance" in lr or "schema violation" in lr:
+        return "response_schema_conformance"
+    if "content_type_conformance" in lr:
+        return "content_type_conformance"
+    if "not_a_server_error" in lr or "internal server error" in lr:
+        return "server_error"
+    # Fallback: pytest test name, kebab-cased
+    short = nodeid.rsplit("::", 1)[-1].replace("test_", "").replace("_", "-")
+    return f"schemathesis_{short}"[:80]
+
+
+def _classify_severity(check_name: str) -> str:
+    # P0 = the route returned 5xx OR the round-trip into Supabase didn't land.
+    # P1 = schema violation (response shape drift).
+    # P2 = content-type quirks etc.
+    if check_name in ("server_error", "settings_patch_round_trip", "webhook_idempotency"):
+        return "P0"
+    if check_name in ("response_schema_conformance", "status_code_conformance"):
+        return "P1"
+    return "P2"
+
+
+def pytest_runtest_logreport(report: Any) -> None:
+    """Capture failed test reports for later upload to harness_findings."""
+    if getattr(report, "when", None) != "call":
+        return
+    if not getattr(report, "failed", False):
+        return
+    nodeid = getattr(report, "nodeid", "") or ""
+    longrepr = ""
+    try:
+        longrepr = str(report.longrepr)[:1000]
+    except Exception:
+        longrepr = "(unreadable)"
+    _FAILED_REPORTS.append({"nodeid": nodeid, "longrepr": longrepr})
+
+
+def _post_harness_findings() -> None:
+    """POST collected failures to harness_findings via Supabase REST.
+
+    Silently skips when SUPABASE creds are missing — matches the existing
+    "skip rather than block" pattern in _supabase_get_client_row.
+    """
+    if not (SUPABASE_URL and SUPABASE_SVC_KEY):
+        return
+    if not _FAILED_REPORTS:
+        return
+
+    run_id = os.environ.get("GITHUB_RUN_ID") or str(int(time.time() * 1000))
+    now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    headers = {
+        "apikey": SUPABASE_SVC_KEY,
+        "Authorization": f"Bearer {SUPABASE_SVC_KEY}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        # Upsert on the unique (harness_name, check_name, client_slug) key.
+        "Prefer": "resolution=merge-duplicates",
+    }
+    base_url = f"{SUPABASE_URL}/rest/v1/harness_findings"
+
+    # Deduplicate by check_name — only one row per (harness, check, NULL slug).
+    by_check: dict[str, dict[str, Any]] = {}
+    for r in _FAILED_REPORTS:
+        cn = _classify_check_name(r["nodeid"], r["longrepr"])
+        if cn not in by_check:
+            by_check[cn] = {"count": 0, "first_nodeid": r["nodeid"], "samples": []}
+        by_check[cn]["count"] += 1
+        if len(by_check[cn]["samples"]) < 3:
+            by_check[cn]["samples"].append(r)
+
+    payload: list[dict[str, Any]] = []
+    for check_name, agg in by_check.items():
+        sev = _classify_severity(check_name)
+        first = agg["first_nodeid"]
+        summary = f"{check_name}: {agg['count']} failure(s) — first: {first[-120:]}"
+        payload.append(
+            {
+                "harness_name": "schemathesis",
+                "run_id": run_id,
+                "check_name": check_name,
+                "severity": sev,
+                "status": "open",
+                "client_slug": None,
+                "summary": summary[:280],
+                "details": {
+                    "count": agg["count"],
+                    "first_nodeid": first,
+                    "samples": agg["samples"],
+                },
+                "last_seen_at": now_iso,
+            }
+        )
+
+    try:
+        r = requests.post(base_url, headers=headers, json=payload, timeout=15)
+        if not r.ok:
+            print(
+                f"[harness-findings] POST failed HTTP {r.status_code}: "
+                f"{r.text[:300]}"
+            )
+        else:
+            print(f"[harness-findings] wrote {len(payload)} finding(s)")
+    except Exception as e:
+        print(f"[harness-findings] POST exception: {e}")
+
+
+def pytest_sessionfinish(session: Any, exitstatus: int) -> None:
+    """Session-end hook — flush collected failures to harness_findings."""
+    _ = session, exitstatus  # unused, signature mandated by pytest
+    _post_harness_findings()

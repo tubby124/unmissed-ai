@@ -34,6 +34,32 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { recordFindings, type Finding as HarnessFinding } from '../src/lib/harness-writer.js'
+
+// Drift dimension → stable harness_findings.check_name.
+// Per-dimension prefixes (tool_secret_missing:<name>, capability_fake_on:<flag>,
+// prompt_missing_token:<token>) collapse into the bucket name in the dashboard
+// view but keep the per-dim details in finding.details.
+function dimensionToCheckName(dim: string): string | null {
+  if (dim === 'prompt_char_delta') return 'prompt_drift'
+  if (dim.startsWith('prompt_missing_token:')) return 'prompt_drift'
+  if (dim === 'voice') return 'voice_drift'
+  if (dim === 'tools_duplicate_names') return 'tools_drift'
+  if (dim.startsWith('tool_secret_missing:')) return 'tool_secret_missing'
+  if (dim.startsWith('capability_fake_on:')) return 'capability_fake_on'
+  if (dim === 'ultravox_fetch_error') return 'tools_drift'
+  return null
+}
+
+// All drift findings are P1 (silent fakery / latent risk) by default. The two
+// exceptions: tool_secret_missing reaches our webhook without auth → P0;
+// capability_fake_on:forwarding hands a transfer to "" → P0.
+function dimensionToSeverity(dim: string): 'P0' | 'P1' | 'P2' {
+  if (dim.startsWith('tool_secret_missing:')) return 'P0'
+  if (dim === 'capability_fake_on:forwarding') return 'P0'
+  if (dim === 'ultravox_fetch_error') return 'P0'
+  return 'P1'
+}
 
 const DRY_RUN = process.argv.includes('--dry-run')
 
@@ -393,6 +419,38 @@ async function main(): Promise<number> {
   }
 
   console.log(`[nightly-drift] checked=${clients.length} findings=${allFindings.length} fetch_errors=${fetchErrors.length}`)
+
+  // Write to harness_findings (admin dashboard). Always runs, even in dry-run,
+  // because dry-run is about not-paging-the-owner, not skipping persistence.
+  // Empty-findings runs do NOT clear stale rows — admin must resolve manually
+  // (consistent with harness-writer's documented behavior).
+  if (allFindings.length > 0) {
+    const runId = process.env.GITHUB_RUN_ID ?? String(Date.now())
+    const findings: HarnessFinding[] = []
+    for (const f of allFindings) {
+      const checkName = dimensionToCheckName(f.dimension)
+      if (!checkName) continue
+      findings.push({
+        check_name: checkName,
+        severity: dimensionToSeverity(f.dimension),
+        client_slug: f.slug,
+        summary: `${f.dimension}: ${truncate(f.actual, 80)}${f.note ? ` — ${truncate(f.note, 60)}` : ''}`.slice(0, 280),
+        details: {
+          dimension: f.dimension,
+          expected: f.expected,
+          actual: f.actual,
+          note: f.note ?? null,
+        },
+      })
+    }
+    try {
+      const res = await recordFindings({ harness: 'drift-check', run_id: runId, findings })
+      console.log(`[nightly-drift] harness_findings: wrote=${res.written} reopened=${res.reopened} errors=${res.errors.length}`)
+      for (const e of res.errors) console.error(`  [recordFindings] ${e}`)
+    } catch (err) {
+      console.error('[nightly-drift] recordFindings failed:', err)
+    }
+  }
 
   if (allFindings.length === 0) {
     console.log('[nightly-drift] Clean.')

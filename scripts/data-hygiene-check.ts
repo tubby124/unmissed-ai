@@ -33,6 +33,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { sendAlert } from '../src/lib/telegram.js'
+import { recordFindings, type Finding as HarnessFinding } from '../src/lib/harness-writer.js'
 import {
   checkStaleNotes,
   checkInjectedNoteContent,
@@ -49,6 +50,62 @@ import {
   type CallLogRow,
   type FlagsConfig,
 } from '../src/lib/data-hygiene.js'
+
+// Map data-hygiene CheckResult.id (A-H) → stable harness_findings.check_name.
+// Keep this list in lock-step with src/lib/data-hygiene.ts.
+const CHECK_NAME_MAP: Record<string, string> = {
+  A_stale_notes: 'stale_injected_note',
+  B_note_content: 'content_red_flag',
+  C_trial_drift: 'trial_status_drift',
+  D_zombie_subs: 'zombie_active_sub',
+  E_plan_tier_tools: 'plan_tier_tool_mismatch',
+  F_stuck_live_calls: 'stuck_live_call',
+  G_untranscribed_vm: 'untranscribed_voicemail',
+  H_dupe_twilio_numbers: 'duplicate_twilio_number',
+}
+
+// Severity translation: data-hygiene uses WARN/FAIL/PASS, harness_findings
+// uses P0/P1/P2/PASS. FAIL → P0 (customer-visible / data-loss class), WARN → P1.
+function mapSeverity(s: 'PASS' | 'WARN' | 'FAIL'): 'P0' | 'P1' | 'P2' | 'PASS' {
+  if (s === 'FAIL') return 'P0'
+  if (s === 'WARN') return 'P1'
+  return 'PASS'
+}
+
+// Heuristic: if the per-finding key looks like a client slug (no UUID hyphen
+// pattern, no leading digits), use it for client_slug. call_log IDs are UUIDs
+// and don't belong on client_slug. Dupe-twilio uses the phone number as key.
+function inferClientSlug(checkId: string, key: string): string | null {
+  if (checkId === 'F_stuck_live_calls' || checkId === 'G_untranscribed_vm') return null
+  if (checkId === 'H_dupe_twilio_numbers') return null
+  // UUID detection — call_id may sneak through if check ids change
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(key)) return null
+  return key
+}
+
+function buildHarnessFindings(results: CheckResult[]): HarnessFinding[] {
+  const out: HarnessFinding[] = []
+  for (const r of results) {
+    const checkName = CHECK_NAME_MAP[r.id]
+    if (!checkName) continue
+    if (r.severity === 'PASS') continue
+    for (const f of r.findings) {
+      out.push({
+        check_name: checkName,
+        severity: mapSeverity(r.severity),
+        client_slug: inferClientSlug(r.id, f.key),
+        summary: `${r.label}: ${f.detail}`.slice(0, 280),
+        details: {
+          check_id: r.id,
+          label: r.label,
+          key: f.key,
+          detail: f.detail,
+        },
+      })
+    }
+  }
+  return out
+}
 
 const STATE_PATH = '.github/data-hygiene-state/last-run.json'
 const FLAGS_PATH = 'scripts/data-hygiene-flags.json'
@@ -326,6 +383,21 @@ async function main(): Promise<number> {
     }
   } else if (suppress) {
     console.log(`[data-hygiene] same findings as previous run within ${SUPPRESS_HOURS}h — Telegram suppressed`)
+  }
+
+  // Write to harness_findings (admin dashboard). Runs regardless of suppress —
+  // suppress only gates Telegram re-spam; the dashboard wants the latest
+  // last_seen_at on every run. Skipped in --dry-run.
+  if (!args.dryRun) {
+    const runId = process.env.GITHUB_RUN_ID ?? String(Date.now())
+    const findings = buildHarnessFindings(results)
+    try {
+      const res = await recordFindings({ harness: 'data-hygiene', run_id: runId, findings })
+      console.log(`[data-hygiene] harness_findings: wrote=${res.written} reopened=${res.reopened} errors=${res.errors.length}`)
+      for (const e of res.errors) console.error(`  [recordFindings] ${e}`)
+    } catch (err) {
+      console.error('[data-hygiene] recordFindings failed:', err)
+    }
   }
 
   return worst === 'PASS' ? 0 : 1
