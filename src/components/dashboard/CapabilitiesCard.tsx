@@ -293,7 +293,7 @@ export default function CapabilitiesCard({
       dotType: 'always',
       link: '/dashboard/settings?tab=sms',
       upgradeRequired: true,
-      tooltip: 'SMS requires a Twilio phone number. Available on paid plans.',
+      tooltip: 'Texting needs a phone number on your plan. Available on paid plans.',
       syncIssue: runtimeNotLive?.hasSms,
     },
     {

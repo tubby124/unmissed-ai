@@ -124,7 +124,7 @@ export default function OutboundSchedulingCard({ client, isAdmin, previewMode }:
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-amber-400 shrink-0">
               <path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span className="text-[11px] text-amber-400/90">No Twilio number assigned — upgrade to a paid plan to enable outbound calls.</span>
+            <span className="text-[11px] text-amber-400/90">No phone number on this account yet — upgrade to a paid plan to make outbound calls.</span>
           </div>
         )}
       </div>

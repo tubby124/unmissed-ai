@@ -165,74 +165,6 @@ export const POLICIES = {
   setupTime: "Built during setup; live after forwarding is tested",
 };
 
-// ─── Competitor Data (for comparison tables) ────────────────────────
-export const COMPETITORS = [
-  {
-    name: "Dialzara",
-    plan: "$29/mo",
-    minutes: "60 min",
-    at200Calls: "$290+",
-    catch: "2 min/day limit",
-    model: "Per-minute",
-  },
-  {
-    name: "Rosie",
-    plan: "Entry plan",
-    minutes: "250 min",
-    at200Calls: "$99+",
-    catch: "Booking requires $149/mo",
-    model: "Per-minute",
-  },
-  {
-    name: "My AI Front Desk",
-    plan: "$99/mo",
-    minutes: "200 min",
-    at200Calls: "$199+",
-    catch: "Bilingual requires $149/mo",
-    model: "Per-minute",
-  },
-  {
-    name: "Goodcall",
-    plan: "$79/mo",
-    minutes: "100 callers",
-    at200Calls: "$129+",
-    catch: "Per unique caller, not minutes",
-    model: "Per-caller",
-  },
-  {
-    name: "Smith.ai",
-    plan: "$95/mo",
-    minutes: "50 calls",
-    at200Calls: "$455+",
-    catch: "Human hybrid, very expensive",
-    model: "Per-call",
-  },
-  {
-    name: "Ask Benny",
-    plan: "Entry plan",
-    minutes: "150 min",
-    at200Calls: "$99+ CAD",
-    catch: "No niche-specific prompts",
-    model: "Per-minute",
-  },
-];
-
-// ─── Feature Comparison (for detailed table) ────────────────────────
-export const FEATURE_COMPARISON = [
-  { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", askbenny: "Per minute", unmissed: "Flat rate per plan" },
-  { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "Entry plan", smithai: "$95/mo", askbenny: "Entry plan", unmissed: `$${PUBLIC_PLANS[0].foundingMonthly ?? PUBLIC_PLANS[0].monthly}/mo CAD founding` },
-  { feature: "Predictable monthly cost", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes — flat base rate, no surprise overage fees" },
-  { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", askbenny: "Self-serve", unmissed: "Done for you — live during signup" },
-  { feature: "Niche-specific prompts", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
-  { feature: "Books appointments automatically", myai: "No ($149+)", goodcall: "No ($129+)", rosie: "No ($149+)", smithai: "No ($270+)", askbenny: "Yes", unmissed: `Yes (${PLANS[1].name} — $${PLANS[1].foundingMonthly ?? PLANS[1].monthly}/mo)` },
-  { feature: "Transfers to you when it matters", myai: "Blind only", goodcall: "No", rosie: "No", smithai: "Yes", askbenny: "No", unmissed: `Yes (${PLANS[1].name} — $${PLANS[1].foundingMonthly ?? PLANS[1].monthly}/mo)` },
-  { feature: "Bilingual", myai: "No ($149+)", goodcall: "Limited", rosie: "Yes", smithai: "Yes", askbenny: "EN/FR", unmissed: "English (more coming)" },
-  { feature: "Learns from calls", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes (weekly review)" },
-  { feature: "Your data", myai: "Vendor-locked", goodcall: "Vendor-locked", rosie: "Vendor-locked", smithai: "Vendor-locked", askbenny: "Vendor-locked", unmissed: "Dashboard (yours)" },
-  { feature: "Instant call alerts to owner", myai: "Email", goodcall: "Email", rosie: "Email", smithai: "Email + SMS", askbenny: "SMS/Email", unmissed: "Email + Telegram" },
-  { feature: "Contracts", myai: "Monthly", goodcall: "Monthly", rosie: "Monthly", smithai: "Monthly", askbenny: "Monthly", unmissed: "None — cancel anytime" },
-];
-
 // ─── Supported Niches ───────────────────────────────────────────────
 export const NICHES = {
   live: ["Auto glass", "Property management", "Real estate", "Print shops", "General"],
@@ -330,11 +262,11 @@ export const BASE_PLAN = {
 export const FOUNDING_PROMO = {
   enabled: true,
   monthly: PLANS[0].monthly,
-  foundingMonthly: 29,
+  foundingMonthly: PLANS[0].foundingMonthly,
   minutes: PLANS[0].minutes,
   badge: "Founding Rate",
-  label: "$29/mo locked for founding members",
-  description: "Lock in $29/mo Solo forever.",
+  label: "Founding rate locked in forever",
+  description: "Lock in the founding monthly rate forever.",
   regularPrice: PLANS[0].monthly,
 };
 

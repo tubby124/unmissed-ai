@@ -1195,7 +1195,7 @@ function KnowledgeModal(p: CommonProps) {
       ) : (
         <p className="text-[12px] t2">
           {total} approved chunk{total === 1 ? '' : 's'} · {k.pending_review_count} pending review.
-          When a caller asks a question, the agent calls <code>queryKnowledge</code> → hybrid pgvector search → speaks the top match.
+          When a caller asks a question, your agent searches your knowledge base and reads back the best match.
         </p>
       )}
       <Link
@@ -1366,25 +1366,25 @@ function CallDetailModal(p: CommonProps) {
 // ── Router ────────────────────────────────────────────────────────────────────
 
 const TITLES: Record<Exclude<ModalId, null>, { title: string; sub?: string }> = {
-  greeting:   { title: 'Greeting line',          sub: 'Variable: GREETING_LINE — first sentence agent says when the call connects.' },
-  aftercall:  { title: 'After-call SMS',         sub: 'sms_enabled + sms_template — sent within ~60s of hangup. Requires plan SMS entitlement + Twilio number.' },
-  telegram:   { title: 'Connect Telegram alerts', sub: 'Get instant notifications when calls finish. One-tap deep link via @unmissedaibot.' },
-  ivr:        { title: 'IVR pre-filter',         sub: 'ivr_enabled + ivr_prompt — plays a digit menu before connecting to the agent. Phone calls only.' },
-  voicemail:  { title: 'Voicemail greeting',     sub: 'voicemail_greeting_text — played when caller leaves a message or agent is unreachable.' },
-  booking:    { title: 'Calendar booking',       sub: 'Connect Google Calendar so the agent can check availability and book directly.' },
-  transfer:   { title: 'Live call transfer',     sub: 'forwarding_number + transfer_conditions — agent uses transferCall when caller meets criteria.' },
-  website:    { title: 'Website knowledge',      sub: 'Pages scraped from your website, embedded into pgvector for the queryKnowledge tool.' },
-  gbp:        { title: 'Google Business Profile', sub: 'Auto-imported via Google Places at onboarding.' },
-  today:      { title: "Today's update",          sub: 'injected_note — live agent context (RIGHT NOW: …). Cleared automatically after expiry.' },
-  calendar:   { title: 'Connect Google Calendar', sub: 'Required for the booking tool. Agent uses checkCalendarAvailability + bookAppointment.' },
-  voice:      { title: 'Choose voice',            sub: 'Click ▶ Play to hear each voice. Selection auto-syncs to your live agent.' },
-  callback:   { title: 'Callback contact',        sub: 'Variable: CLOSE_PERSON. Who the agent says will call back; phone is for the transfer tool.' },
-  hours:      { title: 'Business hours',          sub: 'business_hours_weekday + weekend — injected as OFFICE HOURS at call time.' },
-  services:   { title: 'Services your business offers', sub: 'Active services count surfaced as service catalog. Agent uses these to describe what you sell.' },
-  faqs:       { title: 'FAQs',                    sub: 'extra_qa — what your agent says. Click any question to view + edit the answer.' },
-  knowledge:  { title: 'Knowledge base',          sub: 'pgvector embedded chunks searched by the queryKnowledge tool.' },
-  gaps:       { title: 'Unanswered questions',    sub: 'Caller asked something the agent could not answer. Promote to FAQ to fix the gap.' },
-  call:       { title: 'Call detail',             sub: 'Summary + classification. Open the full transcript for the entire conversation.' },
+  greeting:   { title: 'Greeting',                sub: 'The first thing your agent says when someone calls.' },
+  aftercall:  { title: 'After-call text',         sub: 'A quick text your agent sends the caller right after they hang up. Available on plans that include texting.' },
+  telegram:   { title: 'Telegram alerts',         sub: 'Get a ping the moment a call ends. One-tap setup through @unmissedaibot.' },
+  ivr:        { title: 'Menu before the call',    sub: 'Play a short menu before the caller reaches your agent. Phone calls only.' },
+  voicemail:  { title: 'Voicemail message',       sub: "What your agent says when it needs to take a message." },
+  booking:    { title: 'Calendar booking',        sub: 'Let your agent check your calendar and book appointments on the call.' },
+  transfer:   { title: 'Transfer the call',       sub: 'When the caller fits your rules, your agent passes the call to your phone.' },
+  website:    { title: 'Website knowledge',       sub: "Pages pulled from your website so your agent can answer questions about your business." },
+  gbp:        { title: 'Google Business Profile', sub: 'Pulled in automatically when you signed up.' },
+  today:      { title: "Today's update",          sub: 'A short note your agent reads at the start of every call. Great for short-term updates.' },
+  calendar:   { title: 'Connect Google Calendar', sub: 'Needed before your agent can check availability and book appointments.' },
+  voice:      { title: 'Choose a voice',          sub: 'Tap ▶ to preview. The voice you pick is used on your next call automatically.' },
+  callback:   { title: 'Who calls people back',   sub: 'The name your agent gives callers, and the number used if a call is transferred.' },
+  hours:      { title: 'Business hours',          sub: "When you're open. Your agent uses this to set expectations on every call." },
+  services:   { title: 'What you offer',          sub: 'The services your agent can describe and talk about with callers.' },
+  faqs:       { title: 'FAQs',                    sub: 'Word-for-word answers your agent gives. Tap any question to view or edit.' },
+  knowledge:  { title: 'Knowledge base',          sub: 'Business info your agent can search through while on a call.' },
+  gaps:       { title: 'Unanswered questions',    sub: "Things callers asked that your agent couldn't answer. Add an FAQ to fix it." },
+  call:       { title: 'Call detail',             sub: 'A quick summary. Open the full transcript to read the whole conversation.' },
 }
 
 interface RouterProps {
