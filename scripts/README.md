@@ -54,3 +54,43 @@ Python scripts use stdlib only (no pip install needed). Node scripts require `@s
 - `backfill-pgvector.mjs` is windshield-hub-specific. For other clients, use `backfill-chunks.ts`.
 - `backfill-corpus.py` targets the legacy Ultravox corpus API. pgvector is the current knowledge backend.
 - `backfill-chunks.ts` references `agent-app/.env.local` for env vars -- this path is stale after S12-OPS4 repo unification. Use root `.env.local` instead.
+
+## Nightly Drift Check
+
+`scripts/nightly-drift-check.ts` — read-only diff of Supabase `clients` vs live Ultravox agent state. Runs nightly at 09:00 UTC via [.github/workflows/nightly-drift-check.yml](../.github/workflows/nightly-drift-check.yml) and posts a single Telegram alert to the owner if drift is found. Complements `/api/cron/drift-check` (which auto-fixes prompt drift) — this script covers voice, tools, X-Tool-Secret presence, and capability fake-on.
+
+### Required env vars
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ULTRAVOX_API_KEY`
+- `TELEGRAM_BOT_TOKEN` (required unless `--dry-run`)
+- `TELEGRAM_OWNER_CHAT_ID` (optional — script falls back to `clients.telegram_chat_id` where `slug = 'hasan-sharif'`)
+
+### Local test
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=... \
+NEXT_PUBLIC_SUPABASE_URL=https://qwhvblomlgeapzhnuwlb.supabase.co \
+ULTRAVOX_API_KEY=... \
+npx tsx scripts/nightly-drift-check.ts --dry-run
+```
+
+### Expected output
+
+```
+[nightly-drift] Starting (dry-run)…
+  [OK   ] auto-glass-yyc
+  [DRIFT] urban-vibe — 2 finding(s)
+     · voice: f6f50e3e-0e0e-… ≠ Mark-English
+     · capability_fake_on:forwarding: selected_plan == "pro" ≠ core
+  [OK   ] windshield-hub
+[nightly-drift] checked=3 findings=2 fetch_errors=0
+[nightly-drift] DRY RUN — would alert. signature=a3f1c2d4e5b6…
+```
+
+Exit codes: `0` = no drift, `1` = drift found (Telegram already sent inline, GitHub Action shows red), `2` = setup/env error.
+
+### Idempotency
+
+The script writes `.github/drift-state/last-alert.json` with the SHA-256 of the drift fingerprint. If the same drift recurs within 24h, no duplicate Telegram is sent. Delete the state file to force a re-alert.
