@@ -38,6 +38,7 @@
     "test:ui:headed": "npx playwright test --headed",
     "test:ui:report": "npx playwright show-report",
     "test:prompts:gen": "npx tsx tests/promptfoo/scripts/generate-voicemail-generic-prompt.ts && npx tsx tests/promptfoo/scripts/generate-auto-glass-prompt.ts",
+    "test:prompts:ultravox": "npx promptfoo eval -c tests/promptfoo/ultravox-hasan-greeting-eval.yaml",
     "test:prompts:voicemail": "npm run test:prompts:gen && npx promptfoo eval -c tests/promptfoo/voicemail-generic-golden.yaml && npx tsx tests/promptfoo/scripts/transcript-replay.ts --niche voicemail-generic",
     "test:prompts:auto-glass": "npm run test:prompts:gen && npx promptfoo eval -c tests/promptfoo/auto-glass-golden.yaml && npx tsx tests/promptfoo/scripts/transcript-replay.ts --niche auto-glass",
     "test:prompts": "npm run test:prompts:gen && npx promptfoo eval -c tests/promptfoo/voicemail-generic-golden.yaml && npx promptfoo eval -c tests/promptfoo/auto-glass-golden.yaml && npx tsx tests/promptfoo/scripts/transcript-replay.ts --niche all",
