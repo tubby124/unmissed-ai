@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { motion } from 'motion/react'
 import { ArrowRight, PhoneCall } from 'lucide-react'
 import CallMeNowWidget from './CallMeNowWidget'
-import { TRIAL, FOUNDING_PROMO, BASE_PLAN } from '@/lib/pricing'
+import { TRIAL, PUBLIC_PLANS, getPlanDisplayMonthly } from '@/lib/pricing'
 import { HERO } from '@/lib/marketing-content'
 import { trackEvent } from '@/lib/analytics'
 
@@ -116,7 +116,7 @@ export default function HeroContent() {
         className="mt-5"
       >
         <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-          Plans from {FOUNDING_PROMO.enabled ? `$${FOUNDING_PROMO.foundingMonthly}/mo` : `$${BASE_PLAN.monthly}/mo`} · {TRIAL.label} · No contracts · Cancel anytime
+          {`Plans from $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo · ${TRIAL.label} · No contracts · Cancel anytime`}
         </p>
       </motion.div>
     </div>

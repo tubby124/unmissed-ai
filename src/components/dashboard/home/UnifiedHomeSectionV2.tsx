@@ -7,7 +7,6 @@ import { AgentSyncBadge } from '@/components/dashboard/AgentSyncBadge'
 import { useUpgradeModal } from '@/contexts/UpgradeModalContext'
 import { useCallContext } from '@/contexts/CallContext'
 import ActivationTile from './ActivationTile'
-import BillingTile from './BillingTile'
 // v2: removed StatsHeroCard (stats surfaced in trial pill)
 // v2: removed TrialModeSwitcher, BookingCalendarTile, UnansweredQuestionsTile, PendingReviewTile, AgentReadinessRow
 // (merged into single readiness band below)
@@ -90,16 +89,7 @@ export default function UnifiedHomeSectionV2({
               hasGoogleProfile: !!data.gbpData?.placeId,
             }}
             injectedNote={data.editableFields.injectedNote}
-            syncedLabel={(() => {
-              const at = data.agentSync?.last_agent_sync_at
-              if (!at) return null
-              const m = Math.floor((Date.now() - new Date(at).getTime()) / 60000)
-              if (m < 1) return 'Synced just now'
-              if (m < 60) return `Synced ${m}m ago`
-              const h = Math.floor(m / 60)
-              if (h < 24) return `Synced ${h}h ago`
-              return `Synced ${Math.floor(h / 24)}d ago`
-            })()}
+            syncedLabel={data.agentSync?.last_agent_sync_at ? 'Synced' : null}
             isTrial={isTrial}
             hasForwarding={!!data.editableFields.forwardingNumber}
             openModal={inlineEdit.openModal}
@@ -440,7 +430,7 @@ export default function UnifiedHomeSectionV2({
             {isTrial
               ? `Trial · ${daysRemaining ?? 0} day${daysRemaining === 1 ? '' : 's'} left`
               : (data.selectedPlan === 'core' ? 'AI Receptionist · $119/mo'
-                : data.selectedPlan === 'lite' ? 'Solo · $49/mo'
+                : data.selectedPlan === 'lite' ? 'Solo'
                 : data.selectedPlan === 'pro' ? 'AI Receptionist · $119/mo'
                 : 'Active')}
           </p>
@@ -460,7 +450,7 @@ export default function UnifiedHomeSectionV2({
           >
             <p className="text-[11px] font-semibold tracking-[0.15em] uppercase t3 mb-1.5">When you&apos;re ready to go live</p>
             <p className="text-[12px] t2 mb-3 leading-relaxed">
-              Solo $49/mo or AI Receptionist $119/mo. Pick one to keep your number live.
+              Pick a plan to keep your number live.
             </p>
             <div
               className="w-full py-2.5 rounded-xl text-[13px] font-semibold text-white text-center"

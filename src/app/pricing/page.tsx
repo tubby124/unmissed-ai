@@ -10,7 +10,7 @@ import { pricingSchema } from "@/lib/schema";
 import Link from "next/link";
 import PricingHero, { GuaranteeBar } from "@/components/PricingHero";
 import {
-  PLANS,
+  PUBLIC_PLANS,
   TRIAL,
   COMPETITORS,
   FEATURE_COMPARISON,
@@ -21,13 +21,13 @@ import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 
 export const metadata: Metadata = {
   title: `Pricing — ${BRAND_NAME} AI Receptionist`,
-  description: `Simple flat-rate pricing, no contracts. AI receptionist from $${getPlanDisplayMonthly(PLANS[0])}/mo CAD founding rate. ${TRIAL.label}. Cancel anytime.`,
+  description: `Simple flat-rate pricing, no contracts. AI receptionist from $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo CAD founding rate. ${TRIAL.label}. Cancel anytime.`,
   alternates: {
     canonical: `https://${BRAND_DOMAIN}/pricing`,
   },
   openGraph: {
     title: `Pricing — ${BRAND_NAME}`,
-    description: `AI receptionist from $${getPlanDisplayMonthly(PLANS[0])}/mo CAD founding rate. ${TRIAL.label}. No contracts, no surprise overages.`,
+    description: `AI receptionist from $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo CAD founding rate. ${TRIAL.label}. No contracts, no surprise overages.`,
   },
 };
 
@@ -106,7 +106,7 @@ export default function PricingPage() {
                   ))}
                   <tr style={{ backgroundColor: "var(--color-accent,#EEF2FF)", borderBottom: "1px solid var(--color-border)" }}>
                     <td className="p-4 font-semibold" style={{ color: "var(--color-primary)" }}>{BRAND_NAME}</td>
-                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>from ${getPlanDisplayMonthly(PLANS[0])}/mo</td>
+                    <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>from ${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Flat rate per plan</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Predictable</td>
                     <td className="p-4 text-center font-semibold" style={{ color: "#22C55E" }}>Prepaid extra minutes</td>

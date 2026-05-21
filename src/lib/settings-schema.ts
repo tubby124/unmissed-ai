@@ -527,6 +527,15 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     updates.service_catalog = body.service_catalog.filter(s => s.name.trim())
   }
 
+  // niche_custom_variables — slot-regenerated prompt variables such as GREETING_LINE.
+  if (body.niche_custom_variables !== undefined) {
+    updates.niche_custom_variables = Object.fromEntries(
+      Object.entries(body.niche_custom_variables)
+        .map(([key, val]) => [key, val.trim()])
+        .filter(([, val]) => val.length > 0)
+    )
+  }
+
   // ── Phase E Wave 1 — Day-1 edit panel fields ───────────────────────────────
   // today_update — nullable string, 200 char max (enforced by Zod)
   if (body.today_update !== undefined) {

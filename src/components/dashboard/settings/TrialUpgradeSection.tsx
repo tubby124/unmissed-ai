@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Check, Clock } from 'lucide-react'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
-import { PLANS, PUBLIC_PLANS, CURRENCY } from '@/lib/pricing'
+import { PLANS, PUBLIC_PLANS, CURRENCY, getPlanDisplayMonthly } from '@/lib/pricing'
 
 interface Props {
   clientId: string
@@ -28,7 +28,7 @@ export default function TrialUpgradeSection({ clientId, previewMode }: Props) {
         body: JSON.stringify({ planId, billing, clientId }),
       })
       const data = await res.json()
-      if (data.url) window.location.href = data.url
+      if (data.url) window.location.assign(data.url)
       else setLoadingPlan(null)
     } catch {
       setLoadingPlan(null)
@@ -93,7 +93,7 @@ export default function TrialUpgradeSection({ clientId, previewMode }: Props) {
       {/* Plan radiogroup */}
       <div className="space-y-3" role="radiogroup" aria-label="Select a plan">
         {PUBLIC_PLANS.map((plan) => {
-          const price = billing === 'annual' ? plan.annual : plan.monthly
+          const price = billing === 'annual' ? plan.annual : getPlanDisplayMonthly(plan)
           const isSelected = selectedPlanId === plan.id
           const isLoading = loadingPlan === plan.id
 
@@ -102,7 +102,6 @@ export default function TrialUpgradeSection({ clientId, previewMode }: Props) {
               key={plan.id}
               role="radio"
               aria-checked={isSelected}
-              aria-expanded={isSelected}
               tabIndex={0}
               onClick={() => setSelectedPlanId(plan.id)}
               onKeyDown={(e) => {

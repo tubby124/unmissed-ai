@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { TRIAL, POLICIES, PLANS, FOUNDING_PROMO } from '@/lib/pricing'
+import { TRIAL, POLICIES, PUBLIC_PLANS, getPlanDisplayMonthly } from '@/lib/pricing'
 
 const spring = { type: "spring" as const, stiffness: 300, damping: 24 }
 
@@ -43,9 +43,7 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.1 }}
         >
-          {FOUNDING_PROMO.enabled
-            ? `Plans from $${FOUNDING_PROMO.foundingMonthly}/mo. Activate a real AI number.`
-            : `From $${PLANS[0].monthly}/mo. Your agent answers forwarded missed calls.`}
+          {`From $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo. Your agent answers forwarded missed calls.`}
         </motion.h1>
         <motion.p
           className="text-gray-400 text-xl leading-relaxed mb-2"
@@ -53,8 +51,8 @@ export default function PricingHero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...spring, delay: 0.2 }}
         >
-          Start with Solo, or use AI Receptionist at $119/mo with 250 included minutes
-          when you want business knowledge, booking, and lead ranking.
+          AI Receptionist is $119/mo with 250 included minutes, business knowledge,
+          booking, and lead ranking.
         </motion.p>
         <motion.p
           className="text-white text-xl font-semibold mb-6"

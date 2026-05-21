@@ -88,23 +88,38 @@ export async function POST(req: NextRequest) {
         knowledge_chunk_count: knowledgeChunkCount,
         selectedPlan: (client.selected_plan as string | null) || undefined,
         subscriptionStatus: (client.subscription_status as string | null) || undefined,
-      niche: (client.niche as string | null) || undefined,
+        niche: (client.niche as string | null) || undefined,
       }
 
       await updateAgent(client.ultravox_agent_id, agentFlags)
 
       // Keep clients.tools in sync — runtime-authoritative for live calls
       const syncTools = buildAgentTools(agentFlags)
-      await supabase.from('clients').update({ tools: syncTools }).eq('id', client.id)
+      await supabase.from('clients').update({
+        tools: syncTools,
+        last_agent_sync_at: new Date().toISOString(),
+        last_agent_sync_status: 'success',
+        last_agent_sync_error: null,
+      }).eq('id', client.id)
 
       console.log(`[voices] Agent ${client.ultravox_agent_id} voice updated to ${voiceId}`)
       ultravox_synced = true
     } catch (err) {
       ultravox_error = err instanceof Error ? err.message : String(err)
       console.error(`[voices] Agent voice sync failed: ${ultravox_error}`)
+      await supabase.from('clients').update({
+        last_agent_sync_at: new Date().toISOString(),
+        last_agent_sync_status: 'error',
+        last_agent_sync_error: ultravox_error.slice(0, 500),
+      }).eq('id', targetClientId)
       // Don't fail — Supabase save succeeded
     }
   }
 
-  return NextResponse.json({ ok: true, ultravox_synced, ...(ultravox_error ? { ultravox_error } : {}) })
+  return NextResponse.json({
+    ok: true,
+    ultravox_synced,
+    ...(ultravox_synced ? { last_sync_at: new Date().toISOString() } : {}),
+    ...(ultravox_error ? { ultravox_error } : {}),
+  })
 }

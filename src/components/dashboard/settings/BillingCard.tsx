@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { MINUTE_RELOAD_PACKS, PLANS, STRIPE_IDS } from '@/lib/pricing'
+import { MINUTE_RELOAD_PACKS, PLANS, STRIPE_IDS, getPlanDisplayMonthly } from '@/lib/pricing'
 
 interface Invoice {
   id: string
@@ -152,7 +152,7 @@ export default function BillingCard({
           <div className="flex items-center justify-between">
             <span className="text-[11px] t3">Plan</span>
             <span className="text-[11px] font-medium t2">
-              {plan.name} — ${effectiveMonthlyRate ?? plan.monthly}/mo
+              {plan.name} — ${effectiveMonthlyRate ?? getPlanDisplayMonthly(plan)}/mo
               {stripeDiscountName && (
                 <span className="ml-1 text-emerald-400">({stripeDiscountName})</span>
               )}
@@ -247,7 +247,7 @@ export default function BillingCard({
                 <code className="text-[11px] font-mono font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">{STRIPE_IDS.foundingPromoCode}</code>
                 <span className="text-[10px] t3">$20/mo off forever</span>
               </div>
-              <span className="text-[10px] t2">Lite $49 → $29/mo</span>
+              <span className="text-[10px] t2">Lite $29/mo</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

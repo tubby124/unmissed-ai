@@ -237,6 +237,19 @@ export async function PATCH(req: NextRequest) {
     return new NextResponse('Nothing to update', { status: 400 })
   }
 
+  if ('niche_custom_variables' in updates) {
+    const { data: currentClient } = await supabase
+      .from('clients')
+      .select('niche_custom_variables')
+      .eq('id', targetClientId)
+      .maybeSingle()
+    const currentVars = (currentClient?.niche_custom_variables as Record<string, string> | null) ?? {}
+    updates.niche_custom_variables = {
+      ...currentVars,
+      ...(updates.niche_custom_variables as Record<string, string>),
+    }
+  }
+
   // Fields that trigger auto prompt rebuild (low-stakes, additive changes)
   const LOW_STAKES_REGEN_FIELDS = new Set([
     'business_hours_weekday', 'business_hours_weekend', 'services_offered',

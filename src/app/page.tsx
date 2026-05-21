@@ -15,7 +15,7 @@ import HeroCallMockup from "@/components/HeroCallMockup";
 import HeroContent from "@/components/HeroContent";
 import CallMeNowWidget from "@/components/CallMeNowWidget";
 // TalkToAgentWidget moved to root layout — available site-wide
-import { FOUNDING_PROMO, TRIAL, BASE_PLAN } from "@/lib/pricing";
+import { TRIAL, PUBLIC_PLANS, getPlanDisplayMonthly } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 import { PRICING_SECTION, FINAL_CTA } from "@/lib/marketing-content";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
@@ -176,9 +176,7 @@ export default async function HomePage() {
                 style={{ backgroundColor: "var(--color-border)" }}
               />
               <span>
-                {FOUNDING_PROMO.enabled
-                  ? `$${FOUNDING_PROMO.foundingMonthly}/mo`
-                  : `$${BASE_PLAN.monthly}/mo`}
+                {`$${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo`}
               </span>
               <span
                 className="w-px h-3"

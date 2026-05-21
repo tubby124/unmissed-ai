@@ -15,7 +15,7 @@
 import { Phone, Zap, Clock } from 'lucide-react'
 import { PhoneIncoming, Bot, BellRing, CircleCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { PLANS, SETUP, MINUTE_RELOAD, POLICIES, getPlanDisplayMonthly } from './pricing'
+import { PUBLIC_PLANS, SETUP, MINUTE_RELOAD, POLICIES, getPlanDisplayMonthly } from './pricing'
 
 // ─── Hero ────────────────────────────────────────────────────────────
 export const HERO = {
@@ -152,7 +152,7 @@ export const HOW_IT_WORKS = {
 export const PRICING_SECTION = {
   eyebrow: 'Pricing',
   headline: 'Activate a real AI number, then test it with 50 included minutes.',
-  subheadline: 'Solo starts at $29/mo. AI Receptionist is $119/mo with 250 included minutes for businesses that want booking, business knowledge, and lead ranking.',
+  subheadline: 'AI Receptionist is $119/mo with 250 included minutes for businesses that want booking, business knowledge, and lead ranking.',
   fullPricingLinkText: 'See full pricing details and feature comparison →',
 }
 
@@ -164,7 +164,7 @@ export const FINAL_CTA = {
 }
 
 // ─── FAQ ─────────────────────────────────────────────────────────────
-// Uses PLANS, SETUP, MINUTE_RELOAD, POLICIES from pricing.ts — edit prices there,
+// Uses PUBLIC_PLANS, SETUP, MINUTE_RELOAD, POLICIES from pricing.ts — edit prices there,
 // answers here update automatically.
 export const FAQ_ITEMS = [
   {
@@ -175,12 +175,12 @@ export const FAQ_ITEMS = [
   {
     question: `What do I actually get?`,
     answer:
-      `Every plan includes generous minutes, an agent trained on your trade and services, instant call notifications, and a weekly review that improves your agent from real calls. No surprise overages — you pay a flat base rate starting at $${getPlanDisplayMonthly(PLANS[0])}/mo. Need more minutes? Prepaid reload packs are $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} extra minutes.`,
+      `Every plan includes generous minutes, an agent trained on your trade and services, instant call notifications, and a weekly review that improves your agent from real calls. No surprise overages — you pay a flat base rate starting at $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo. Need more minutes? Prepaid reload packs are $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} extra minutes.`,
   },
   {
     question: 'How are you different from Dialzara, Rosie, or My AI Front Desk?',
     answer:
-      `Three differences. First, pricing: many alternatives charge per minute or per caller — your bill rises when you're busy. We charge a flat base rate starting at $${getPlanDisplayMonthly(PLANS[0])}/mo, with prepaid reload packs when you need extra minutes. Second, setup: they're self-serve platforms where you configure everything. We build your agent from your Google Business Profile and website during signup — you answer a few questions, we handle the rest. Third, specificity: your agent is trained on your trade, not a generic script. Booking and live call transfer are available on eligible plans.`,
+      `Three differences. First, pricing: many alternatives charge per minute or per caller — your bill rises when you're busy. We charge a flat base rate starting at $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo, with prepaid reload packs when you need extra minutes. Second, setup: they're self-serve platforms where you configure everything. We build your agent from your Google Business Profile and website during signup — you answer a few questions, we handle the rest. Third, specificity: your agent is trained on your trade, not a generic script. Booking and live call transfer are available on eligible plans.`,
   },
   {
     question: 'What does the $25 setup fee cover?',

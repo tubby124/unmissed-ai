@@ -45,6 +45,7 @@ export const PLANS = [
     annual: 24, // annual pricing TBD
     annualBilledTotal: 288, // annual pricing TBD
     minutes: 100,
+    hidden: true, // Paused from public/dashboard upgrade surfaces for now.
     description: "Stop missing calls. Every message captured and forwarded to you instantly — who called, what they need, and when.",
     isPopular: false,
     stripeMonthlyPriceId: "price_1TELcq0tFbm4ZBYUK50MsRnA", // $49/mo CAD — NOT used for new signups (see STRIPE_SUBSCRIPTION_PRICE_ID env var)
@@ -81,7 +82,7 @@ export const PLANS = [
     stripeProductId: "prod_UCl8nni05Nk9lB",
     features: [
       "250 minutes/month included",
-      "Everything in Solo",
+      "Captures caller name, number, and what they need",
       "Answers from your own business info — website, hours, services",
       "Books appointments into your Google Calendar",
       "Ranks captured calls so you know who to call back first",
@@ -176,7 +177,7 @@ export const COMPETITORS = [
   },
   {
     name: "Rosie",
-    plan: "$49/mo",
+    plan: "Entry plan",
     minutes: "250 min",
     at200Calls: "$99+",
     catch: "Booking requires $149/mo",
@@ -208,7 +209,7 @@ export const COMPETITORS = [
   },
   {
     name: "Ask Benny",
-    plan: "$49 CAD/mo",
+    plan: "Entry plan",
     minutes: "150 min",
     at200Calls: "$99+ CAD",
     catch: "No niche-specific prompts",
@@ -219,7 +220,7 @@ export const COMPETITORS = [
 // ─── Feature Comparison (for detailed table) ────────────────────────
 export const FEATURE_COMPARISON = [
   { feature: "Pricing model", myai: "Per minute", goodcall: "Per caller", rosie: "Per minute", smithai: "Per call", askbenny: "Per minute", unmissed: "Flat rate per plan" },
-  { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "$49/mo", smithai: "$95/mo", askbenny: "$49 CAD/mo", unmissed: `$${PLANS[0].foundingMonthly ?? PLANS[0].monthly}/mo CAD founding` },
+  { feature: "Starting price", myai: "$99/mo", goodcall: "$79/mo", rosie: "Entry plan", smithai: "$95/mo", askbenny: "Entry plan", unmissed: `$${PUBLIC_PLANS[0].foundingMonthly ?? PUBLIC_PLANS[0].monthly}/mo CAD founding` },
   { feature: "Predictable monthly cost", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes — flat base rate, no surprise overage fees" },
   { feature: "Setup", myai: "Self-serve", goodcall: "Self-serve", rosie: "Self-serve", smithai: "Assisted", askbenny: "Self-serve", unmissed: "Done for you — live during signup" },
   { feature: "Niche-specific prompts", myai: "No", goodcall: "No", rosie: "No", smithai: "No", askbenny: "No", unmissed: "Yes" },
@@ -333,7 +334,7 @@ export const FOUNDING_PROMO = {
   minutes: PLANS[0].minutes,
   badge: "Founding Rate",
   label: "$29/mo locked for founding members",
-  description: "Lock in $29/mo Solo forever. Standard price: $49/mo.",
+  description: "Lock in $29/mo Solo forever.",
   regularPrice: PLANS[0].monthly,
 };
 
@@ -346,7 +347,7 @@ export const ALL_FEATURES = [...PLANS[1].features];
 
 // ─── Helpers ────────────────────────────────────────────────────────
 export function getEffectiveMonthly(): number {
-  return PLANS[0].foundingMonthly ?? PLANS[0].monthly; // Lite plan — "starting at" price
+  return PUBLIC_PLANS[0].foundingMonthly ?? PUBLIC_PLANS[0].monthly;
 }
 
 export function getPricingSummary(): string {
