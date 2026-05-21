@@ -690,7 +690,7 @@ export default function CallDetail({ call, agentName = 'Agent', isLive = false }
                 <span style={{ color: "var(--color-text-2)" }}>{displayCall.end_reason}</span>
               </>
             )}
-            <span style={{ color: "var(--color-text-3)" }}>Ultravox ID</span>
+            <span style={{ color: "var(--color-text-3)" }}>Reference ID</span>
             <span className="font-mono text-xs break-all" style={{ color: "var(--color-text-3)" }}>{displayCall.ultravox_call_id}</span>
           </div>
         </div>

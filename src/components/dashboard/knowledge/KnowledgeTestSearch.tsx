@@ -51,7 +51,6 @@ export default function KnowledgeTestSearch({ clientId, previewMode }: Knowledge
     <div className="rounded-xl border b-theme overflow-hidden">
       <div className="px-4 py-3 border-b b-theme flex items-center gap-2">
         <p className="text-xs font-semibold t2">Test Query</p>
-        <span className="text-[9px] font-bold tracking-wider uppercase bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">pgvector</span>
       </div>
       <div className="p-4 space-y-3">
         <p className="text-xs t3">

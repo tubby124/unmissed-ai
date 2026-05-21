@@ -88,7 +88,7 @@ export default function SmsTab({
         setTimeout(() => setTestSmsState('idle'), 4000)
       } else {
         setTestSmsState('error')
-        setTestSmsError(data.error || 'Send failed — check Twilio config.')
+        setTestSmsError(data.error || "Couldn't send the test text. Check your phone number and try again.")
       }
     } catch {
       setTestSmsState('error')
