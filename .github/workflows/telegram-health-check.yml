@@ -1,0 +1,84 @@
+name: Telegram health check
+
+# Nightly Telegram delivery-health harness. Closes the "notifications silently
+# dropping" gap that other harnesses miss:
+#   - bot_token_valid (P0) — TELEGRAM_BOT_TOKEN rotated / revoked
+#   - webhook_health (P1) — Telegram webhook in a sustained error state
+#   - client_chat_id_invalid (P1) — a client's stored chat_id is unreachable
+#   - recent_send_failure_rate (P1) — >10% telegram failures in last 24h
+#
+# Read-only against Telegram: uses getMe / getWebhookInfo / getChat. Never
+# sends a test message to a customer.
+#
+# Schedule lineage (UTC) — keep this lined up with the other nightlies:
+#   09:00 nightly-drift-check
+#   09:30 data-hygiene-check
+#   09:45 stripe-drift-check
+#   10:00 twilio-ownership-check
+#   10:30 telegram-health-check   ← this one (after Twilio ownership)
+#
+# Required secrets:
+#   TELEGRAM_BOT_TOKEN          — same bot used for all alerting
+#   NEXT_PUBLIC_SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   TELEGRAM_OWNER_CHAT_ID      — optional; falls back to clients.telegram_chat_id
+#                                 where slug='hasan-sharif'
+
+on:
+  schedule:
+    - cron: "30 10 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — log only, no harness writes, no Telegram"
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - "scripts/telegram-health-check.ts"
+      - "src/lib/telegram-health.ts"
+      - "src/lib/__tests__/telegram-health.test.ts"
+      - ".github/workflows/telegram-health-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/telegram-health-check.ts"
+      - "src/lib/telegram-health.ts"
+      - "src/lib/__tests__/telegram-health.test.ts"
+      - ".github/workflows/telegram-health-check.yml"
+
+concurrency:
+  group: telegram-health-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Probe Telegram + diff notification_logs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Run telegram health check
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_OWNER_CHAT_ID: ${{ secrets.TELEGRAM_OWNER_CHAT_ID }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            npx tsx scripts/telegram-health-check.ts --dry-run
+          else
+            npx tsx scripts/telegram-health-check.ts
+          fi
