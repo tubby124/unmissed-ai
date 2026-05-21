@@ -31,15 +31,18 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
   // Editable identity fields
   const [agentName, setAgentName] = useState(client.agent_name ?? '')
   const [savedName, setSavedName] = useState(client.agent_name ?? '')
+  const [displayName, setDisplayName] = useState((client as { display_name?: string | null }).display_name ?? '')
+  const [savedDisplayName, setSavedDisplayName] = useState((client as { display_name?: string | null }).display_name ?? '')
   const nameDirty = agentName !== savedName
-  const footerDirty = nameDirty
+  const displayNameDirty = displayName !== savedDisplayName
+  const footerDirty = nameDirty || displayNameDirty
 
   const { markDirty, markClean } = useDirtyGuard('overview-' + client.id)
 
   useEffect(() => {
-    if (nameDirty) markDirty()
+    if (nameDirty || displayNameDirty) markDirty()
     else markClean()
-  }, [nameDirty, markDirty, markClean])
+  }, [nameDirty, displayNameDirty, markDirty, markClean])
 
   const { saving: footerSaving, saved: footerSaved, error: footerError, warnings, patch, retryFieldSync } = usePatchSettings(client.id, isAdmin, { onSave, onPromptChange })
 
@@ -58,10 +61,18 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   async function saveFooter() {
-    if (!nameDirty) return
-    const trimmed = agentName.trim()
-    const res = await patch({ agent_name: trimmed })
-    if (res?.ok) setSavedName(trimmed)
+    if (!footerDirty) return
+    const updates: { agent_name?: string; display_name?: string | null } = {}
+    if (nameDirty) updates.agent_name = agentName.trim()
+    if (displayNameDirty) {
+      const t = displayName.trim()
+      updates.display_name = t.length > 0 ? t : null
+    }
+    const res = await patch(updates)
+    if (res?.ok) {
+      if (nameDirty) setSavedName(agentName.trim())
+      if (displayNameDirty) setSavedDisplayName(displayName.trim())
+    }
   }
 
   async function toggleSms() {
@@ -121,6 +132,18 @@ export default function AgentOverviewCard({ client, isAdmin, isActive, onToggleS
               value={agentName}
               onChange={e => setAgentName(e.target.value)}
               placeholder="e.g. Aisha"
+              className="w-full text-xs t1 bg-hover px-3 py-2 rounded-lg border b-theme focus:outline-none focus:border-blue-500/50"
+            />
+          </div>
+          {/* Display name — what callers hear the brand referenced as */}
+          <div>
+            <label className="text-[10px] t3 uppercase tracking-wider block mb-1">Display name <span className="t3 normal-case opacity-60">(what the agent calls you on the call)</span></label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              placeholder={`e.g. ${client.owner_name?.split(' ')[0] ?? 'Emon'}`}
+              maxLength={80}
               className="w-full text-xs t1 bg-hover px-3 py-2 rounded-lg border b-theme focus:outline-none focus:border-blue-500/50"
             />
           </div>

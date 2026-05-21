@@ -128,8 +128,15 @@ export function toIntakePayload(data: OnboardingData) {
     return m === 0 ? `${hour} ${ampm}` : `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
   };
   const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+  // Bug #2 fix (2026-05-21): scheduleMode='24_7' bypass — when the operator opts into
+  // 24/7 coverage, skip per-day formatting entirely so the agent says "Available 24/7"
+  // instead of the awkward "weekday hours are Available 24/7 — agent answers anytime;
+  // weekend hours are Saturday 12 AM–11:59 PM, Sunday 12 AM–11:59 PM" composition.
+  // Mohammad Emon's manual-provision trace surfaced this on 2026-05-21.
   let hoursStr: string;
-  if (data.businessHoursText?.trim()) {
+  if (data.scheduleMode === '24_7') {
+    hoursStr = "Available 24/7";
+  } else if (data.businessHoursText?.trim()) {
     hoursStr = data.businessHoursText.trim();
   } else {
     try {
@@ -163,11 +170,16 @@ export function toIntakePayload(data: OnboardingData) {
     ? "open Saturdays only"
     : "open Sundays only";
 
-  // Build weekend hours string (null if both Saturday and Sunday closed)
+  // Build weekend hours string (null if both Saturday and Sunday closed).
+  // Bug #2 fix (2026-05-21): when scheduleMode='24_7', the weekday string already
+  // says "Available 24/7" — emitting a second "Sat/Sun" line is redundant and
+  // produces the awkward double-line greeting Emon's trace surfaced.
   const satDay = data.hours?.saturday
   const sunDay = data.hours?.sunday
   let hoursWeekend: string | null = null
-  if (satDay && !satDay.closed && sunDay && !sunDay.closed) {
+  if (data.scheduleMode === '24_7') {
+    hoursWeekend = null
+  } else if (satDay && !satDay.closed && sunDay && !sunDay.closed) {
     hoursWeekend = `Saturday ${to12h(satDay.open)}–${to12h(satDay.close)}, Sunday ${to12h(sunDay.open)}–${to12h(sunDay.close)}`
   } else if (satDay && !satDay.closed) {
     hoursWeekend = `Saturday ${to12h(satDay.open)}–${to12h(satDay.close)}`
@@ -198,8 +210,21 @@ export function toIntakePayload(data: OnboardingData) {
     effectiveMode = 'message_only'
   }
 
+  // Bug #3 fix (2026-05-21): display_name. Caller-friendly brand reference used
+  // in the agent greeting. Falls back to first word of owner_name (matches the
+  // existing CLOSE_PERSON heuristic) when not explicitly set.
+  const displayNameDerived: string | null = (() => {
+    const explicit = (data as Partial<OnboardingData & { displayName: string }>).displayName?.trim()
+    if (explicit) return explicit
+    const ownerFirst = data.ownerName?.trim().split(/\s+/)[0]
+    if (ownerFirst) return ownerFirst
+    const bizFirst = data.businessName?.trim().split(/[\s|—–-]+/)[0]
+    return bizFirst ?? null
+  })()
+
   return {
     business_name: data.businessName,
+    display_name: displayNameDerived,
     niche,
     area_code: areaCode,
     country,
@@ -280,7 +305,12 @@ export function toIntakePayload(data: OnboardingData) {
     ),
 
     hours_weekend: hoursWeekend,
-    niche_faq_pairs: JSON.stringify(data.faqPairs || []),
+    // Bug #6 fix (2026-05-21): scraped FAQs default to pgvector via
+    // seedKnowledgeFromScrape — only MANUALLY-entered FAQ pairs should land in the
+    // prompt's faq_pairs slot. Filtering by source='scraped' keeps the prompt slim
+    // and lets queryKnowledge handle scraped Q&As at runtime. Existing manual
+    // entries (no source field, or source='manual') still flow into the slot.
+    niche_faq_pairs: JSON.stringify((data.faqPairs || []).filter(p => p.source !== 'scraped')),
     ...(data.nicheCustomVariables ? { niche_custom_variables: data.nicheCustomVariables } : {}),
     // D413 — PM after-hours fields (explicit keys consumed by PM prompt builder)
     ...(data.niche === 'property_management' && data.nicheAnswers?.emergencyTechPhone

@@ -254,7 +254,7 @@ export async function PATCH(req: NextRequest) {
   const LOW_STAKES_REGEN_FIELDS = new Set([
     'business_hours_weekday', 'business_hours_weekend', 'services_offered',
     'context_data', 'business_facts', 'owner_name', 'after_hours_behavior',
-    'after_hours_emergency_phone', 'callback_phone',
+    'after_hours_emergency_phone', 'callback_phone', 'display_name',
   ])
 
   // 6.5 — Phase 0.5.1: snapshot before-state for cross-client audit log.

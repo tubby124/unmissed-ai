@@ -172,6 +172,8 @@ describe('SYNC_TRIGGER_FIELDS (snapshot)', () => {
     // both are PER_CALL_CONTEXT_ONLY (injected via buildAgentContext at call time,
     // never in stored system_prompt), so triggering an updateAgent PATCH was a
     // wasted round-trip with no behavior change.
+    // Bug #3 (2026-05-21): display_name added — controls the greeting brand
+    // ("Emon's office") via slot regen, must round-trip to Ultravox.
     const expectedSyncFields = [
       'system_prompt',
       'forwarding_number',
@@ -183,6 +185,7 @@ describe('SYNC_TRIGGER_FIELDS (snapshot)', () => {
       'knowledge_backend',
       'sms_enabled',
       'twilio_number',
+      'display_name',
     ].sort()
 
     const actual = [...SYNC_TRIGGER_FIELDS].sort()

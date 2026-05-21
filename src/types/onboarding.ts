@@ -176,6 +176,11 @@ export interface OnboardingData {
 
   // D417: Business address — optional, displayed in agent context
   businessAddress?: string;
+
+  // Bug #3 fix (2026-05-21): caller-friendly brand reference used in agent greeting.
+  // Operator-editable from dashboard Agent Identity card. Falls back to first word
+  // of ownerName when blank.
+  displayName?: string;
 }
 
 // ── Niche physical-address flag — re-exported from niche-registry for consumers ──

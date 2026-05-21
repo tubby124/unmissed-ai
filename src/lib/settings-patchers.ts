@@ -75,6 +75,8 @@ export const PATCH_TRIGGER_FIELDS = [
   'niche_custom_variables',
   // city is consumed by slot-regenerator — must trigger full regen on change
   'city',
+  // Bug #3 (2026-05-21): display_name lands in slot_regen path — greeting picks it up
+  'display_name',
 ] as const
 
 function needsPromptPatching(body: SettingsBody): boolean {

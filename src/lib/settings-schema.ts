@@ -61,6 +61,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   voice_style_preset:   { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'voice_style' },
   agent_name:           { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'agent_name' },
   business_name:        { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'business_name' },
+  display_name:         { mutationClass: 'DB_PLUS_PROMPT', triggersSync: true,  triggersPatch: 'slot_regen' },
   services_offered:     { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'services' },
 
   // ── Knowledge pipeline fields (may trigger reseed → sync) ─────────────────
@@ -209,6 +210,7 @@ export const settingsBodySchema = z.object({
   agent_voice_id: z.string().min(1).optional(),
   agent_name: z.string().min(1).optional(),
   business_name: z.string().min(1).optional(),
+  display_name: z.union([z.string().max(80), z.null()]).optional(),
   services_offered: z.string().optional(),
 
   // Misc settings
@@ -372,6 +374,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     'after_hours_emergency_phone', 'transfer_conditions', 'voicemail_greeting_text',
     'voicemail_greeting_audio_url', 'ivr_prompt', 'owner_name', 'callback_phone',
     'city', 'website_url', 'context_data', 'context_data_label',
+    'display_name',
   ]
 
   // String fields that get trimmed + nullable, but require non-empty

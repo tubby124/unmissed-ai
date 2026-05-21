@@ -1119,6 +1119,11 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     variables.CLOSE_PERSON = ownerNameGlobal.split(' ')[0] || ownerNameGlobal
   }
 
+  // Bug #3 fix (2026-05-21): display_name → DISPLAY_NAME.
+  // Caller-friendly brand reference for the greeting. Defaults to CLOSE_PERSON.
+  const displayName = (intake.display_name as string)?.trim()
+  variables.DISPLAY_NAME = displayName || variables.CLOSE_PERSON || ''
+
   // Transfer
   const ownerPhone = intake.owner_phone as string | undefined
   if (ownerPhone?.trim() && caps.transferCalls) {
@@ -1197,6 +1202,25 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     barbershop:         `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I can lock in your chair — are you looking to walk in or book ahead?"`,
     restaurant:         `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I handle reservations and can answer any questions — what can I help you with?"`,
     print_shop:         `"${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'} — ${variables.AGENT_NAME || '{{AGENT_NAME}}'} here, AI assistant. I can get your order started and answer any spec questions — what are you looking to print?"`,
+    // Bug #4 + #5 (2026-05-21): real_estate. Uses DISPLAY_NAME or owner_first_name
+    // when operator is identified ("Hey, you've reached Emon's office") for the
+    // personal-office feel. Falls back to BUSINESS_NAME for brand-only setups
+    // (no operator name yet) so the snapshot test ("Sharif Realty" with no owner)
+    // reads naturally. We treat the niche default CLOSE_PERSON values ('our agent',
+    // 'the team', 'the boss', 'the office') as "no operator identified" — they're
+    // placeholder fallbacks, not real names.
+    real_estate:        (() => {
+      const GENERIC_CLOSE = new Set(['our agent', 'the team', 'the boss', 'the office'])
+      const explicitDisplay = variables.DISPLAY_NAME && !GENERIC_CLOSE.has(variables.DISPLAY_NAME)
+        ? variables.DISPLAY_NAME : ''
+      const realCloseName = variables.CLOSE_PERSON && !GENERIC_CLOSE.has(variables.CLOSE_PERSON)
+        ? variables.CLOSE_PERSON : ''
+      const brand = explicitDisplay || realCloseName
+      const opening = brand
+        ? `Hey, you've reached ${brand}'s office`
+        : `Hey, you've reached ${variables.BUSINESS_NAME || '{{BUSINESS_NAME}}'}`
+      return `"${opening} — this is ${variables.AGENT_NAME || '{{AGENT_NAME}}'}. I can help with showings, market questions, valuations, or take a message. What's going on?"`
+    })(),
   }
   if (NICHE_WOW_GREETINGS[niche]) {
     variables.GREETING_LINE = NICHE_WOW_GREETINGS[niche]
