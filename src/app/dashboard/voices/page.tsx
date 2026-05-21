@@ -11,6 +11,7 @@ interface UltravoxVoice {
   primaryLanguage: string
   languageLabel: string
   provider: 'Cartesia' | 'Eleven Labs' | 'Inworld'
+  previewAvailable?: boolean
 }
 
 interface Client {
@@ -56,6 +57,7 @@ function VoiceCard({
   clients,
   isAdmin,
   isPlaying,
+  previewErrored,
   myVoiceId,
   myPreviousVoiceId,
   onPlay,
@@ -66,6 +68,7 @@ function VoiceCard({
   clients: Client[]
   isAdmin: boolean
   isPlaying: boolean
+  previewErrored: boolean
   myVoiceId: string | null
   myPreviousVoiceId: string | null
   onPlay: (voiceId: string) => void
@@ -272,6 +275,12 @@ function VoiceCard({
         </p>
       )}
 
+      {previewErrored && (
+        <p className="mt-2 text-xs text-amber-500">
+          Preview unavailable right now.
+        </p>
+      )}
+
       {/* Assigned client tags */}
       {assignedClients.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1">
@@ -304,6 +313,7 @@ export default function VoicesPage() {
   const [search, setSearch] = useState('')
   const [provider, setProvider] = useState<Provider>('All')
   const [playingId, setPlayingId] = useState<string | null>(null)
+  const [previewErrorId, setPreviewErrorId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
@@ -332,6 +342,7 @@ export default function VoicesPage() {
   }
 
   function playVoice(voiceId: string) {
+    setPreviewErrorId(null)
     if (audioRef.current) {
       audioRef.current.onended = null  // clear BEFORE src change — prevents stale onerror firing
       audioRef.current.onerror = null
@@ -344,8 +355,14 @@ export default function VoicesPage() {
     const url = `/api/dashboard/voices/${voiceId}/preview`
     const audio = new Audio(url)
     audio.onended = () => setPlayingId(null)
-    audio.onerror = () => setPlayingId(null)
-    audio.play().catch(() => {})
+    audio.onerror = () => {
+      setPlayingId(null)
+      setPreviewErrorId(voiceId)
+    }
+    audio.play().catch(() => {
+      setPlayingId(null)
+      setPreviewErrorId(voiceId)
+    })
     audioRef.current = audio
     setPlayingId(voiceId)
   }
@@ -473,6 +490,7 @@ export default function VoicesPage() {
               clients={visibleClients}
               isAdmin={isAdmin}
               isPlaying={playingId === voice.voiceId}
+              previewErrored={previewErrorId === voice.voiceId}
               myVoiceId={myVoiceId}
               myPreviousVoiceId={myPreviousVoiceId}
               onPlay={id => playVoice(id)}

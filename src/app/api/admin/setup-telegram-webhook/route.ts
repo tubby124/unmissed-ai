@@ -11,7 +11,7 @@
  * Admin only.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
 import { APP_URL } from '@/lib/app-url'
 import { BOT_COMMANDS } from '@/lib/telegram/menu'
@@ -25,7 +25,7 @@ async function tgPost(token: string, method: string, body: unknown): Promise<unk
   return res.json()
 }
 
-export async function POST(req: NextRequest): Promise<NextResponse> {
+export async function POST(): Promise<NextResponse> {
   // ── Auth — admin only ──────────────────────────────────────────────────────
   const supabase = await createServerClient()
   const { data: { user }, error: authErr } = await supabase.auth.getUser()
@@ -48,7 +48,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const webhookUrl = `${APP_URL}/api/webhook/telegram`
 
   // 1. setWebhook
-  const webhookBody: Record<string, unknown> = { url: webhookUrl }
+  const webhookBody: Record<string, unknown> = {
+    url: webhookUrl,
+    allowed_updates: ['message', 'callback_query'],
+  }
   if (webhookSecret) webhookBody.secret_token = webhookSecret
   const setWebhookRes = await tgPost(botToken, 'setWebhook', webhookBody)
   console.log(`[setup-telegram-webhook] setWebhook → ${webhookUrl} | result:`, setWebhookRes)

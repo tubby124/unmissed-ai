@@ -5,7 +5,7 @@ import { CircleCheck } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PLANS, TRIAL, POLICIES, CURRENCY, FOUNDING_PROMO, getPlanDisplayMonthly } from "@/lib/pricing";
+import { PUBLIC_PLANS, TRIAL, POLICIES, CURRENCY, FOUNDING_PROMO, getPlanDisplayMonthly } from "@/lib/pricing";
 
 export default function PricingCards({ compact = false }: { compact?: boolean }) {
   const isAnnual = false;
@@ -26,7 +26,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
       <div
         className="grid gap-5 grid-cols-1 md:grid-cols-2 max-w-2xl mx-auto"
       >
-        {PLANS.slice(0, 2).map((plan, index) => {
+        {PUBLIC_PLANS.map((plan, index) => {
           const isFoundingRate =
             !isAnnual && FOUNDING_PROMO.enabled && !!plan.foundingMonthly;
           const displayPrice = isFoundingRate
@@ -126,7 +126,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                   <span className="text-sm" style={{ color: "var(--color-text-3)" }}>
                     /mo {CURRENCY}
                   </span>
-                  {isFoundingRate && (
+                  {isFoundingRate && !plan.hidden && (
                     <span
                       className="text-sm line-through"
                       style={{ color: "var(--color-text-3)" }}

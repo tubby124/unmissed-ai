@@ -25,7 +25,7 @@
 //
 // Used by:
 //   - <VoicePickerCompact /> in the Go Live tab — filters EXPERIMENTAL voices out.
-//   - The deep settings VoicePicker / VoiceTab keep showing all voices.
+//   - The deep settings VoicePicker / VoiceTab also read the audited catalog.
 //
 // Add a voiceId here only after manual confirmation that its preview fails.
 // Removing a voiceId here re-exposes it on Go Live with no other change.
@@ -45,9 +45,8 @@ export const EXPERIMENTAL_VOICES: string[] = []
  * — these are the voiceIds that have shipped to production clients and have
  * verified preview playback through `/api/dashboard/voices/[voiceId]/preview`.
  *
- * The deep settings page (`VoicePicker`/`VoiceTab`) continues to show the
- * full upstream Ultravox catalog. Only the Go Live tab filters down to this
- * curated list.
+ * The deep settings page (`VoicePicker`/`VoiceTab`) and public voice library
+ * also use this curated list so customers do not see unverified previews.
  */
 export interface GoLiveVoice {
   voiceId: string

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
-import { PLANS, MINUTE_RELOAD_PACKS, TRIAL } from '@/lib/pricing'
+import { PUBLIC_PLANS, MINUTE_RELOAD_PACKS, TRIAL, getPlanDisplayMonthly } from '@/lib/pricing'
 import { getPlanEntitlements, getUpgradePlan } from '@/lib/plan-entitlements'
 import type { PlanIdOrTrial } from '@/lib/plan-entitlements'
 import DangerZoneCard from './DangerZoneCard'
@@ -181,10 +181,10 @@ export default function BillingTab({
     ...(isTrial
       ? [{ id: 'trial', name: 'Free Trial', priceLabel: '$0', isCurrent: true }]
       : []),
-    ...PLANS.map(p => ({
+    ...PUBLIC_PLANS.map(p => ({
       id: p.id,
       name: p.name,
-      priceLabel: `$${p.monthly}/mo`,
+      priceLabel: `$${getPlanDisplayMonthly(p)}/mo`,
       isCurrent: !isTrial && p.id === client.selected_plan,
     })),
   ]

@@ -299,6 +299,19 @@ describe('buildUpdates', () => {
     assert.ok('updated_at' in updates, 'Should set updated_at when system_prompt changes')
   })
 
+  test('persists trimmed niche custom variables for slot regeneration', () => {
+    const updates = buildUpdates({
+      niche_custom_variables: {
+        GREETING_LINE: '  Hi, this is Eric. How may I help?  ',
+        EMPTY_VALUE: '   ',
+      },
+    }, 'owner')
+
+    assert.deepEqual(updates.niche_custom_variables, {
+      GREETING_LINE: 'Hi, this is Eric. How may I help?',
+    })
+  })
+
   test('returns empty object when no recognized fields present', () => {
     const updates = buildUpdates({}, 'owner')
     assert.equal(Object.keys(updates).length, 0)
