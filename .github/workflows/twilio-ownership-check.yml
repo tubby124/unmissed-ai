@@ -1,0 +1,81 @@
+name: Twilio Ownership Check
+
+# Nightly diff of clients.twilio_number ↔ Twilio account inventory. Catches the
+# silent-fail class where Twilio released / suspended / ports-out / webhook-
+# redirects a number we still think we own — inbound calls 404 with no internal
+# signal until the customer complains.
+#
+# Companion to nightly-drift-check (Supabase ↔ Ultravox) and stripe-drift-check
+# (Supabase ↔ Stripe). Runs 10:00 UTC — 15 minutes after the 09:30 stripe-drift
+# slot, well after the 09:00 ultravox drift run, so the three nightly alerts
+# don't pile up in the same minute.
+#
+# Required secrets:
+#   TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN — read-only ListIncomingPhoneNumbers
+#   NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — clients table read,
+#                                                         harness_findings write
+#   TELEGRAM_BOT_TOKEN — P0 alerts (required unless workflow_dispatch dry-run)
+#   TELEGRAM_OWNER_CHAT_ID — optional; script falls back to clients.telegram_chat_id
+#                            for slug='hasan-sharif'
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — log only, no harness writes, no Telegram"
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - "scripts/twilio-ownership-check.ts"
+      - "src/lib/twilio-ownership.ts"
+      - "src/lib/__tests__/twilio-ownership.test.ts"
+      - ".github/workflows/twilio-ownership-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/twilio-ownership-check.ts"
+      - "src/lib/twilio-ownership.ts"
+      - "src/lib/__tests__/twilio-ownership.test.ts"
+      - ".github/workflows/twilio-ownership-check.yml"
+
+concurrency:
+  group: twilio-ownership-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Diff Supabase vs Twilio
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Run twilio ownership check
+        env:
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OWNER_CHAT_ID: ${{ secrets.TELEGRAM_OWNER_CHAT_ID }}
+          NEXT_PUBLIC_APP_URL: https://endvoicemail.ai
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            npx tsx scripts/twilio-ownership-check.ts --dry-run
+          else
+            npx tsx scripts/twilio-ownership-check.ts
+          fi
