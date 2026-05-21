@@ -91,14 +91,19 @@ export async function recordFindings(input: RecordFindingsInput): Promise<Record
 
   for (const f of input.findings) {
     const slug = f.client_slug ?? null
-    const { data: existing, error: selectErr } = await sb
+    // PostgREST .is() only accepts null/true/false. For string slugs use .eq().
+    // The unique index (harness_name, check_name, client_slug) treats NULL slugs
+    // as distinct rows, so the lookup must match the same null/string split.
+    const baseQuery = sb
       .from('harness_findings')
       .select('id, status')
       .eq('harness_name', input.harness)
       .eq('check_name', f.check_name)
-      .is('client_slug', slug as null)
-      // PostgREST .is() requires literal null, not undefined
-      .maybeSingle()
+    const { data: existing, error: selectErr } = await (
+      slug === null
+        ? baseQuery.is('client_slug', null)
+        : baseQuery.eq('client_slug', slug)
+    ).maybeSingle()
 
     if (selectErr) {
       result.errors.push(`select failed for ${f.check_name}/${slug}: ${selectErr.message}`)
