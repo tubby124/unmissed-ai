@@ -1,0 +1,54 @@
+# Ultravox live-call regression — Hasan Sharif greeting
+# ═══════════════════════════════════════════════════════════════════════════
+# Exercises the real Ultravox stack (model + voice + tool runtime) via the
+# custom HTTP provider in providers/ultravox-provider.ts. Use this to catch
+# regressions that only show up in production conditions (e.g. the opener
+# slipping back to "AI assistant" after a prompt edit).
+#
+# Cost note: every test row creates a real Ultravox call (WebRTC, no Twilio
+# leg). Keep this eval small and run on-demand via:
+#   npm run test:prompts:ultravox
+#
+# Env: ULTRAVOX_API_KEY required.
+# ═══════════════════════════════════════════════════════════════════════════
+
+description: "Ultravox live-call eval — Hasan Sharif greeting regression"
+
+providers:
+  - id: file://providers/ultravox-provider.ts
+    label: ultravox-call
+
+prompts:
+  - file://../../clients/hasan-sharif/SYSTEM_PROMPT.txt
+
+defaultTest:
+  vars:
+    voice: default
+    maxDuration: "30s"
+    # No callerScript → agent speaks first, we assert on the opener only.
+    callerScript: []
+
+tests:
+  - description: "Hasan greeting — opener stays on-brand and human"
+    assert:
+      # Opener fix: must NOT regress back to "AI assistant" framing.
+      - type: not-icontains
+        value: "AI assistant"
+
+      # Hasan's prompt uses "virtual assistant" — confirm the phrasing survived.
+      - type: icontains
+        value: "virtual assistant"
+
+      # Must name Hasan in the opener.
+      - type: icontains
+        value: "Hasan"
+
+      # "How can I help ya?" is only allowed in the Salaam branch. Reject it
+      # if it shows up in the first 200 chars of the transcript (i.e. the
+      # default opener path).
+      - type: javascript
+        value: '!/how can i help ya\??/i.test(String(output).slice(0, 200))'
+
+      # Tone check — a single LLM rubric. Reply yes/no with a one-line reason.
+      - type: llm-rubric
+        value: "Did the first agent turn sound friendly and human, not robotic? Reply yes/no with one-sentence reason."
