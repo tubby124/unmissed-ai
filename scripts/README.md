@@ -30,6 +30,39 @@ All operational scripts for unmissed.ai. Run from the project root unless noted 
 | `reset-test-calls.js` | Wipe caller context + AI summary for a phone number or all calls for a client (clean test state) | `node scripts/reset-test-calls.js [+1phone] [slug]` / `node scripts/reset-test-calls.js all <slug>` |
 | `reset-test-calls.sh` | Bash version of reset-test-calls.js (same logic, curl + Supabase REST) | `bash scripts/reset-test-calls.sh [+1phone] [slug]` / `bash scripts/reset-test-calls.sh all <slug>` |
 
+## Data Hygiene Check
+
+Nightly audit that catches "customer updates that conflict, look stale, or contain bad content". Companion to crons.yml (operational scheduler). Runs from GitHub Actions, hits Supabase directly — no Railway dependency. See `.github/workflows/data-hygiene-check.yml` for the schedule.
+
+| Check | What it catches |
+|-------|-----------------|
+| A. Stale injected_notes | `injected_note IS NOT NULL` and expiry is past OR NULL — the class of bug that left a weeks-old typo-ridden crisis note live |
+| B. Content red-flags | Competitor mentions, profanity, explicit content, or URLs inside `injected_note` — the porn / Tim Hortons injection class |
+| C. Trial-status drift | `subscription_status='trialing'` past `trial_expires_at` — the 14 stuck rows the trial-expiry cron skipped because they were already `status='paused'` |
+| D. Zombie active subs | `subscription_status='active'` with no Stripe sub id and not on concierge allow-list |
+| E. Plan-tier tool mismatch | Lite plan with transferCall / bookAppointment / checkForCoaching (or Core with checkForCoaching) |
+| F. Stuck live calls | `call_status='live'` for >2h — Twilio/Ultravox webhook never closed the row |
+| G. Untranscribed voicemails | VOICEMAIL >24h with no `ai_summary` (or PLACEHOLDER) |
+| H. Duplicate twilio_numbers | Two clients holding the same `twilio_number` (call-routing race) |
+
+Run locally (dry-run, no Telegram, no DB writes):
+```bash
+SUPABASE_SERVICE_ROLE_KEY=... NEXT_PUBLIC_SUPABASE_URL=... \
+  npx tsx scripts/data-hygiene-check.ts --dry-run
+```
+
+Auto-fix stale rows (clears injected_note for A, sets `subscription_status='expired'` for C, marks stuck calls `unknown` for F — never auto-fixes B/D/E/G/H, which need owner review):
+```bash
+SUPABASE_SERVICE_ROLE_KEY=... NEXT_PUBLIC_SUPABASE_URL=... \
+  npx tsx scripts/data-hygiene-check.ts --fix
+```
+
+Flag patterns (competitors / profanity / explicit / URL regex) live in `scripts/data-hygiene-flags.json`. Add new competitor names in place; no schema change needed.
+
+Idempotency: writes `.github/data-hygiene-state/last-run.json`. Same finding set within 24h → no Telegram re-alert. Delete the state file to force re-alert.
+
+Unit tests: `npx tsx --test src/lib/__tests__/data-hygiene.test.ts`.
+
 ## NotebookLM Sync
 
 | Script | Purpose | Usage |
