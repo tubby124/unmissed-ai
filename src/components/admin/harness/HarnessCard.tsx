@@ -23,6 +23,7 @@ const PRETTY_NAME: Record<HarnessName, string> = {
   'stripe-drift': 'Stripe drift',
   'twilio-ownership': 'Twilio ownership',
   'telegram-health': 'Telegram health',
+  'calendar-oauth': 'Calendar OAuth',
   'prompt-injection': 'Prompt injection',
 }
 
