@@ -1,0 +1,72 @@
+name: Stripe drift check
+
+# Nightly Stripe ↔ Supabase drift harness. Catches "Stripe and DB disagree on
+# subscription state" — the silent revenue leak (portal cancels, refunds,
+# past-due not synced, deleted customers still flagged paying).
+#
+# Read-only. Never mutates clients.* or calls Stripe write APIs. Findings are
+# persisted to harness_findings via recordFindings(); P0s also fire a single
+# Telegram alert to the owner chat.
+#
+# Schedule lineage (UTC):
+#   09:00  nightly-drift-check   (Supabase ↔ Ultravox)
+#   09:30  data-hygiene-check    (Supabase-only)
+#   09:45  stripe-drift-check    (Supabase ↔ Stripe)  ← this one
+# The 15-min gap after data-hygiene avoids three nightlies competing for the
+# same Supabase service-role rate budget.
+#
+# Required secrets:
+#   STRIPE_SECRET_KEY            — sk_live_* for prod runs
+#   NEXT_PUBLIC_SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   TELEGRAM_BOT_TOKEN
+#   TELEGRAM_OWNER_CHAT_ID       — optional; script falls back to hasan-sharif
+#                                  client row's telegram_chat_id
+#
+# Path filter: only re-runs on changes to the script, the pure-rules lib, or
+# this workflow — so unrelated PRs don't burn Stripe API calls.
+
+on:
+  schedule:
+    - cron: "45 9 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/stripe-drift-check.ts"
+      - "src/lib/stripe-drift.ts"
+      - ".github/workflows/stripe-drift-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/stripe-drift-check.ts"
+      - "src/lib/stripe-drift.ts"
+      - ".github/workflows/stripe-drift-check.yml"
+
+concurrency:
+  group: stripe-drift-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Diff Supabase vs Stripe
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Run stripe drift check
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OWNER_CHAT_ID: ${{ secrets.TELEGRAM_OWNER_CHAT_ID }}
+        run: npx tsx scripts/stripe-drift-check.ts
