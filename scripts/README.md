@@ -208,3 +208,43 @@ Exit codes: `0` = clean, `1` = any P0 (silent revenue leak in progress), `2` = a
 ### Unit tests
 
 `npx tsx --test src/lib/__tests__/stripe-drift.test.ts` — mocks Stripe responses with stub projections; no live key or network. Validates each check function plus exit-code aggregation.: nightly stripe-drift harness — Stripe vs Supabase)
+
+## Telegram Delivery Health
+
+`scripts/telegram-health-check.ts` — nightly probe of the Telegram bot + the `notification_logs` table. Closes the "notifications silently dropping" gap that no other harness catches: a rotated/revoked bot token, a webhook stuck in error, a single client's stale `telegram_chat_id`, or a spike in send failures bot-wide. Runs at 10:30 UTC via [.github/workflows/telegram-health-check.yml](../.github/workflows/telegram-health-check.yml) — after `twilio-ownership-check` (10:00) to keep the alerting cadence orderly.
+
+Read-only: never sends a test message to a customer. Uses `getMe`, `getWebhookInfo`, `getChat` (which returns 400 when a chat is unreachable, no message side effect). Findings persist via `recordFindings({ harness: 'telegram-health', ... })`; P0 also fires a single Telegram alert to the owner chat (will itself fail if the P0 is the token — that's expected; dashboard still has the finding).
+
+| Check | Severity | What it catches |
+|-------|----------|-----------------|
+| `bot_token_valid` | P0 | `getMe` returns `ok:false` — token rotated externally or revoked via BotFather. Every outbound notification dead. |
+| `webhook_health` | P1 | `getWebhookInfo.last_error_date` is within the last 24h with a non-empty `last_error_message` — bot server crashing / cert expired / Railway 502 |
+| `client_chat_id_invalid` | P1 (per-client) | `getChat` returns HTTP 400/403 for a client's stored `telegram_chat_id` — user blocked the bot or deleted the chat |
+| `recent_send_failure_rate` | P1 | `notification_logs` shows >10% telegram failures over the last 24h with sample ≥10 (rate-limit / outage class — token still valid but messages dropping) |
+
+### Required env vars
+
+- `TELEGRAM_BOT_TOKEN` — same bot used for alerting
+- `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+- `TELEGRAM_OWNER_CHAT_ID` (optional — falls back to `clients.telegram_chat_id` where `slug='hasan-sharif'`)
+
+### Local test
+
+Dry-run (no DB writes, no Telegram alert, but DOES hit Telegram API — they're read-only calls):
+
+```bash
+TELEGRAM_BOT_TOKEN=... \
+NEXT_PUBLIC_SUPABASE_URL=https://qwhvblomlgeapzhnuwlb.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=... \
+npx tsx scripts/telegram-health-check.ts --dry-run
+```
+
+Exit codes: `0` = clean, `1` = any P0 (token unusable — page owner), `2` = any P1 only (dashboard ticket).
+
+### Unit tests
+
+```bash
+npx tsx --test src/lib/__tests__/telegram-health.test.ts
+```
+
+The check logic lives in `src/lib/telegram-health.ts` — pure, no I/O. The script wires Telegram fetch + Supabase + harness-writer + the owner alert.

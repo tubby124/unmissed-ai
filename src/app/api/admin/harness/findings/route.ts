@@ -22,6 +22,7 @@ const VALID_HARNESSES: ReadonlySet<HarnessName> = new Set<HarnessName>([
   'drift-check',
   'stripe-drift',
   'twilio-ownership',
+  'telegram-health',
   'prompt-injection',
   'schemathesis',
   'promptfoo',
