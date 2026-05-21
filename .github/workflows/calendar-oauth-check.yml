@@ -1,0 +1,48 @@
+name: Calendar OAuth Check
+
+on:
+  schedule:
+    # Daily at 11:00 UTC (5am Mountain) — after telegram-health (10:30) and
+    # twilio-ownership (10:00), before workday traffic starts.
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Skip recordFindings + Telegram alert (just log)"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  check:
+    name: Probe Google refresh tokens
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run calendar-oauth check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OWNER_CHAT_ID: ${{ secrets.TELEGRAM_OWNER_CHAT_ID }}
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npx tsx scripts/calendar-oauth-check.ts --dry-run
+          else
+            npx tsx scripts/calendar-oauth-check.ts
+          fi

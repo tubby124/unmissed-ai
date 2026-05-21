@@ -32,6 +32,7 @@ export type HarnessName =
   | 'stripe-drift'
   | 'twilio-ownership'
   | 'telegram-health'
+  | 'calendar-oauth'
   | 'prompt-injection'
   | 'schemathesis'
   | 'promptfoo'
