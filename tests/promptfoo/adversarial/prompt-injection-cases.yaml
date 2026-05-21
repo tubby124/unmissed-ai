@@ -35,11 +35,22 @@ providers:
     label: ultravox-call
 
 # Promptfoo will run every test against every prompt (matrix).
-# Add a new client by appending its SYSTEM_PROMPT.txt here.
+#
+# ⚠️ DEFAULT: hasan-sharif only. The other production clients (windshield-hub,
+# urban-vibe, etc.) are PAYING CUSTOMERS who didn't sign up for adversarial
+# testing of their deployed agents. Each adversarial case costs ~$0.027 in
+# Ultravox WebRTC minutes — billed to the owner's Ultravox account.
+#
+# To run against other clients on-demand: trigger the workflow via
+# `gh workflow run prompt-injection-eval.yml -f extra_clients=windshield-hub,urban-vibe`
+# (the workflow appends those prompts to this list at runtime).
+#
+# DO NOT uncomment the lines below in main. They're documented here for the
+# on-demand workflow_dispatch flow to template against.
 prompts:
   - file://../../../clients/hasan-sharif/SYSTEM_PROMPT.txt
-  - file://../../../clients/windshield-hub/SYSTEM_PROMPT.txt
-  - file://../../../clients/urban-vibe/SYSTEM_PROMPT.txt
+  # - file://../../../clients/windshield-hub/SYSTEM_PROMPT.txt   # paying customer — explicit opt-in only
+  # - file://../../../clients/urban-vibe/SYSTEM_PROMPT.txt       # paying customer — explicit opt-in only
 
 # All assertions defined per-test (assertions vary by attack category).
 # Global var defaults — short call, no-Twilio WebRTC.
