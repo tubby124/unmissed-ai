@@ -68,3 +68,7 @@ scripts/nlm-watch.log
 
 # Supabase CLI cache (transient, not source)
 supabase/.temp/
+
+# Harness idempotency state (regenerated each run; local runs shouldn't pollute git)
+.github/data-hygiene-state/
+.github/drift-state/

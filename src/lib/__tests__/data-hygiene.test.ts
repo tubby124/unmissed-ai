@@ -179,11 +179,43 @@ describe('E. checkPlanTierToolMismatch', () => {
     assert.match(r.findings[0].detail, /transferCall/)
   })
 
-  test('FAIL when Core has checkForCoaching', () => {
+  test('FAIL when Lite plan has bookAppointment', () => {
+    const r = checkPlanTierToolMismatch([
+      { slug: 'lite-client', selected_plan: 'lite', tools_text: '[{"name":"bookAppointment"}]' },
+    ])
+    assert.equal(r.severity, 'FAIL')
+    assert.match(r.findings[0].detail, /bookAppointment/)
+  })
+
+  test('FAIL when Lite plan has queryKnowledge', () => {
+    const r = checkPlanTierToolMismatch([
+      { slug: 'lite-client', selected_plan: 'lite', tools_text: '[{"name":"queryKnowledge"}]' },
+    ])
+    assert.equal(r.severity, 'FAIL')
+  })
+
+  test('FAIL when Lite plan has checkForCoaching', () => {
+    const r = checkPlanTierToolMismatch([
+      { slug: 'lite-client', selected_plan: 'lite', tools_text: '[{"name":"checkForCoaching"}]' },
+    ])
+    assert.equal(r.severity, 'FAIL')
+  })
+
+  test('PASS when Core has checkForCoaching (Core includes learning loop)', () => {
+    // Regression guard for 2026-05-21 false-positive batch:
+    // old hardcoded list flagged Core+checkForCoaching but plan-entitlements
+    // gives Core learningLoopEnabled=true. The check must read live entitlements.
     const r = checkPlanTierToolMismatch([
       { slug: 'core-client', selected_plan: 'core', tools_text: '[{"name":"checkForCoaching"}]' },
     ])
-    assert.equal(r.severity, 'FAIL')
+    assert.equal(r.severity, 'PASS')
+  })
+
+  test('PASS when Core has bookAppointment + transferCall (both included)', () => {
+    const r = checkPlanTierToolMismatch([
+      { slug: 'core-client', selected_plan: 'core', tools_text: '[{"name":"bookAppointment"},{"name":"transferCall"}]' },
+    ])
+    assert.equal(r.severity, 'PASS')
   })
 
   test('PASS when Pro has transferCall (allowed)', () => {
@@ -196,6 +228,29 @@ describe('E. checkPlanTierToolMismatch', () => {
   test('PASS when tools_text is empty', () => {
     const r = checkPlanTierToolMismatch([{ slug: 'x', selected_plan: 'lite', tools_text: null }])
     assert.equal(r.severity, 'PASS')
+  })
+
+  test('PASS when client is trialing (trial entitlements grant all caps)', () => {
+    // Trial bypass: subscription_status=trialing means TRIAL entitlements apply,
+    // not selected_plan. Trial clients see all features regardless of their
+    // future plan choice.
+    const r = checkPlanTierToolMismatch([
+      {
+        slug: 'trial-lite',
+        selected_plan: 'lite',
+        subscription_status: 'trialing',
+        tools_text: '[{"name":"transferCall"},{"name":"bookAppointment"},{"name":"checkForCoaching"}]',
+      },
+    ])
+    assert.equal(r.severity, 'PASS')
+  })
+
+  test('FAIL detects gated pageOwner on Lite (same gate as transferCall)', () => {
+    const r = checkPlanTierToolMismatch([
+      { slug: 'lite-client', selected_plan: 'lite', tools_text: '[{"temporaryTool":{"modelToolName":"pageOwner"}}]' },
+    ])
+    assert.equal(r.severity, 'FAIL')
+    assert.match(r.findings[0].detail, /pageOwner/)
   })
 })
 

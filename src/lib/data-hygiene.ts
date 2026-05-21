@@ -20,6 +20,8 @@
  *   PASS → silent
  */
 
+import { getPlanEntitlements, type PlanEntitlements } from './plan-entitlements.js'
+
 export type Severity = 'PASS' | 'WARN' | 'FAIL'
 
 export interface CheckResult {
@@ -195,24 +197,48 @@ export function checkZombieActiveSubs(rows: ClientRow[], allowList: Set<string>)
 // E. Plan-tier tool mismatches
 // ──────────────────────────────────────────────────────────────────────────────
 
-const FORBIDDEN_TOOLS_BY_PLAN: Record<string, string[]> = {
-  lite: ['transferCall', 'bookAppointment', 'checkForCoaching'],
-  core: ['checkForCoaching'],
+// Capability-to-tool mapping — mirrors src/lib/ultravox.ts:buildAgentTools().
+// A tool name that appears in clients.tools but whose gating capability is
+// false in the client's plan entitlements is a real drift bug (stale tools
+// from a prior syncClientTools() call before plan downgrade, OR registration
+// outside the buildAgentTools path). Anything NOT listed here (e.g. hangUp)
+// is plan-agnostic.
+type GatedCapability = 'bookingEnabled' | 'transferEnabled' | 'smsEnabled' | 'knowledgeEnabled' | 'learningLoopEnabled'
+
+const CAPABILITY_TOOL_NAMES: Record<GatedCapability, readonly string[]> = {
+  bookingEnabled:      ['checkCalendarAvailability', 'bookAppointment'],
+  transferEnabled:     ['transferCall', 'pageOwner'],
+  smsEnabled:          ['sendTextMessage'],
+  knowledgeEnabled:    ['queryKnowledge'],
+  learningLoopEnabled: ['checkForCoaching'],
+}
+
+function effectivePlanForGating(r: ClientRow): { id: string; plan: PlanEntitlements } {
+  // Mirror buildAgentTools trial bypass: trialing clients get TRIAL entitlements
+  // regardless of selected_plan (selected_plan is their future plan, not current).
+  const id = r.subscription_status === 'trialing' ? 'trial' : (r.selected_plan ?? 'lite')
+  return { id, plan: getPlanEntitlements(id) }
 }
 
 export function checkPlanTierToolMismatch(rows: ClientRow[]): CheckResult {
   const findings: Finding[] = []
   for (const r of rows) {
-    if (!r.selected_plan) continue
-    const forbidden = FORBIDDEN_TOOLS_BY_PLAN[r.selected_plan]
-    if (!forbidden) continue
+    if (!r.selected_plan && r.subscription_status !== 'trialing') continue
     const toolsLc = (r.tools_text ?? '').toLowerCase()
     if (!toolsLc) continue
-    const violations = forbidden.filter(t => toolsLc.includes(t.toLowerCase()))
+
+    const { id: planId, plan } = effectivePlanForGating(r)
+    const violations: string[] = []
+    for (const [cap, names] of Object.entries(CAPABILITY_TOOL_NAMES) as Array<[GatedCapability, readonly string[]]>) {
+      if (plan[cap]) continue // plan permits this capability — any matching tool is fine
+      for (const name of names) {
+        if (toolsLc.includes(name.toLowerCase())) violations.push(name)
+      }
+    }
     if (violations.length) {
       findings.push({
         key: r.slug,
-        detail: `plan=${r.selected_plan} has forbidden tool(s): ${violations.join(', ')}`,
+        detail: `plan=${planId} has gated tool(s): ${violations.join(', ')}`,
       })
     }
   }

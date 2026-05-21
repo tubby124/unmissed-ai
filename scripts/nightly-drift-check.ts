@@ -35,6 +35,8 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { recordFindings, type Finding as HarnessFinding } from '../src/lib/harness-writer.js'
+import { stripPromptMarkers } from '../src/lib/prompt-sections.js'
+import { getPlanEntitlements } from '../src/lib/plan-entitlements.js'
 
 // Drift dimension → stable harness_findings.check_name.
 // Per-dimension prefixes (tool_secret_missing:<name>, capability_fake_on:<flag>,
@@ -71,7 +73,11 @@ const TELEGRAM_OWNER_CHAT_ID = process.env.TELEGRAM_OWNER_CHAT_ID
 
 const STATE_FILE = resolve(process.cwd(), '.github/drift-state/last-alert.json')
 const RE_ALERT_WINDOW_MS = 24 * 60 * 60 * 1000
-const PROMPT_CHAR_DELTA_THRESHOLD = 100
+// Raised from 100 → 500 chars on 2026-05-21. The previous 100-char floor was
+// dominated by signal noise: an "(en-US)" suffix or a single appended sentence
+// inside a section block trips it. 500 chars roughly = one paragraph of authored
+// drift, which is what the harness actually cares about catching.
+const PROMPT_CHAR_DELTA_THRESHOLD = 500
 const REQUIRED_PROMPT_TOKENS = ['{{callerContext}}', '{{businessFacts}}', '{{contextData}}']
 
 if (!SUPABASE_URL || !SERVICE_KEY || !ULTRAVOX_API_KEY) {
@@ -96,6 +102,7 @@ type ClientRow = {
   calendar_auth_status: string | null
   forwarding_number: string | null
   selected_plan: string | null
+  subscription_status: string | null
   telegram_chat_id: string | null
 }
 
@@ -159,15 +166,35 @@ async function fetchAgent(agentId: string): Promise<AgentSnapshot> {
 }
 
 function normalizeLivePrompt(live: string): string {
-  // updateAgent appends a "\n\n{{callerContext}}..." suffix at deploy time.
-  // Strip it before length comparison so the delta reflects real authored drift.
-  return live.replace(/\n\n\{\{callerContext\}\}[\s\S]*$/, '').trimEnd()
+  // prepareAgentSystemPrompt() in src/lib/ultravox.ts appends up to three
+  // trailer blocks (in this order) at deploy time. We peel them off the END
+  // only — never from mid-prompt — so prompts that LITERALLY mention these
+  // placeholders in explainer sections (e.g. exp-realty's "CALLER CONTEXT:
+  // callerContext contains TODAY, CURRENT TIME, ...") don't get truncated.
+  // The 2026-05-21 prompt_drift false-positives were caused by a greedy regex
+  // stripping the first occurrence; lastIndexOf had the same bug when only
+  // one occurrence existed.
+  let sp = live.trimEnd()
+  // Trailer block C: INJECTED REFERENCE DATA paragraph + {{contextData}}
+  sp = sp.replace(/\n\n## INJECTED REFERENCE DATA\n[\s\S]*?\{\{contextData\}\}\s*$/, '').trimEnd()
+  // Trailer block B: lone {{businessFacts}} placeholder (no surrounding text)
+  sp = sp.replace(/\n\n\{\{businessFacts\}\}\s*$/, '').trimEnd()
+  // Trailer block A: lone {{callerContext}} placeholder (no surrounding text)
+  sp = sp.replace(/\n\n\{\{callerContext\}\}\s*$/, '').trimEnd()
+  // Strip section markers — clients deployed before prepareAgentSystemPrompt()
+  // started stripping markers still have them in the live Ultravox prompt.
+  // Markers are storage metadata, never authored content.
+  return stripPromptMarkers(sp)
 }
 
 function diffClient(client: ClientRow, agent: AgentSnapshot): DriftFinding[] {
   const findings: DriftFinding[] = []
   const slug = client.slug
-  const saved = (client.system_prompt ?? '').trimEnd()
+  // Strip section markers from the Supabase prompt before comparing — the
+  // Ultravox-stored prompt was stripped at deploy time via stripPromptMarkers().
+  // Without this we report ~200 chars of marker overhead per client as drift
+  // (the 2026-05-21 false-positive batch — 14 of 14 prompt_drift findings).
+  const saved = stripPromptMarkers(client.system_prompt ?? '').trimEnd()
   const live = normalizeLivePrompt(agent.systemPrompt)
 
   // ── prompt char-count delta ──────────────────────────────────────
@@ -245,14 +272,21 @@ function diffClient(client: ClientRow, agent: AgentSnapshot): DriftFinding[] {
       note: 'booking_enabled = true but calendar not connected',
     })
   }
-  if (client.forwarding_number && client.selected_plan !== 'pro') {
-    findings.push({
-      slug,
-      dimension: 'capability_fake_on:forwarding',
-      expected: 'selected_plan == "pro"',
-      actual: String(client.selected_plan ?? 'NULL'),
-      note: 'forwarding_number set on non-Pro plan — runtime will refuse to transfer',
-    })
+  if (client.forwarding_number) {
+    // Read live entitlements rather than hardcoded plan name. As of D416 (Phase 7)
+    // Core also includes transfer; before that only Pro did. Hardcoding 'pro'
+    // here was producing 3 false-positive fake-on findings on 2026-05-21.
+    const effectivePlan = client.subscription_status === 'trialing' ? 'trial' : client.selected_plan
+    const ent = getPlanEntitlements(effectivePlan)
+    if (!ent.transferEnabled) {
+      findings.push({
+        slug,
+        dimension: 'capability_fake_on:forwarding',
+        expected: 'plan with transferEnabled=true',
+        actual: `${effectivePlan ?? 'NULL'} (transferEnabled=false)`,
+        note: 'forwarding_number set on plan without transfer — runtime will refuse to transfer',
+      })
+    }
   }
 
   // Quiet "unused" lint by referencing the computed sets in the log path.
@@ -372,7 +406,7 @@ async function main(): Promise<number> {
 
   const { data, error } = await sb
     .from('clients')
-    .select('id, slug, business_name, system_prompt, agent_voice_id, ultravox_agent_id, sms_enabled, twilio_number, booking_enabled, calendar_auth_status, forwarding_number, selected_plan, telegram_chat_id')
+    .select('id, slug, business_name, system_prompt, agent_voice_id, ultravox_agent_id, sms_enabled, twilio_number, booking_enabled, calendar_auth_status, forwarding_number, selected_plan, subscription_status, telegram_chat_id')
     .eq('status', 'active')
     .not('ultravox_agent_id', 'is', null)
     .order('slug')
