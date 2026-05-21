@@ -1,0 +1,149 @@
+name: Scheduled crons
+
+# Mirrors the 14 cron entries from railway.json. Railway never honored the
+# `cron[]` array (not valid Railway schema — only `deploy.cronSchedule` is
+# supported, single-string-per-service). The previous external scheduler
+# silently died after the 2026-05-17 domain migration (host-canonicalization
+# middleware 308'd the calls, the scheduler dropped them). GitHub Actions cron
+# replaces it: free, version-controlled, hits the canonical domain directly
+# with `-L --fail` so future redirects can't silently swallow calls.
+#
+# Secret required: CRON_SECRET — must match Railway env var (the 48-char value
+# in unmissed.ai's .env.local on Railway).
+
+on:
+  schedule:
+    - cron: "0 2 * * *"       # analyze-calls       — daily 02:00 UTC
+    - cron: "0 14 * * *"      # daily-digest        — daily 14:00 UTC
+    - cron: "0 13 * * *"      # daily-digest-client — daily 13:00 UTC
+    - cron: "0 15 * * 0"      # weekly-digest-client — Sundays 15:00 UTC
+    - cron: "0 6 1 * *"       # reset-minutes        — monthly 1st 06:00 UTC
+    - cron: "0 7 * * *"       # trial-expiry        — daily 07:00 UTC
+    - cron: "*/30 * * * *"    # follow-up-reminders  — every 30 min
+    - cron: "0 * * * *"       # notification-health + cleanup-tokens — hourly
+    - cron: "15 * * * *"      # minute-usage-alert  — hourly :15
+    - cron: "30 * * * *"      # demo-followup       — hourly :30
+    - cron: "45 * * * *"      # fleet-drift         — hourly :45
+    - cron: "*/5 * * * *"     # scheduled-callbacks — every 5 min
+    - cron: "0 */6 * * *"     # drift-check         — every 6 hours
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Cron name to run on-demand (or 'all')"
+        required: true
+        default: "drift-check"
+        type: choice
+        options:
+          - all
+          - analyze-calls
+          - daily-digest
+          - daily-digest-client
+          - weekly-digest-client
+          - reset-minutes
+          - trial-expiry
+          - follow-up-reminders
+          - notification-health
+          - cleanup-tokens
+          - minute-usage-alert
+          - demo-followup
+          - fleet-drift
+          - scheduled-callbacks
+          - drift-check
+
+env:
+  BASE_URL: https://endvoicemail.ai
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Identify which job to run
+        id: which
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "job=${{ github.event.inputs.job }}" >> $GITHUB_OUTPUT
+          else
+            case "${{ github.event.schedule }}" in
+              "0 2 * * *")       echo "job=analyze-calls"        >> $GITHUB_OUTPUT ;;
+              "0 14 * * *")      echo "job=daily-digest"         >> $GITHUB_OUTPUT ;;
+              "0 13 * * *")      echo "job=daily-digest-client"  >> $GITHUB_OUTPUT ;;
+              "0 15 * * 0")      echo "job=weekly-digest-client" >> $GITHUB_OUTPUT ;;
+              "0 6 1 * *")       echo "job=reset-minutes"        >> $GITHUB_OUTPUT ;;
+              "0 7 * * *")       echo "job=trial-expiry"         >> $GITHUB_OUTPUT ;;
+              "*/30 * * * *")    echo "job=follow-up-reminders"  >> $GITHUB_OUTPUT ;;
+              "0 * * * *")       echo "job=hourly-pair"          >> $GITHUB_OUTPUT ;;
+              "15 * * * *")      echo "job=minute-usage-alert"   >> $GITHUB_OUTPUT ;;
+              "30 * * * *")      echo "job=demo-followup"        >> $GITHUB_OUTPUT ;;
+              "45 * * * *")      echo "job=fleet-drift"          >> $GITHUB_OUTPUT ;;
+              "*/5 * * * *")     echo "job=scheduled-callbacks"  >> $GITHUB_OUTPUT ;;
+              "0 */6 * * *")     echo "job=drift-check"          >> $GITHUB_OUTPUT ;;
+              *)                 echo "job=unknown"              >> $GITHUB_OUTPUT ;;
+            esac
+          fi
+          echo "Resolved job: $(grep job= $GITHUB_OUTPUT)"
+
+      - name: Run cron
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          job="${{ steps.which.outputs.job }}"
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET repo secret not set."
+            exit 1
+          fi
+
+          call() {
+            local name="$1"; local method="${2:-POST}"; local body="${3:-}"
+            local url="$BASE_URL/api/cron/$name"
+            echo "→ $method $url"
+            if [ -n "$body" ]; then
+              curl -L --fail --silent --show-error --max-time 300 \
+                -X "$method" \
+                -H "Authorization: Bearer $CRON_SECRET" \
+                -H "Content-Type: application/json" \
+                -d "$body" \
+                "$url"
+            else
+              curl -L --fail --silent --show-error --max-time 300 \
+                -X "$method" \
+                -H "Authorization: Bearer $CRON_SECRET" \
+                "$url"
+            fi
+            echo ""
+          }
+
+          case "$job" in
+            analyze-calls)        call analyze-calls POST '{"all_clients":true}' ;;
+            daily-digest)         call daily-digest POST '{}' ;;
+            daily-digest-client)  call daily-digest-client POST '{}' ;;
+            weekly-digest-client) call weekly-digest-client POST '{}' ;;
+            reset-minutes)        call reset-minutes POST '{}' ;;
+            trial-expiry)         call trial-expiry POST '{}' ;;
+            follow-up-reminders)  call follow-up-reminders POST '{}' ;;
+            notification-health)  call notification-health GET ;;
+            cleanup-tokens)       call cleanup-tokens POST '{}' ;;
+            hourly-pair)
+              # Two jobs share the same `0 * * * *` slot in railway.json
+              call notification-health GET
+              call cleanup-tokens POST '{}'
+              ;;
+            minute-usage-alert)   call minute-usage-alert POST '{}' ;;
+            demo-followup)        call demo-followup POST '{}' ;;
+            fleet-drift)          call fleet-drift POST '{}' ;;
+            scheduled-callbacks)  call scheduled-callbacks POST '{}' ;;
+            drift-check)          call drift-check POST '{}' ;;
+            all)
+              for name in analyze-calls daily-digest daily-digest-client weekly-digest-client \
+                          reset-minutes trial-expiry follow-up-reminders notification-health \
+                          cleanup-tokens minute-usage-alert demo-followup fleet-drift \
+                          scheduled-callbacks drift-check; do
+                method=POST; body='{}'
+                if [ "$name" = "notification-health" ]; then method=GET; body=""; fi
+                if [ "$name" = "analyze-calls" ]; then body='{"all_clients":true}'; fi
+                call "$name" "$method" "$body"
+              done
+              ;;
+            *) echo "::error::Unknown job: $job"; exit 1 ;;
+          esac
