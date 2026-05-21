@@ -1,0 +1,122 @@
+name: API Fuzz (Schemathesis)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/app/api/dashboard/settings/**'
+      - 'src/app/api/webhook/**'
+      - 'src/lib/settings-schema.ts'
+      - 'src/lib/twilio.ts'
+      - 'tests/schemathesis/**'
+      - '.github/workflows/api-fuzz.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: api-fuzz-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: Schemathesis + idempotency
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      BASE_URL: http://localhost:3000
+      # Secrets — populate in repo Settings -> Secrets -> Actions
+      SCHEMATHESIS_AUTH_COOKIE: ${{ secrets.SCHEMATHESIS_AUTH_COOKIE }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      TEST_CLIENT_ID: ${{ secrets.TEST_CLIENT_ID }}
+      TEST_CLIENT_SLUG: ${{ secrets.TEST_CLIENT_SLUG }}
+      TEST_ULTRAVOX_AGENT_ID: ${{ secrets.TEST_ULTRAVOX_AGENT_ID }}
+      ULTRAVOX_API_KEY: ${{ secrets.ULTRAVOX_API_KEY }}
+      TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+      TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install Python deps
+        run: pip install schemathesis pytest supabase requests pyyaml
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Start Next.js
+        run: |
+          npm run start > /tmp/next.log 2>&1 &
+          echo $! > /tmp/next.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null \
+               || curl -sf http://localhost:3000 > /dev/null; then
+              echo "Next.js is up"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Run schemathesis + pytest
+        id: fuzz
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          bash tests/schemathesis/run.sh 2>&1 | tee /tmp/fuzz.log
+
+      - name: Stop Next.js
+        if: always()
+        run: |
+          if [ -f /tmp/next.pid ]; then kill "$(cat /tmp/next.pid)" || true; fi
+
+      - name: Comment on PR with findings
+        if: failure() || steps.fuzz.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.existsSync('/tmp/fuzz.log')
+              ? fs.readFileSync('/tmp/fuzz.log', 'utf8')
+              : '(no log)';
+            // Extract failure blocks — schemathesis prints "FAILED" lines per finding
+            const lines = log.split('\n');
+            const failures = lines
+              .filter(l => /^\s*(FAILED|F |E |\d+\. )/i.test(l))
+              .slice(0, 5);
+            const count = lines.filter(l => /FAILED|AssertionError/i.test(l)).length;
+            const body = [
+              '### Schemathesis API Fuzz — Findings',
+              '',
+              `**Failures detected:** ${count}`,
+              '',
+              '**First 5 lines:**',
+              '```',
+              failures.join('\n') || '(no matching lines — see workflow logs)',
+              '```',
+              '',
+              '<sub>Run: `bash tests/schemathesis/run.sh`</sub>',
+            ].join('\n');
+            if (context.eventName === 'pull_request') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail job if fuzz failed
+        if: steps.fuzz.outcome == 'failure'
+        run: exit 1

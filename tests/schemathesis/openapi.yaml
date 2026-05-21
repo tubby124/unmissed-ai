@@ -1,0 +1,376 @@
+openapi: 3.1.0
+info:
+  title: unmissed.ai — Settings PATCH + Twilio webhook fuzz surface
+  version: "1.0.0"
+  description: |
+    Minimal spec covering the routes under property-based fuzzing.
+    Source of truth for the body shape lives in src/lib/settings-schema.ts
+    (Zod). When that schema changes, this YAML must be re-derived.
+
+servers:
+  - url: http://localhost:3000
+    description: Local dev server
+
+# ── Security schemes ─────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sb-access-token
+      description: Supabase session cookie. Schemathesis cannot mint one; use
+        the SCHEMATHESIS_AUTH_COOKIE env var when running.
+    twilioSig:
+      type: apiKey
+      in: header
+      name: X-Twilio-Signature
+      description: Twilio request signature. validateSignature() fails closed in
+        production when the header is missing or invalid.
+
+  # ── Reusable enums ────────────────────────────────────────────────────────
+  schemas:
+    CallHandlingMode:
+      type: string
+      enum: [message_only, triage, full_service]
+    AgentMode:
+      type: string
+      enum: [voicemail_replacement, lead_capture, info_hub, appointment_booking]
+    AfterHoursBehavior:
+      type: string
+      enum: [take_message, route_emergency, custom_message]
+    TelegramStyle:
+      type: string
+      enum: [compact, standard, action_card]
+    VoiceStylePreset:
+      type: string
+      enum:
+        - casual_friendly
+        - professional_warm
+        - direct_efficient
+        - empathetic_care
+        - casual_confident
+        - polished_professional
+        - alert_relaxed
+        - upbeat_confident
+    OutboundTone:
+      type: string
+      enum: [warm, professional, direct]
+    UnknownAnswerBehavior:
+      type: string
+      enum: [take_message, transfer, find_out_callback]
+    PricingPolicy:
+      type: string
+      enum: [quote_range, no_quote_callback, website_pricing, collect_first]
+    CalendarMode:
+      type: string
+      enum: [none, request_callback, book_direct]
+    Status:
+      type: string
+      enum: [active, paused]
+    KnowledgeBackend:
+      oneOf:
+        - { type: string, enum: [pgvector] }
+        - { type: "null" }
+
+    NullableString:
+      oneOf:
+        - { type: string }
+        - { type: "null" }
+
+    QAPair:
+      type: object
+      additionalProperties: false
+      required: [q, a]
+      properties:
+        q: { type: string, minLength: 1, maxLength: 500 }
+        a: { type: string, minLength: 1, maxLength: 2000 }
+
+    ServiceCatalogItem:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        duration_mins: { type: integer, minimum: 1, maximum: 480 }
+        price: { type: string, maxLength: 60 }
+
+    StaffMember:
+      type: object
+      additionalProperties: false
+      required: [name, role]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        role: { type: string, minLength: 1, maxLength: 80 }
+        availability_note: { type: string, maxLength: 200 }
+
+    SettingsPatchBody:
+      type: object
+      additionalProperties: true   # Zod uses .passthrough() — unknowns ignored, not rejected
+      properties:
+        client_id: { type: string }
+
+        # Direct prompt
+        system_prompt: { type: string, maxLength: 25000 }
+
+        # Lifecycle
+        status: { $ref: "#/components/schemas/Status" }
+
+        # SMS
+        sms_enabled: { type: boolean }
+        sms_template: { type: string, maxLength: 1000 }
+
+        # Knowledge pipeline
+        business_facts:
+          type: array
+          maxItems: 200
+          items: { type: string, maxLength: 500 }
+        extra_qa:
+          type: array
+          maxItems: 200
+          items: { $ref: "#/components/schemas/QAPair" }
+
+        # Per-call context
+        context_data: { type: string, maxLength: 4000 }
+        context_data_label: { type: string, maxLength: 120 }
+
+        # Booking
+        booking_service_duration_minutes: { type: integer, minimum: 1, maximum: 480 }
+        booking_buffer_minutes: { type: integer, minimum: 0, maximum: 240 }
+        booking_enabled: { type: boolean }
+        calendar_beta_enabled: { type: boolean }
+
+        # Voice / identity
+        voice_style_preset: { $ref: "#/components/schemas/VoiceStylePreset" }
+        agent_voice_id: { type: string, minLength: 1, maxLength: 120 }
+        agent_name: { type: string, minLength: 1, maxLength: 80 }
+        business_name: { type: string, minLength: 1, maxLength: 120 }
+        services_offered: { type: string, maxLength: 2000 }
+
+        # Misc
+        forwarding_number: { type: string, maxLength: 32 }
+        setup_complete: { type: boolean }
+        injected_note: { $ref: "#/components/schemas/NullableString" }
+        telegram_style: { $ref: "#/components/schemas/TelegramStyle" }
+        weekly_digest_enabled: { type: boolean }
+        telegram_notifications_enabled: { type: boolean }
+        email_notifications_enabled: { type: boolean }
+        timezone: { type: string, minLength: 1, maxLength: 60 }
+        pending_loop_suggestion: {}
+
+        # Hours
+        business_hours_weekday: { type: string, maxLength: 200 }
+        business_hours_weekend: { type: string, maxLength: 200 }
+        after_hours_behavior: { $ref: "#/components/schemas/AfterHoursBehavior" }
+        after_hours_emergency_phone: { type: string, maxLength: 32 }
+
+        # Transfer
+        transfer_conditions: { type: string, maxLength: 2000 }
+
+        # Voicemail
+        voicemail_greeting_text: { type: string, maxLength: 1000 }
+        voicemail_greeting_audio_url: { type: string, maxLength: 500 }
+
+        # IVR
+        ivr_enabled: { type: boolean }
+        ivr_prompt: { type: string, maxLength: 1000 }
+
+        # Modes
+        call_handling_mode: { $ref: "#/components/schemas/CallHandlingMode" }
+        agent_mode: { $ref: "#/components/schemas/AgentMode" }
+
+        # Service catalog
+        service_catalog:
+          type: array
+          maxItems: 50
+          items: { $ref: "#/components/schemas/ServiceCatalogItem" }
+
+        # Post-provision editable
+        owner_name: { type: string, maxLength: 80 }
+        callback_phone: { type: string, maxLength: 32 }
+        city: { type: string, maxLength: 80 }
+        website_url: { type: string, maxLength: 500 }
+
+        service_areas:
+          type: array
+          maxItems: 20
+          items: { type: string, minLength: 1, maxLength: 80 }
+
+        # Section editor
+        section_id: { type: string, maxLength: 60 }
+        section_content: { type: string, maxLength: 10000 }
+
+        # Outbound calling
+        outbound_prompt: { $ref: "#/components/schemas/NullableString" }
+        outbound_goal: { $ref: "#/components/schemas/NullableString" }
+        outbound_opening: { $ref: "#/components/schemas/NullableString" }
+        outbound_vm_script:
+          oneOf:
+            - { type: string, maxLength: 500 }
+            - { type: "null" }
+        outbound_tone: { $ref: "#/components/schemas/OutboundTone" }
+        outbound_notes: { $ref: "#/components/schemas/NullableString" }
+        outbound_enabled: { type: boolean }
+        outbound_number: { $ref: "#/components/schemas/NullableString" }
+        outbound_time_window_start:
+          oneOf:
+            - { type: string, pattern: "^[0-9]{2}:[0-9]{2}$" }
+            - { type: "null" }
+        outbound_time_window_end:
+          oneOf:
+            - { type: string, pattern: "^[0-9]{2}:[0-9]{2}$" }
+            - { type: "null" }
+        outbound_max_attempts:
+          oneOf:
+            - { type: integer, minimum: 1, maximum: 10 }
+            - { type: "null" }
+
+        # Admin-only — included so fuzzer can exercise the role gate
+        telegram_bot_token: { type: string, minLength: 1, maxLength: 120 }
+        telegram_chat_id: { type: string, minLength: 1, maxLength: 60 }
+        twilio_number: { type: string, minLength: 1, maxLength: 32 }
+        monthly_minute_limit: { type: integer, minimum: 1, maximum: 100000 }
+        knowledge_backend: { $ref: "#/components/schemas/KnowledgeBackend" }
+        custom_niche_config:
+          type: object
+          additionalProperties: true
+
+        # D247/D254 — niche custom variables
+        niche_custom_variables:
+          type: object
+          additionalProperties: { type: string, maxLength: 1000 }
+
+        # Phase E Day-1 edit panel
+        today_update:
+          oneOf:
+            - { type: string, maxLength: 200 }
+            - { type: "null" }
+        business_notes:
+          oneOf:
+            - { type: string, maxLength: 3000 }
+            - { type: "null" }
+        unknown_answer_behavior: { $ref: "#/components/schemas/UnknownAnswerBehavior" }
+        pricing_policy: { $ref: "#/components/schemas/PricingPolicy" }
+        calendar_mode: { $ref: "#/components/schemas/CalendarMode" }
+        fields_to_collect:
+          type: array
+          maxItems: 20
+          items: { type: string, minLength: 1, maxLength: 60 }
+
+        staff_roster:
+          type: array
+          maxItems: 30
+          items: { $ref: "#/components/schemas/StaffMember" }
+
+        change_description: { type: string, maxLength: 200 }
+
+    # ── Twilio webhook form bodies ────────────────────────────────────────
+    VoicemailWebhookForm:
+      type: object
+      additionalProperties: true
+      required: [CallSid, RecordingSid, RecordingUrl, RecordingDuration, RecordingStatus]
+      properties:
+        CallSid:           { type: string, pattern: "^CA[a-f0-9]{32}$" }
+        RecordingSid:      { type: string, pattern: "^RE[a-f0-9]{32}$" }
+        RecordingUrl:      { type: string, format: uri }
+        RecordingDuration: { type: string, pattern: "^[0-9]{1,5}$" }
+        RecordingStatus:
+          type: string
+          enum: [completed, failed, in-progress, absent]
+
+    FallbackWebhookForm:
+      type: object
+      additionalProperties: true
+      required: [CallSid, From]
+      properties:
+        CallSid: { type: string, pattern: "^CA[a-f0-9]{32}$" }
+        From:    { type: string, pattern: "^\\+[1-9][0-9]{6,14}$" }
+
+# ── Paths ────────────────────────────────────────────────────────────────────
+paths:
+  /api/dashboard/settings:
+    patch:
+      operationId: patchDashboardSettings
+      summary: Update client settings (Zod-validated; partial)
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsPatchBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, ultravox_synced]
+                properties:
+                  ok: { type: boolean }
+                  ultravox_synced: { type: boolean }
+                  ultravox_error: { type: string }
+                  warnings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field: { type: string }
+                        message: { type: string }
+                  prompt_rebuilt: { type: boolean }
+                  field_sync_status: {}
+                  last_sync_at: { type: string, format: date-time }
+                  knowledge_reseeding: { type: boolean }
+                  system_prompt: { type: string }
+        "400": { description: Invalid body or empty update }
+        "401": { description: Unauthorized }
+        "403": { description: Forbidden — admin-only section or edit-mode required }
+        "404": { description: No client for user }
+        "500": { description: Save failed }
+
+  /api/webhook/{slug}/voicemail:
+    post:
+      operationId: postVoicemailRecordingCallback
+      summary: Twilio recordingStatusCallback for voicemail
+      security:
+        - twilioSig: []
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string, pattern: "^[a-z0-9-]{1,80}$" }
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/VoicemailWebhookForm"
+      responses:
+        "200": { description: OK (also returned on duplicate / non-completed) }
+        "403": { description: Signature failed }
+
+  /api/webhook/{slug}/fallback:
+    post:
+      operationId: postFallbackTwiml
+      summary: Twilio VoiceFallbackUrl — branded voicemail TwiML
+      security:
+        - twilioSig: []
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string, pattern: "^[a-z0-9-]{1,80}$" }
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/FallbackWebhookForm"
+      responses:
+        "200":
+          description: TwiML XML
+          content:
+            text/xml:
+              schema: { type: string }
+        "403": { description: Signature failed }
