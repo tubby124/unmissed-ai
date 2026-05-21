@@ -1,0 +1,52 @@
+name: Nightly Drift Check
+
+# Runs scripts/nightly-drift-check.ts every day at 09:00 UTC (≈ 03:00 Mountain).
+# Read-only: diffs Supabase clients vs live Ultravox agents and posts a single
+# Telegram alert if any drift is found. Auto-fix is intentionally NOT in scope —
+# that's /api/cron/drift-check (hits Ultravox PATCH).
+#
+# Path filter: only re-runs on changes to the script or this workflow itself,
+# so unrelated PRs don't ping the owner.
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/nightly-drift-check.ts"
+      - ".github/workflows/nightly-drift-check.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/nightly-drift-check.ts"
+      - ".github/workflows/nightly-drift-check.yml"
+
+concurrency:
+  group: nightly-drift-check
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: Diff Supabase vs Ultravox
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run nightly drift check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ULTRAVOX_API_KEY: ${{ secrets.ULTRAVOX_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_OWNER_CHAT_ID: ${{ secrets.TELEGRAM_OWNER_CHAT_ID }}
+        run: npx tsx scripts/nightly-drift-check.ts
