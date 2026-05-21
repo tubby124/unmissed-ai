@@ -171,3 +171,40 @@ npx tsx --test src/lib/__tests__/twilio-ownership.test.ts
 
 The diff logic lives in `src/lib/twilio-ownership.ts` — pure, no I/O. The runner script is just env + Supabase + Twilio SDK wiring.
 
+## Stripe Drift Check
+
+`scripts/stripe-drift-check.ts` — nightly cross-check of Supabase `clients` against live Stripe state. Catches "Stripe and DB disagree on subscription state" — the silent revenue leak class (portal cancels, refunds, past-due, deleted customers, stuck-trial conversions). Runs at 09:45 UTC via [.github/workflows/stripe-drift-check.yml](../.github/workflows/stripe-drift-check.yml) — 15 min after data-hygiene-check, 30 min after nightly-drift-check.
+
+Read-only: never mutates `clients.*` or calls Stripe write endpoints. Findings persist via `recordFindings({ harness: 'stripe-drift', ... })`; P0s also fire a single Telegram alert to the owner chat. Triage from `/admin/harness`.
+
+| Check | Severity | What it catches |
+|-------|----------|-----------------|
+| `stripe_customer_deleted` | P0 | DB has `stripe_customer_id` but Stripe shows `deleted: true` (or 404) |
+| `stripe_sub_missing` | P0 | DB has `stripe_subscription_id` but Stripe returns 404 |
+| `stripe_status_mismatch` | P0 | DB says active/trialing/past_due, Stripe says canceled/incomplete_expired/unpaid/paused (the portal-cancel-webhook-dropped class) |
+| `stripe_trial_converted_db_still_trialing` | P0 | Stripe `status=active` with `trial_end < now()`, DB still `subscription_status=trialing` |
+| `stripe_past_due_db_active` | P1 | Stripe `status=past_due`, DB still `active` — grace-period clock never started |
+| `stripe_orphan_active_sub` | P1 | Stripe has an active sub whose customer is unknown to DB (only fires when sub carries `metadata.unmissed_slug`; no-op until that tag convention is added at checkout) |
+
+### Required env vars
+
+- `STRIPE_SECRET_KEY` (live mode `sk_live_*` for prod runs; `sk_test_*` works locally)
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `TELEGRAM_BOT_TOKEN` (required unless `--dry-run`)
+- `TELEGRAM_OWNER_CHAT_ID` (optional — falls back to `clients.telegram_chat_id` where `slug = 'hasan-sharif'`)
+
+### Local test
+
+```bash
+STRIPE_SECRET_KEY=sk_test_... \
+NEXT_PUBLIC_SUPABASE_URL=https://qwhvblomlgeapzhnuwlb.supabase.co \
+SUPABASE_SERVICE_ROLE_KEY=... \
+npx tsx scripts/stripe-drift-check.ts --dry-run
+```
+
+Exit codes: `0` = clean, `1` = any P0 (silent revenue leak in progress), `2` = any P1 (and no P0).
+
+### Unit tests
+
+`npx tsx --test src/lib/__tests__/stripe-drift.test.ts` — mocks Stripe responses with stub projections; no live key or network. Validates each check function plus exit-code aggregation.: nightly stripe-drift harness — Stripe vs Supabase)
