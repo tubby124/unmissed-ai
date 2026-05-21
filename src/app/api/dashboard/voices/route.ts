@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-import { inferVoiceGender } from '@/lib/voice-presets'
+import { inferVoiceGender, UNPLAYABLE_PREVIEW_VOICE_IDS } from '@/lib/voice-presets'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
 
@@ -38,7 +38,8 @@ export async function GET() {
 
   const isAdmin = cu?.role === 'admin'
 
-  const rawVoices = await fetchAllEnglishVoices() as Array<Record<string, unknown>>
+  const rawVoices = (await fetchAllEnglishVoices() as Array<Record<string, unknown>>)
+    .filter(v => !UNPLAYABLE_PREVIEW_VOICE_IDS.has(String(v.voiceId)))
 
   // Strip previewUrl — Ultravox direct URLs require X-API-Key which a browser <audio> tag
   // cannot send. Frontend must use /api/dashboard/voices/[voiceId]/preview proxy instead.

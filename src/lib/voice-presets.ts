@@ -36,7 +36,24 @@
 // upstream Ultravox catalog has not been audited, only voices in
 // GO_LIVE_VOICES are shown on Go Live.
 //
-export const EXPERIMENTAL_VOICES: string[] = []
+export const EXPERIMENTAL_VOICES: string[] = [
+  '441ec053-5566-4d18-9752-452dd5120071', // Elilhiz-English
+  '87edb04c-06d4-47c2-bd94-683bc47e8fbe', // Monika-English-Indian
+  '7c125579-a8b9-46ba-887b-60e4f0449e5d', // Raju-English-Indian
+  'bd2118e8-84fc-4d6f-8038-bb5e25e3f398', // linny
+  '813f0a80-2dc5-4019-af72-11237a2b74d5', // Steve-English-Australian
+  '87691b77-0174-4808-b73c-30000b334e14', // Emily-English
+  '1769b283-36c6-4883-9c52-17bf75a29bc5', // Tanya-English
+  'feccf00b-417e-4e7a-9f89-62f537280334', // Aaron-English
+  'e6fce4ac-da54-43e9-8fb2-66de86f72a5b', // Conversationalist-English
+  'ac329809-3b43-4ab7-a16a-b40448212e1c', // Dakota Flash V2
+  '54ebeae1-88df-4d66-af13-6c41283b4332', // Chelsea
+  '3abe60f5-13ed-4e82-ac15-4391d9e5cd9d', // Oliver
+  'b0e6b5c1-3100-44d5-8578-9015aa3023ae', // Jessica / stale Mark ID
+  '91fa9bcf-93c8-467c-8b29-973720e3f167', // Mark
+  'dcb65d6e-9a56-459e-bf6f-d97572e2fe64', // terrence
+  'ede629be-f7cf-48a2-a7e6-ee2c50785b5d', // lily
+]
 
 /**
  * GO_LIVE_VOICES — curated catalog used by the Go Live tab voice picker.
@@ -56,6 +73,8 @@ export interface GoLiveVoice {
 }
 
 export type VoiceGender = 'female' | 'male' | 'unknown'
+
+export const UNPLAYABLE_PREVIEW_VOICE_IDS = new Set(EXPERIMENTAL_VOICES)
 
 const FEMALE_NAME_HINTS = [
   'monika', 'ashley', 'jacqueline', 'olivia', 'sarah', 'luna', 'deborah',
@@ -84,10 +103,10 @@ export function inferVoiceGender(name: string, description = ''): VoiceGender {
 export const GO_LIVE_VOICES: GoLiveVoice[] = [
   // Female
   { voiceId: 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', name: 'Jacqueline', gender: 'female', vibe: 'Warm, friendly, empathetic' },
-  { voiceId: '87edb04c-06d4-47c2-bd94-683bc47e8fbe', name: 'Monika',     gender: 'female', vibe: 'Energetic, confident, upbeat' },
+  { voiceId: '33175488-b0f9-4f11-a0c6-3f4edd47353e', name: 'Gabrielle',  gender: 'female', vibe: 'Clear, friendly, upbeat' },
   { voiceId: 'df0b14d7-945f-41b2-989a-7c8c57688ddf', name: 'Ashley',     gender: 'female', vibe: 'Calm, professional, reassuring' },
   // Male
-  { voiceId: 'b0e6b5c1-3100-44d5-8578-9015aa3023ae', name: 'Mark',  gender: 'male', vibe: 'Clear, direct, professional' },
+  { voiceId: 'ef6757de-79b1-497b-ad54-c6bef635e2b7', name: 'David', gender: 'male', vibe: 'Clear, direct, professional' },
   { voiceId: 'd766b9e3-69df-4727-b62f-cd0b6772c2ad', name: 'Nour',  gender: 'male', vibe: 'Warm, patient, trustworthy' },
   { voiceId: '5f8e97b1-cd48-431a-b6a1-3b94306d8914', name: 'Grant', gender: 'male', vibe: 'Confident, authoritative, steady' },
 ]

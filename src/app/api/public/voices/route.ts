@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { inferVoiceGender } from '@/lib/voice-presets'
+import { inferVoiceGender, UNPLAYABLE_PREVIEW_VOICE_IDS } from '@/lib/voice-presets'
 
 const ULTRAVOX_BASE = 'https://api.ultravox.ai/api'
 
@@ -46,7 +46,9 @@ export async function GET() {
   const voices = await fetchEnglishVoices()
 
   // Strip previewUrl (requires auth) — client uses /api/public/voice-preview/[voiceId] instead
-  const publicVoices = voices.map((v) => ({
+  const publicVoices = voices
+    .filter(v => !UNPLAYABLE_PREVIEW_VOICE_IDS.has(v.voiceId))
+    .map((v) => ({
     voiceId: v.voiceId,
     name: v.name,
     description: v.description || '',

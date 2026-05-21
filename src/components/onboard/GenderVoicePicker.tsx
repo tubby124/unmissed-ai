@@ -13,10 +13,10 @@ interface VoiceOption {
 const VOICES: VoiceOption[] = [
   // Female voices
   { id: 'aa601962-1cbd-4bbd-9d96-3c7a93c3414a', name: 'Jacqueline', gender: 'Female', personality: 'Warm, friendly, empathetic' },
-  { id: '87edb04c-06d4-47c2-bd94-683bc47e8fbe', name: 'Monika', gender: 'Female', personality: 'Energetic, confident, upbeat' },
+  { id: '33175488-b0f9-4f11-a0c6-3f4edd47353e', name: 'Gabrielle', gender: 'Female', personality: 'Clear, friendly, upbeat' },
   { id: 'df0b14d7-945f-41b2-989a-7c8c57688ddf', name: 'Ashley', gender: 'Female', personality: 'Calm, professional, reassuring' },
   // Male voices
-  { id: 'b0e6b5c1-3100-44d5-8578-9015aa3023ae', name: 'Mark', gender: 'Male', personality: 'Clear, direct, professional' },
+  { id: 'ef6757de-79b1-497b-ad54-c6bef635e2b7', name: 'David', gender: 'Male', personality: 'Clear, direct, professional' },
   { id: 'd766b9e3-69df-4727-b62f-cd0b6772c2ad', name: 'Nour', gender: 'Male', personality: 'Warm, patient, trustworthy' },
   { id: '5f8e97b1-cd48-431a-b6a1-3b94306d8914', name: 'Grant', gender: 'Male', personality: 'Confident, authoritative, steady' },
 ]
@@ -77,7 +77,10 @@ export default function GenderVoicePicker({ selectedVoiceId, onSelect, playOnSel
         onClick={() => {
           onSelect(voice.id, voice.name)
           trackEvent('voice_selected', { voiceId: voice.id, gender: voice.gender, niche: 'onboard' })
-          if (playOnSelect) { isPlaying ? stop() : play(voice.id) }
+          if (playOnSelect) {
+            if (isPlaying) stop()
+            else play(voice.id)
+          }
         }}
         className={`
           relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all
