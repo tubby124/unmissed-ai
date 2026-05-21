@@ -127,3 +127,47 @@ Exit codes: `0` = no drift, `1` = drift found (Telegram already sent inline, Git
 ### Idempotency
 
 The script writes `.github/drift-state/last-alert.json` with the SHA-256 of the drift fingerprint. If the same drift recurs within 24h, no duplicate Telegram is sent. Delete the state file to force a re-alert.
+
+## Twilio Ownership Check
+
+`scripts/twilio-ownership-check.ts` — nightly diff of `clients.twilio_number` (Supabase) vs the live Twilio account inventory. Catches the silent-fail class where Twilio releases / suspends / ports-out / mis-routes a number we still believe we own — inbound calls 404 at Twilio with no internal signal until the customer complains. Runs at 10:00 UTC via [.github/workflows/twilio-ownership-check.yml](../.github/workflows/twilio-ownership-check.yml). Writes findings via `recordFindings({ harness: 'twilio-ownership', ... })` and posts a single Telegram alert on P0.
+
+### Checks
+
+| Severity | Check | What it catches |
+|----------|-------|-----------------|
+| P0 | `twilio_number_orphan_in_db` | DB has a number Twilio doesn't have at all — inbound calls 404 |
+| P0 | `twilio_number_suspended` | Twilio status ≠ `in-use` (suspended for billing / compliance / TCR) |
+| P0 | `twilio_voice_url_mismatch` | `voiceUrl` drifted (someone edited it in Twilio console, or APP_URL changed) |
+| P1 | `twilio_voice_fallback_url_mismatch` | Fallback URL no longer points at the Cloudflare Worker |
+| P1 | `twilio_status_callback_mismatch` | `statusCallback` drift (skipped unless `statusCallback` is wired) |
+| P1 | `twilio_number_orphan_in_account` | Twilio has a number not in DB — paying ~$1.15/mo for nothing |
+| P1 | `twilio_number_capabilities_missing` | Number lacks Voice, or lacks SMS while `clients.sms_enabled = true` |
+
+### Required env vars
+
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`
+- `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+- `TELEGRAM_BOT_TOKEN` (required unless `--dry-run`)
+- `TELEGRAM_OWNER_CHAT_ID` (optional — script falls back to `clients.telegram_chat_id` where `slug='hasan-sharif'`)
+- `NEXT_PUBLIC_APP_URL` (optional — defaults to `https://endvoicemail.ai`)
+- `VOICE_FALLBACK_URL` (optional — defaults to `https://fallback.endvoicemail.ai/voice`)
+
+### Local test
+
+Pull env from `.env.local` and run dry (no DB writes, no Telegram):
+
+```bash
+npx tsx scripts/twilio-ownership-check.ts --dry-run
+```
+
+Exit codes: `0` = clean, `1` = P1 findings only, `2` = at least one P0 (calls failing) or setup error.
+
+### Unit tests
+
+```bash
+npx tsx --test src/lib/__tests__/twilio-ownership.test.ts
+```
+
+The diff logic lives in `src/lib/twilio-ownership.ts` — pure, no I/O. The runner script is just env + Supabase + Twilio SDK wiring.
+
