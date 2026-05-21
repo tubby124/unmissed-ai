@@ -1,0 +1,70 @@
+name: Data hygiene check
+
+# Companion to crons.yml. Where crons.yml is the operational scheduler (hits
+# Railway routes via CRON_SECRET), this workflow runs the *audit* directly
+# against Supabase from the runner — no Railway dependency, no 308-redirect
+# silent-drop class of failure.
+#
+# Why this exists: the 2026-05-19 production audit (porn injected_note,
+# competitor recommendation in a live agent context, 14 trial accounts stuck
+# in trialing 40+ days past expiry). The trial-expiry cron filters by
+# status='active' and won't catch rows already moved to paused; the injected
+# note cleanup never ran. This check catches all eight failure modes nightly.
+#
+# Schedule: 30 min after drift-check (which runs every 6h at :00) — picks the
+# 09:30 UTC slot so the daily run lands cleanly after the daily-digest jobs.
+# 09:30 UTC = 03:30 Mountain = quiet hour for owner timezone.
+#
+# Required secrets:
+#   SUPABASE_SERVICE_ROLE_KEY   — Supabase service role for unmissed.ai prod
+#   NEXT_PUBLIC_SUPABASE_URL    — Supabase URL for unmissed.ai prod
+#   TELEGRAM_BOT_TOKEN          — fallback if hasan-sharif client row is empty
+#   CONCIERGE_CLIENTS           — comma-separated slugs (extends zombie-sub
+#                                 allow-list with manual concierge clients)
+
+on:
+  schedule:
+    - cron: "30 9 * * *"
+  workflow_dispatch:
+    inputs:
+      fix:
+        description: "Auto-fix stale notes / trials / stuck calls (skips Telegram alert)"
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Run data hygiene check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CONCIERGE_CLIENTS: ${{ secrets.CONCIERGE_CLIENTS }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.inputs.fix }}" = "true" ]; then
+            npx tsx scripts/data-hygiene-check.ts --fix
+          else
+            npx tsx scripts/data-hygiene-check.ts
+          fi
+
+      - name: Persist state file across runs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-hygiene-state
+          path: .github/data-hygiene-state/
+          retention-days: 30

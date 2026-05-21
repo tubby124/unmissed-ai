@@ -1,0 +1,33 @@
+{
+  "_comment_format": "Pattern lists for scripts/data-hygiene-check.ts check (B). All matched case-insensitively as substrings unless prefixed with 'rx:' (then treated as a JS regex). Owner extends in place — no schema change needed. Categories: competitors (FAIL), profanity (FAIL), explicit (FAIL), urls (FAIL — links should never appear in an injected_note, they leak into the spoken prompt). Adding a new category requires editing the script.",
+  "_comment_examples": "To block another competitor: append to 'competitors'. To allow-list a brand that triggers a false positive: prefix with '~' in the list (e.g. '~mcdonalds-property-mgmt') — the script strips '~'-prefixed slugs from match results.",
+  "competitors": [
+    "tim hortons",
+    "tim horton",
+    "tim's",
+    "starbucks",
+    "mcdonald's",
+    "mcdonalds",
+    "domino's",
+    "dominos"
+  ],
+  "profanity": [
+    "fuck",
+    "shit",
+    "damn",
+    "bitch",
+    "asshole"
+  ],
+  "explicit": [
+    "brazzers",
+    "bang bros",
+    "bangbros",
+    "porn",
+    "nsfw",
+    "xxx",
+    "onlyfans",
+    "adult content"
+  ],
+  "url_regex": "rx:https?://[\\w.\\-/?=&%#]+",
+  "allow_list_slugs": []
+}
