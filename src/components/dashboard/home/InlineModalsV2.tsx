@@ -897,6 +897,87 @@ function VoiceModal(p: CommonProps) {
 
 // ── Callback contact modal ───────────────────────────────────────────────────
 
+// ── Identity modal (agent name + business name) ──────────────────────────────
+// Both fields are DB_PLUS_PROMPT — saving triggers patchAgentName / patchBusinessName
+// and a needsAgentSync → updateAgent() roundtrip to Ultravox. See:
+// docs/architecture/control-plane-mutation-contract.md → "agent_name" / "business_name".
+
+function IdentityModal(p: CommonProps) {
+  const initialAgent = p.data.agent.name ?? ''
+  const initialBusiness = p.data.onboarding.businessName ?? ''
+  const [agentName, setAgentName] = useState(initialAgent)
+  const [businessName, setBusinessName] = useState(initialBusiness)
+  const { saving, saved, patch } = usePatchSettings(p.clientId, p.isAdmin, { onSave: p.fetchData })
+
+  const trimmedAgent = agentName.trim()
+  const trimmedBusiness = businessName.trim()
+  const agentChanged = trimmedAgent !== initialAgent.trim()
+  const businessChanged = trimmedBusiness !== initialBusiness.trim()
+  const dirty = (agentChanged || businessChanged) && trimmedAgent.length > 0 && trimmedBusiness.length > 0
+
+  async function save() {
+    if (!dirty || saving) return
+    const updates: { agent_name?: string; business_name?: string } = {}
+    if (agentChanged) updates.agent_name = trimmedAgent
+    if (businessChanged) updates.business_name = trimmedBusiness
+    const res = await patch(updates)
+    if (res?.ok) {
+      toast.success(agentChanged ? `Agent renamed to ${trimmedAgent}` : 'Business name updated')
+      p.edit.markClean()
+      setTimeout(() => p.edit.forceClose(), 700)
+    }
+  }
+
+  return (
+    <>
+      <Field
+        label="Agent's name"
+        hint="What your agent calls itself on every call — e.g., &ldquo;Hi, this is Sarah&hellip;&rdquo;. Updates the greeting, the prompt, and what callers hear within seconds."
+      >
+        <input
+          type="text"
+          value={agentName}
+          onChange={e => { setAgentName(e.target.value); p.edit.markDirty() }}
+          placeholder="e.g., Sarah"
+          maxLength={40}
+          className="w-full rounded-lg px-3 py-2.5 text-[13px] t1 outline-none"
+          style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+        />
+      </Field>
+
+      <div className="mt-4">
+        <Field
+          label="Business name"
+          hint="How your business is referred to during the call. Already pulled from your Google profile — change it here if it&rsquo;s wrong."
+        >
+          <input
+            type="text"
+            value={businessName}
+            onChange={e => { setBusinessName(e.target.value); p.edit.markDirty() }}
+            placeholder="e.g., Calgary Edmonton Property Leasing"
+            maxLength={80}
+            className="w-full rounded-lg px-3 py-2.5 text-[13px] t1 outline-none"
+            style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
+          />
+        </Field>
+      </div>
+
+      <div className="mt-3 text-[11px] t3 leading-relaxed">
+        Saving rewrites both names everywhere the agent speaks them — greeting, prompt, summaries — and pushes the change to your live agent automatically.
+      </div>
+
+      <ModalActions
+        onCancel={p.edit.closeModal}
+        onSave={save}
+        saving={saving}
+        saved={saved}
+        dirty={dirty}
+        syncedHint={syncedHint(p.data)}
+      />
+    </>
+  )
+}
+
 function CallbackModal(p: CommonProps) {
   const [variables, setVariables] = useState<Record<string, { value: string }>>({})
   const [loading, setLoading] = useState(true)
@@ -1378,6 +1459,7 @@ const TITLES: Record<Exclude<ModalId, null>, { title: string; sub?: string }> = 
   today:      { title: "Today's update",          sub: 'A short note your agent reads at the start of every call. Great for short-term updates.' },
   calendar:   { title: 'Connect Google Calendar', sub: 'Needed before your agent can check availability and book appointments.' },
   voice:      { title: 'Choose a voice',          sub: 'Tap ▶ to preview. The voice you pick is used on your next call automatically.' },
+  identity:   { title: 'Rename your agent',       sub: "Change what your agent calls itself and how your business is named on calls. Saves live to your agent." },
   callback:   { title: 'Who calls people back',   sub: 'The name your agent gives callers, and the number used if a call is transferred.' },
   hours:      { title: 'Business hours',          sub: "When you're open. Your agent uses this to set expectations on every call." },
   services:   { title: 'What you offer',          sub: 'The services your agent can describe and talk about with callers.' },
@@ -1437,6 +1519,7 @@ export default function InlineModalsV2({
     case 'today':      body = <TodayModal {...common} />; break
     case 'calendar':   body = <CalendarModal {...common} />; break
     case 'voice':      body = <VoiceModal {...common} />; break
+    case 'identity':   body = <IdentityModal {...common} />; break
     case 'callback':   body = <CallbackModal {...common} />; break
     case 'hours':      body = <HoursModal {...common} />; break
     case 'services':   body = <ServicesModal {...common} />; break
