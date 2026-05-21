@@ -92,6 +92,16 @@ export function CodeRow({ label, code }: { label: string; code: string }) {
   )
 }
 
+export function StatusCheckRow({ code, expected }: { code: string; expected: string }) {
+  return (
+    <div className="flex items-start gap-3 py-2 border-b b-theme last:border-0">
+      <span className="font-mono text-xs t1 bg-black/40 px-2 py-1 rounded-md shrink-0 min-w-[58px] text-center">{code}</span>
+      <span className="text-xs t2 flex-1 pt-1 leading-snug">{expected}</span>
+      <CopyButton value={code} />
+    </div>
+  )
+}
+
 export function SectionLabel({ num, label }: { num: string; label: string }) {
   return (
     <div className="flex items-center gap-3 mb-5">

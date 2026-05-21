@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { CARRIER_NOTES, FIDO_DISABLE } from './constants'
-import { CopyButton, CodeRow, StarCard, InlineNotes, ActiveBadge, ConfirmActivation } from './shared'
+import { CopyButton, CodeRow, StatusCheckRow, StarCard, InlineNotes, ActiveBadge, ConfirmActivation } from './shared'
 import CarrierCompatibilityCheck from './CarrierCompatibilityCheck'
 import type { CompatCheckState } from '@/types/carrier-compat'
 
@@ -198,26 +198,6 @@ export default function MobileSetup({
             <summary className="cursor-pointer list-none">
               <div className="flex items-center gap-2 px-1 py-2.5 t3 hover:t2 transition-colors">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
-                  <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                  <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-                <span className="text-xs font-medium">Send all calls to agent</span>
-                <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-            </summary>
-            <div className="bg-input border border-red-500/15 rounded-xl p-4 mt-1 space-y-2">
-              <p className="text-[11px] text-red-300/60 mb-3">Your phone will not ring. Every caller goes directly to the agent.</p>
-              <CodeRow label="Enable unconditional" code={`*21*${rawNumber}#`} />
-            </div>
-          </details>
-
-          <details className="group">
-            <summary className="cursor-pointer list-none">
-              <div className="flex items-center gap-2 px-1 py-2.5 t3 hover:t2 transition-colors">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M3 3v5h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -236,24 +216,28 @@ export default function MobileSetup({
             </div>
           </details>
 
-          <details className="group">
+          <details className="group" open>
             <summary className="cursor-pointer list-none">
-              <div className="flex items-center gap-2 px-1 py-2.5 t3 hover:t2 transition-colors">
+              <div className="flex items-center gap-2 px-1 py-2.5 t2 hover:t1 transition-colors">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="1.5"/>
-                  <path d="m21 21-4.35-4.35" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span className="text-xs font-medium">Check forwarding status</span>
+                <span className="text-xs font-semibold">Verify it&apos;s working</span>
                 <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
             </summary>
-            <div className="bg-input border b-theme rounded-xl p-4 mt-1 divide-y divide-[var(--color-border)]">
-              <CodeRow label="Check no-answer status"   code="*#61#" />
-              <CodeRow label="Check unreachable status" code="*#62#" />
-              <CodeRow label="Check busy status"        code="*#67#" />
-              <p className="pt-3 text-[11px] t3">Dial the code and press Call. Your carrier displays a message confirming whether forwarding is active.</p>
+            <div className="bg-input border b-theme rounded-xl p-4 mt-1 space-y-2">
+              <p className="text-[11px] t3 mb-2">Dial each code and press Call. Your carrier shows a message — here&apos;s what it should say:</p>
+              <StatusCheckRow code="*#21#"  expected={`Unconditional forwarding — should be OFF (so your phone still rings)`} />
+              <StatusCheckRow code="*#61#"  expected={`No answer → should show ${displayNumber}`} />
+              <StatusCheckRow code="*#62#"  expected={`Not reachable → should show ${displayNumber}`} />
+              <StatusCheckRow code="*#67#"  expected={`Busy → should show ${displayNumber}`} />
+              <StatusCheckRow code="*#002#" expected={`Summary of all forwarding rules in one screen`} />
+              <p className="pt-2 text-[11px] t3 leading-relaxed">
+                <span className="t2 font-medium">If any of *#61, *#62, *#67 shows your AI number ({displayNumber})</span> — forwarding is working. If they all say &quot;not active&quot; or &quot;not set&quot;, re-run the activation codes above.
+              </p>
             </div>
           </details>
         </div>

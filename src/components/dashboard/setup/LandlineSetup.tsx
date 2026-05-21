@@ -171,27 +171,32 @@ export default function LandlineSetup({
 
       {landlineCarrier && landlineCodes && (
         <div className="space-y-px pt-1">
-          {landlineCodes.unconditionalOn && !isTelus && (
-            <details className="group">
-              <summary className="cursor-pointer list-none">
-                <div className="flex items-center gap-2 px-1 py-2.5 t3 hover:t2 transition-colors">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" strokeWidth="1.5"/>
-                    <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                    <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                  <span className="text-xs font-medium">Send all calls to agent</span>
-                  <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-              </summary>
-              <div className="bg-input border border-red-500/15 rounded-xl p-4 mt-1 space-y-2">
-                <p className="text-[11px] text-red-300/60 mb-3">Your desk phone will not ring. Every caller goes directly to the agent.</p>
-                <CodeRow label="Enable unconditional" code={`${landlineCodes.unconditionalOn} ${rawNumber}`} />
+          <details className="group" open>
+            <summary className="cursor-pointer list-none">
+              <div className="flex items-center gap-2 px-1 py-2.5 t2 hover:t1 transition-colors">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span className="text-xs font-semibold">Verify it&apos;s working</span>
+                <svg className="ml-auto group-open:rotate-180 transition-transform duration-200" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
-            </details>
-          )}
+            </summary>
+            <div className="bg-input border b-theme rounded-xl p-4 mt-1 space-y-2">
+              <p className="text-xs t2 leading-relaxed">
+                Landlines don&apos;t have status-check codes like cell phones do. The cleanest test:
+              </p>
+              <ol className="text-xs t3 space-y-1.5 pl-4 list-decimal leading-relaxed">
+                <li>Pick up the desk phone, leave it off the hook (this simulates a busy line)</li>
+                <li>From another phone, call your business number ({displayNumber})</li>
+                <li>Within a few rings, the AI receptionist should answer</li>
+              </ol>
+              <p className="text-[11px] t3 pt-2">
+                If voicemail picks up instead, your line still has carrier voicemail attached — call your provider to remove it before retrying.
+              </p>
+            </div>
+          </details>
 
           <details className="group">
             <summary className="cursor-pointer list-none">

@@ -28,6 +28,7 @@ export type ModalId =
   | 'today'
   | 'calendar'
   | 'voice'
+  | 'identity'
   | 'callback'
   | 'hours'
   | 'services'

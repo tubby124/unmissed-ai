@@ -140,25 +140,35 @@ export default function AgentIdentityCardCompact({
         <div className="flex items-center gap-3 min-w-0">
           <button
             type="button"
-            onClick={() => openModal('callback')}
-            className="shrink-0"
-            aria-label="Edit callback contact"
+            onClick={() => openModal('identity')}
+            className="shrink-0 group/avatar transition-transform hover:scale-105 active:scale-95"
+            aria-label={`Rename agent (currently ${agentName || 'unnamed'})`}
+            title="Click to rename your agent"
           >
             <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-[18px]"
+              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-[18px] relative"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {initial}
+              <span
+                className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-zinc-800 border-2 border-[var(--color-surface)] flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                aria-hidden="true"
+              >
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none">
+                  <path d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4 12.5-12.5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'rgb(212,212,216)' }}/>
+                </svg>
+              </span>
             </div>
           </button>
           <div className="min-w-0 flex-1">
             <button
               type="button"
-              onClick={() => openModal('callback')}
-              className="block text-left max-w-full"
-              aria-label="Edit agent + business name"
+              onClick={() => openModal('identity')}
+              className="block text-left max-w-full group/name"
+              aria-label={`Rename agent (currently ${agentName || 'unnamed'}) and business`}
+              title="Click to rename your agent"
             >
-              <div className="text-[14px] font-bold t1 truncate">{titleLine}</div>
+              <div className="text-[14px] font-bold t1 truncate group-hover/name:underline decoration-dotted decoration-[var(--color-primary)] underline-offset-4">{titleLine}</div>
             </button>
             <button
               type="button"
