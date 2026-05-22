@@ -6,6 +6,7 @@ import ActionItems from '@/components/dashboard/ActionItems'
 import LiveCallBanner from '@/components/dashboard/LiveCallBanner'
 import ClientHealthBar from '@/components/dashboard/ClientHealthBar'
 import ClientHomeV2 from '@/components/dashboard/ClientHomeV2'
+import MonthlySpendCard from '@/components/dashboard/MonthlySpendCard'
 import PageHeader from '@/components/dashboard/PageHeader'
 import SectionLabel from '@/components/dashboard/SectionLabel'
 import { isAdminRedesignEnabled } from '@/lib/feature-flags'
@@ -102,12 +103,59 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .eq('call_status', 'HOT')
     .gte('started_at', monthStart)
 
+  // MTD spend — uses billed_cost_cents populated by the Ultravox webhook (see src/lib/pricing-rates.ts).
+  // Limit 5000 covers ~10 active clients at peak.
+  const { data: spendRows } = await supabase
+    .from('call_logs')
+    .select('client_id, billed_cost_cents, billed_duration_seconds, clients(business_name, slug)')
+    .gte('started_at', monthStart)
+    .gt('billed_cost_cents', 0)
+    .limit(5000)
+
+  const spendByClient = new Map<string, { name: string; slug: string; cents: number; seconds: number; calls: number }>()
+  let totalCents = 0
+  let totalSeconds = 0
+  let totalCalls = 0
+  for (const r of spendRows ?? []) {
+    const cents = (r.billed_cost_cents as number | null) ?? 0
+    const secs = (r.billed_duration_seconds as number | null) ?? 0
+    totalCents += cents
+    totalSeconds += secs
+    totalCalls += 1
+    const cid = (r.client_id as string | null) ?? ''
+    if (!cid) continue
+    const cdata = r.clients as { business_name?: string; slug?: string } | null
+    const existing = spendByClient.get(cid) ?? {
+      name: cdata?.business_name ?? '(unknown)',
+      slug: cdata?.slug ?? '',
+      cents: 0,
+      seconds: 0,
+      calls: 0,
+    }
+    existing.cents += cents
+    existing.seconds += secs
+    existing.calls += 1
+    spendByClient.set(cid, existing)
+  }
+  const topSpenders = Array.from(spendByClient.values())
+    .sort((a, b) => b.cents - a.cents)
+    .slice(0, 5)
+
   return (
     <div className="p-3 sm:p-6 space-y-6">
       <PageHeader title="Command Center" subtitle="What needs attention right now" />
 
       {/* System health */}
       <SystemPulse />
+
+      {/* MTD platform spend — top earners + deep-link to /dashboard/costs */}
+      <MonthlySpendCard
+        totalCents={totalCents}
+        totalSeconds={totalSeconds}
+        totalCalls={totalCalls}
+        topClients={topSpenders}
+        rangeLabel="This Month"
+      />
 
       {/* Action items — the core of this page */}
       <div>
