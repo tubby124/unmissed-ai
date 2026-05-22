@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
+import { computeBilledCostCents } from '@/lib/pricing-rates'
 
 /**
  * S13b-T2: Native Ultravox account-level webhook handler.
@@ -168,8 +169,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      const billedCostCents = billedDurationSeconds !== null
+        ? computeBilledCostCents(billedDurationSeconds)
+        : null
+
       console.log(
-        `[ultravox-webhook] call.billed: callId=${callId} billedDuration=${billedDurationRaw} billingStatus=${billingStatus}`
+        `[ultravox-webhook] call.billed: callId=${callId} billedDuration=${billedDurationRaw} billingStatus=${billingStatus} billedCostCents=${billedCostCents}`
       )
 
       try {
@@ -178,6 +183,7 @@ export async function POST(req: NextRequest) {
           .update({
             billed_duration_seconds: billedDurationSeconds,
             billing_status: billingStatus,
+            billed_cost_cents: billedCostCents,
           })
           .eq('ultravox_call_id', callId)
           .select('id')
@@ -192,7 +198,7 @@ export async function POST(req: NextRequest) {
           )
         } else {
           console.log(
-            `[ultravox-webhook] call_logs updated: callId=${callId} billed_duration_seconds=${billedDurationSeconds} billing_status=${billingStatus}`
+            `[ultravox-webhook] call_logs updated: callId=${callId} billed_duration_seconds=${billedDurationSeconds} billed_cost_cents=${billedCostCents} billing_status=${billingStatus}`
           )
         }
       } catch (err) {

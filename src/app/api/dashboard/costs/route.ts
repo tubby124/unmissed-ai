@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@/lib/supabase/server'
-
-// ─── Pricing constants — update when rates change ────────────────────────────
-const PRICING = {
-  twilio_inbound_per_min: 0.0085,    // Twilio Canada local inbound voice
-  twilio_outbound_per_min: 0.0140,   // Twilio Canada local outbound voice
-  twilio_number_per_month: 1.15,     // Twilio local CA phone number rental/month
-  ultravox_per_min: 0.05,            // Ultravox AI voice (billing rounds up to 60s min)
-}
+import { PRICING } from '@/lib/pricing-rates'
 
 // Clients that make OUTBOUND calls (Twilio charges outbound rate)
 const OUTBOUND_CLIENT_SLUGS = new Set<string>([]) // future: add outbound clients here

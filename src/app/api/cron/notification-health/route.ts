@@ -135,12 +135,18 @@ export async function GET(req: NextRequest) {
   }
 
   // ── S19a: Missing billed_duration_seconds (native webhook liveness) ────────
+  // Excludes:
+  //   - MISSED + end_reason='unjoined' (caller hung up before Ultravox connected; legitimately not billed)
+  //   - calls < 5 min old (call.billed event fires seconds after call.ended; cushion for in-flight)
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
   const { count: unbilledCount, error: unbilledErr } = await supabase
     .from('call_logs')
     .select('id', { count: 'exact', head: true })
-    .in('call_status', ['completed', 'LEAD', 'WARM', 'HOT', 'JUNK', 'MISSED'])
+    .in('call_status', ['completed', 'LEAD', 'WARM', 'HOT', 'JUNK'])
+    .not('end_reason', 'eq', 'unjoined')
     .gte('created_at', twentyFourHoursAgo)
+    .lte('created_at', fiveMinutesAgo)
     .is('billed_duration_seconds', null)
 
   if (unbilledErr) {
