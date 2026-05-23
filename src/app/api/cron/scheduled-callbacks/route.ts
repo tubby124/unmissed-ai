@@ -25,6 +25,7 @@ import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { APP_URL } from '@/lib/app-url'
 import { sendAlert } from '@/lib/telegram'
+import { validateOutboundVmScript } from '@/lib/outbound-safety'
 import twilio from 'twilio'
 
 function resolveOutboundPrompt(template: string, vars: {
@@ -163,6 +164,14 @@ export async function POST(req: NextRequest) {
     const toPhone = lead.phone as string
     const businessName = (client.business_name as string | null) ?? 'our team'
     const agentName = (client.agent_name as string | null) ?? 'Alex'
+    const vmScript = (client.outbound_vm_script as string | null) ?? null
+    const vmSafety = validateOutboundVmScript(vmScript)
+    if (!vmSafety.ok) {
+      console.warn(`[scheduled-callbacks] ${slug} unsafe voicemail script — skipping lead ${lead.id}: ${vmSafety.error}`)
+      await svc.from('campaign_leads').update({ status: 'queued' }).eq('id', lead.id)
+      stats.skipped++
+      continue
+    }
 
     // Build knowledge/business context
     const clientRow: ClientRow = {
@@ -231,7 +240,6 @@ export async function POST(req: NextRequest) {
       continue
     }
 
-    const vmScript = (client.outbound_vm_script as string | null) ?? null
     let twilio_sid: string
     try {
       const twilioClient = twilio(accountSid, authToken)
@@ -287,6 +295,7 @@ export async function POST(req: NextRequest) {
 
     const { error: logErr } = await svc.from('call_logs').insert({
       ultravox_call_id: ultravoxCall.callId,
+      twilio_call_sid: twilio_sid,
       client_id: clientId,
       caller_phone: toPhone,
       call_status: 'live',

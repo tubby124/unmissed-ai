@@ -18,6 +18,7 @@ import ServiceCatalogCard, { type ServiceCatalogItem } from '@/components/dashbo
 import SmsTab from '@/components/dashboard/settings/SmsTab'
 import VoiceTab from '@/components/dashboard/settings/VoiceTab'
 import AlertsTab from '@/components/dashboard/settings/AlertsTab'
+import BillingTab from '@/components/dashboard/settings/BillingTab'
 import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
@@ -407,19 +408,11 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </div>
       )}
 
-      {/* ─── Tab bar (admin only — non-admin SMS/Alerts/Billing/Knowledge live on their own pages) ─── */}
+      {/* ─── Tab bar (admin only — non-admin tabs shown inline) ─── */}
       {isAdmin && (
         <div className="border-b b-theme">
           <nav className="-mb-px flex gap-1 overflow-x-auto" aria-label="Settings tabs">
-            {([
-              { id: 'general',       label: 'Agent',    adminOnly: false, icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z' },
-              { id: 'sms',           label: 'SMS',      adminOnly: false, icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' },
-              { id: 'voice',         label: 'Voice',    adminOnly: true,  icon: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3ZM19 10v2a7 7 0 0 1-14 0v-2' },
-              { id: 'notifications', label: 'Alerts',   adminOnly: false, icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
-              { id: 'billing',       label: 'Billing',  adminOnly: false, icon: 'M2 10h20M22 10V8a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6Z' },
-              { id: 'knowledge',     label: 'Knowledge', adminOnly: true, icon: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15Z' },
-            ] as { id: SettingsTab; label: string; adminOnly: boolean; icon: string }[])
-              .filter(t => !t.adminOnly || isAdmin)
+            {TAB_DEFINITIONS.filter(t => !t.adminOnly || isAdmin)
               .map(({ id, label, icon }) => (
               <button
                 key={id}
@@ -434,11 +427,6 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                   <path d={icon} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 {label}
-                {id === 'knowledge' && knowledgeGapCount > 0 && (
-                  <span className="text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full px-1.5 py-0.5 leading-none tabular-nums">
-                    {knowledgeGapCount}
-                  </span>
-                )}
                 {activeTab === id && (
                   <motion.div
                     layoutId="settings-tab-indicator"
@@ -489,8 +477,9 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           transition={{ type: "spring", stiffness: 300, damping: 24 }}
         >
 
-      {/* ─── Agent Tab ──────────────────────────────────────────────── */}
+      {/* ─── Agent & Voice Tab ──────────────────────────────────────── */}
       {activeTab === 'general' && (
+        <>
         <AgentTab
           client={client}
           isAdmin={isAdmin}
@@ -533,11 +522,31 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
           voiceStylePreset={voiceStylePreset}
           setVoiceStylePreset={setVoiceStylePreset}
         />
+        {/* Voice picker inline */}
+        {voices.length > 0 && (
+          <div className="mt-4 rounded-2xl border b-theme bg-surface p-4">
+            <h3 className="text-sm font-semibold t1 mb-3">Voice</h3>
+            <VoiceTab
+              client={client}
+              voices={voices}
+              voicesLoading={voicesLoading}
+              isAdmin={isAdmin}
+            />
+          </div>
+        )}
+        </>
       )}
 
-      {/* ─── SMS Tab ────────────────────────────────────────────────── */}
-      {activeTab === 'sms' && (
-        isAdmin ? (
+      {/* ─── Notifications Tab (Alerts + SMS inline) ────────────────── */}
+      {activeTab === 'notifications' && (
+        <div className="space-y-4">
+          <AlertsTab
+            client={client}
+            previewMode={previewMode}
+            isAdmin={isAdmin}
+            tgStyle={tgStyle[client.id] ?? 'standard'}
+            setTgStyle={(style) => setTgStyle(prev => ({ ...prev, [client.id]: style }))}
+          />
           <SmsTab
             client={client}
             isAdmin={isAdmin}
@@ -548,95 +557,19 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
             setSmsTemplate={(val) => setSmsTemplate(prev => ({ ...prev, [client.id]: val }))}
             agentMode={client.agent_mode}
           />
-        ) : (
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
-            <p className="text-sm font-medium t1">SMS has moved</p>
-            <p className="text-[12px] t3 max-w-xs">Configure SMS follow-up messages and call transfer settings in one place.</p>
-            <a href="/dashboard/actions" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Actions →</a>
-          </div>
-        )
-      )}
-
-      {/* ─── Voice Tab ──────────────────────────────────────────────── */}
-      {activeTab === 'voice' && (
-        isAdmin ? (
-          <VoiceTab
-            client={client}
-            voices={voices}
-            voicesLoading={voicesLoading}
-            isAdmin={isAdmin}
-          />
-        ) : (
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
-            <p className="text-sm font-medium t1">Voice settings have moved</p>
-            <p className="text-[12px] t3 max-w-xs">Preview your current voice and browse the Voice Library from your Agent page.</p>
-            <a href="/dashboard/agent" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Agent →</a>
-          </div>
-        )
-      )}
-
-      {/* ─── Alerts Tab ─────────────────────────────────────────────── */}
-      {activeTab === 'notifications' && (
-        isAdmin ? (
-          <AlertsTab
-            client={client}
-            previewMode={previewMode}
-            isAdmin={isAdmin}
-            tgStyle={tgStyle[client.id] ?? 'standard'}
-            setTgStyle={(style) => setTgStyle(prev => ({ ...prev, [client.id]: style }))}
-          />
-        ) : (
-          <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
-            <p className="text-sm font-medium t1">Alerts settings have moved</p>
-            <p className="text-[12px] t3 max-w-xs">Configure Telegram notifications, message style, and alert preferences from your Notifications page.</p>
-            <a href="/dashboard/notifications" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Notifications →</a>
-          </div>
-        )
-      )}
-
-      {/* ─── Billing Tab — moved to /dashboard/billing ──────────────── */}
-      {activeTab === 'billing' && (
-        <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
-          <p className="text-sm font-medium t1">Billing has moved</p>
-          <p className="text-[12px] t3 max-w-xs">Plan details, usage, and invoices are now on their own page.</p>
-          <a href="/dashboard/billing" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Billing →</a>
         </div>
       )}
 
-      {/* ─── Knowledge Tab ──────────────────────────────────────────── */}
-      {activeTab === 'knowledge' && (
-        <motion.div
-          key="knowledge"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
-          transition={{ duration: 0.2 }}
-        >
-          {isAdmin ? (
-            <KnowledgeBaseTab
-              clientId={client.id}
-              clientSlug={client.slug}
-              isAdmin={isAdmin}
-              previewMode={previewMode}
-              knowledgeEnabled={knowledgeEnabled[client.id] ?? false}
-              websiteUrl={client.website_url ?? ''}
-              onGapCountChange={setKnowledgeGapCount}
-              onToggleEnabled={async (enabled) => {
-                if (previewMode) return
-                const res = await patchKnowledge({ knowledge_backend: enabled ? 'pgvector' : null })
-                if (res.ok) {
-                  setKnowledgeEnabled(prev => ({ ...prev, [client.id]: enabled }))
-                }
-              }}
-            />
-          ) : (
-            <div className="rounded-2xl border b-theme bg-surface px-5 py-6 flex flex-col items-center gap-3 text-center">
-              <p className="text-sm font-medium t1">Knowledge has moved</p>
-              <p className="text-[12px] t3 max-w-xs">Manage what your agent knows — business facts, FAQs, website knowledge, and more.</p>
-              <a href="/dashboard/knowledge" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors">Go to Knowledge →</a>
-            </div>
-          )}
-        </motion.div>
+      {/* ─── Billing & Plan Tab ─────────────────────────────────────── */}
+      {activeTab === 'billing' && (
+        <BillingTab
+          client={client}
+          isAdmin={isAdmin}
+          minutesUsed={client.seconds_used_this_month != null ? Math.ceil(client.seconds_used_this_month / 60) : (client.minutes_used_this_month ?? 0)}
+          minuteLimit={client.monthly_minute_limit ?? DEFAULT_MINUTE_LIMIT}
+          totalAvailable={minuteLimit + (client.bonus_minutes ?? 0)}
+          usagePct={totalAvailable > 0 ? (minutesUsed / totalAvailable) * 100 : 0}
+        />
       )}
 
         </motion.div>

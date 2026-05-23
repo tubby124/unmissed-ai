@@ -53,16 +53,6 @@ const CLIENT_TABS = [
     ),
   },
   {
-    href: '/dashboard/billing',
-    label: 'Billing',
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <rect x="1" y="4" width="22" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-        <line x1="1" y1="10" x2="23" y2="10" stroke="currentColor" strokeWidth="1.5"/>
-      </svg>
-    ),
-  },
-  {
     href: '/dashboard/settings',
     label: 'Settings',
     icon: (
