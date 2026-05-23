@@ -7,6 +7,7 @@ import LiveCallBanner from '@/components/dashboard/LiveCallBanner'
 import ClientHealthBar from '@/components/dashboard/ClientHealthBar'
 import ClientHomeV2 from '@/components/dashboard/ClientHomeV2'
 import MonthlySpendCard from '@/components/dashboard/MonthlySpendCard'
+import TalkToZaraAdminButton from '@/components/dashboard/TalkToZaraAdminButton'
 import PageHeader from '@/components/dashboard/PageHeader'
 import SectionLabel from '@/components/dashboard/SectionLabel'
 import { isAdminRedesignEnabled } from '@/lib/feature-flags'
@@ -156,6 +157,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         topClients={topSpenders}
         rangeLabel="This Month"
       />
+
+      {/* Zara admin mode — voice-driven god access */}
+      <TalkToZaraAdminButton />
 
       {/* Action items — the core of this page */}
       <div>
