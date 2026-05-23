@@ -94,6 +94,62 @@ export default function GoLiveView({ client, hasTestCall = false, isAdmin }: Pro
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white pb-[env(safe-area-inset-bottom)]">
+      {/* ═══════════ LIVE STATE — celebration + summary ═══════════ */}
+      {isLive ? (
+        <div className="mx-auto max-w-[600px] px-4 py-16 lg:py-20 space-y-8 text-center">
+          <div className="text-5xl mb-4">✅</div>
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-950">
+            You're live!
+          </h1>
+          <p className="text-base text-zinc-600 max-w-md mx-auto">
+            Missed calls from your business number are reaching your AI agent.
+            {twilioNumber && (
+              <> Your number is <button type="button" onClick={copyHero} className="font-mono font-semibold text-zinc-900 underline underline-offset-2 hover:text-zinc-700">{formattedTwilio}</button></>
+            )}
+          </p>
+          <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto mt-8">
+            <div className="rounded-2xl bg-white border border-zinc-100 shadow-sm p-4">
+              <p className="text-2xl font-bold text-zinc-900">{hasTestCall ? '✓' : '—'}</p>
+              <p className="text-xs text-zinc-500 mt-1">Proof calls</p>
+            </div>
+            <div className="rounded-2xl bg-white border border-zinc-100 shadow-sm p-4">
+              <p className="text-2xl font-bold text-zinc-900">{emailReady || telegramConnected ? '✓' : '—'}</p>
+              <p className="text-xs text-zinc-500 mt-1">Alerts</p>
+            </div>
+            <div className="rounded-2xl bg-white border border-zinc-100 shadow-sm p-4">
+              <p className="text-2xl font-bold text-zinc-900">{forwardingReady ? '✓' : '—'}</p>
+              <p className="text-xs text-zinc-500 mt-1">Forwarding</p>
+            </div>
+            <div className="rounded-2xl bg-white border border-zinc-100 shadow-sm p-4">
+              <p className="text-2xl font-bold text-zinc-900">{knowledgeReady ? '✓' : '—'}</p>
+              <p className="text-xs text-zinc-500 mt-1">Knowledge</p>
+            </div>
+          </div>
+          <div className="flex justify-center gap-3 mt-6">
+            <Link
+              href="/dashboard/calls"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-zinc-900 text-white text-sm font-semibold hover:bg-zinc-800 transition-colors"
+            >
+              View calls →
+            </Link>
+            <Link
+              href="/dashboard/settings"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-zinc-100 text-zinc-900 text-sm font-semibold hover:bg-zinc-200 transition-colors"
+            >
+              Settings
+            </Link>
+          </div>
+          <p className="text-xs text-zinc-400 pt-4">
+            <button type="button" onClick={() => window.location.reload()} className="underline underline-offset-2 hover:text-zinc-600">
+              Show setup steps
+            </button>
+            {' · '}
+            <Link href="/dashboard/knowledge" className="underline underline-offset-2 hover:text-zinc-600">
+              Review agent knowledge
+            </Link>
+          </p>
+        </div>
+      ) : (
       <div className="mx-auto max-w-[600px] px-4 py-10 lg:py-12 space-y-10 lg:space-y-12">
         {/* ═══════════ HERO — Your number ═══════════ */}
         <section aria-labelledby="go-live-hero-heading">
@@ -205,6 +261,7 @@ export default function GoLiveView({ client, hasTestCall = false, isAdmin }: Pro
         {/* Spacer so the sticky banner doesn't cover the last block. */}
         <div aria-hidden="true" className="h-24 lg:h-32" />
       </div>
+      )}
 
       {/* Sticky banner — fires off forwarding self-attestation */}
       <GoLiveBanner isLive={isLive} twilioNumber={client.twilio_number} />
