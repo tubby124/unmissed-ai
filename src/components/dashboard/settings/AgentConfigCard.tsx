@@ -73,7 +73,7 @@ export default function AgentConfigCard({
         )}
         <div className="py-2">
           <a
-            href="/dashboard/voices"
+            href="/dashboard/settings"
             className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors duration-200"
           >
             Change voice →
