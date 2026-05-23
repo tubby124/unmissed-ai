@@ -19,10 +19,7 @@ const CLIENT_TABS = [
   { href: '/dashboard/go-live', label: 'Go Live' },
   { href: '/dashboard/knowledge', label: 'Knowledge' },
   { href: '/dashboard/calls', label: 'Calls & Leads' },
-  { href: '/dashboard/voices', label: 'Voices' },
-  { href: '/dashboard/billing', label: 'Billing' },
   { href: '/dashboard/settings', label: 'Settings' },
-  { href: '/dashboard/other', label: 'Other' },
 ]
 
 // Phase 2 — admin-only nav entry pointing at relocated Command Center.
@@ -30,12 +27,10 @@ const CLIENT_TABS = [
 const ADMIN_TAB = { href: '/dashboard/admin', label: 'Admin' }
 
 const ACTIVITY_HREFS = ['/dashboard/calls', '/dashboard/leads', '/dashboard/bookings', '/dashboard/live', '/dashboard/maintenance']
-const OTHER_HREFS = ['/dashboard/other']
 
 function isTabActive(tabHref: string, pathname: string): boolean {
   if (tabHref === '/dashboard') return pathname === '/dashboard'
   if (tabHref === '/dashboard/calls') return ACTIVITY_HREFS.some(h => pathname.startsWith(h))
-  if (tabHref === '/dashboard/other') return OTHER_HREFS.some(h => pathname.startsWith(h))
   return pathname.startsWith(tabHref)
 }
 
@@ -100,9 +95,9 @@ export default function TabBar({ isAdmin = false, clientId = null, failedNotifCo
         '1': '/dashboard',
         '2': '/dashboard/knowledge',
         '3': '/dashboard/calls',
-        '4': '/dashboard/billing',
-        '5': '/dashboard/settings',
-        '6': '/dashboard/other',
+        '4': '/dashboard/settings',
+        '5': '/dashboard/go-live',
+        '6': '/dashboard/billing',
       }
       if (map[e.key]) {
         e.preventDefault()

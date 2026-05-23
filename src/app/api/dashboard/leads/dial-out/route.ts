@@ -3,6 +3,7 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { assembleOutboundPrompt, type OutboundTone } from '@/lib/outbound-prompt-builder'
+import { validateOutboundVmScript } from '@/lib/outbound-safety'
 import { APP_URL } from '@/lib/app-url'
 import twilio from 'twilio'
 
@@ -108,6 +109,12 @@ export async function POST(req: NextRequest) {
     }, { status: 400 })
   }
 
+  const vmScript = (client.outbound_vm_script as string | null) ?? null
+  const vmSafety = validateOutboundVmScript(vmScript)
+  if (!vmSafety.ok) {
+    return NextResponse.json({ error: vmSafety.error }, { status: 400 })
+  }
+
   const toPhone: string = lead.phone
   const slug = client.slug as string
   const businessName = (client.business_name as string | null) ?? 'our team'
@@ -184,7 +191,6 @@ export async function POST(req: NextRequest) {
   // Twilio outbound dial → Ultravox stream
   // If the client has a voicemail script configured, enable AMD so we can play it instead
   // of connecting the AI agent to an answering machine.
-  const vmScript = (client.outbound_vm_script as string | null) ?? null
   const svc = createServiceClient()
   let twilio_sid: string
   try {
@@ -233,6 +239,7 @@ export async function POST(req: NextRequest) {
 
   const { error: logErr } = await svc.from('call_logs').insert({
     ultravox_call_id: ultravoxCall.callId,
+    twilio_call_sid: twilio_sid,
     client_id: clientId,
     caller_phone: toPhone,
     call_status: 'live',
