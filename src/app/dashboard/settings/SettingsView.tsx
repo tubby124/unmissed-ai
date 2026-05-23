@@ -18,6 +18,7 @@ import ServiceCatalogCard, { type ServiceCatalogItem } from '@/components/dashbo
 import SmsTab from '@/components/dashboard/settings/SmsTab'
 import VoiceTab from '@/components/dashboard/settings/VoiceTab'
 import AlertsTab from '@/components/dashboard/settings/AlertsTab'
+import BillingTab from '@/components/dashboard/settings/BillingTab'
 import KnowledgeBaseTab from '@/components/dashboard/KnowledgeBaseTab'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { usePatchSettings } from '@/components/dashboard/settings/usePatchSettings'
