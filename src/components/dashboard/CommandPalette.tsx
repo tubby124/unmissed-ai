@@ -19,6 +19,7 @@ const NAV_ITEMS: PaletteItem[] = [
   { label: 'Activity — Leads', href: '/dashboard/leads', group: 'Navigate', keywords: 'leads outbound queue' },
   { label: 'Activity — Bookings', href: '/dashboard/bookings', group: 'Navigate', keywords: 'bookings appointments calendar' },
   { label: 'Knowledge Base', href: '/dashboard/knowledge', group: 'Navigate', keywords: 'knowledge faq facts' },
+  { label: 'Voices', href: '/dashboard/voices', group: 'Navigate', keywords: 'voice voices speaker sound agent' },
   { label: 'Settings', href: '/dashboard/settings', group: 'Navigate', keywords: 'settings configure general' },
   { label: 'Notifications', href: '/dashboard/notifications', group: 'Navigate', keywords: 'notifications alerts telegram' },
   { label: 'Go Live Setup', href: '/dashboard/go-live', group: 'Navigate', keywords: 'setup forwarding live' },

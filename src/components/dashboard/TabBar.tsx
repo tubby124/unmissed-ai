@@ -17,6 +17,7 @@ interface TabBarProps {
 const CLIENT_TABS = [
   { href: '/dashboard', label: 'Overview' },
   { href: '/dashboard/go-live', label: 'Go Live' },
+  { href: '/dashboard/voices', label: 'Voices' },
   { href: '/dashboard/knowledge', label: 'Knowledge' },
   { href: '/dashboard/calls', label: 'Calls & Leads' },
   { href: '/dashboard/outbound', label: 'Outbound' },
@@ -98,7 +99,8 @@ export default function TabBar({ isAdmin = false, clientId = null, failedNotifCo
         '3': '/dashboard/calls',
         '4': '/dashboard/settings',
         '5': '/dashboard/go-live',
-        '6': '/dashboard/billing',
+        '6': '/dashboard/voices',
+        '7': '/dashboard/billing',
       }
       if (map[e.key]) {
         e.preventDefault()
@@ -141,7 +143,7 @@ export default function TabBar({ isAdmin = false, clientId = null, failedNotifCo
             aria-selected={active}
             onMouseEnter={() => router.prefetch(tab.href)}
             title={`${tab.label} [${idx + 1}]`}
-            className="relative flex items-center gap-1.5 px-4 h-full text-xs font-medium uppercase tracking-widest transition-colors"
+            className="relative flex items-center gap-1.5 px-2 xl:px-4 h-full text-xs font-medium uppercase tracking-[0.08em] xl:tracking-widest transition-colors"
             style={{ color: active ? 'var(--color-cta)' : 'var(--color-text-3)' }}
           >
             {tab.label}
