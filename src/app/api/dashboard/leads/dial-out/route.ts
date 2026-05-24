@@ -77,6 +77,21 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Check outbound calling hours restriction
+  if (client.outbound_allowed_start && client.outbound_allowed_end) {
+    const now = new Date()
+    const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
+    const startParts = (client.outbound_allowed_start as string).split(':').map(Number)
+    const endParts = (client.outbound_allowed_end as string).split(':').map(Number)
+    const startMinutes = startParts[0] * 60 + (startParts[1] || 0)
+    const endMinutes = endParts[0] * 60 + (endParts[1] || 0)
+    if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
+      return NextResponse.json({
+        error: `Outbound calling is restricted to ${client.outbound_allowed_start}–${client.outbound_allowed_end} UTC.`,
+      }, { status: 403 })
+    }
+  }
+
   // If outbound_prompt is null but structured fields exist, assemble on the fly and backfill DB
   let outboundPrompt = client.outbound_prompt as string | null
   if (!outboundPrompt && (client.outbound_goal || client.outbound_opening)) {

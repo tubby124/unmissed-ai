@@ -119,6 +119,10 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   outbound_time_window_end:    { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_max_attempts:       { mutationClass: 'DB_ONLY', triggersSync: false },
 
+  // Inbound personality (runtime-only, no prompt rebuild)
+  inbound_personality_enabled: { mutationClass: 'DB_ONLY', triggersSync: false },
+  inbound_personality:         { mutationClass: 'DB_ONLY', triggersSync: false },
+
   // D247/D254 — Owner intent → custom TRIAGE_DEEP (any niche)
   // D283c: was DB_ONLY (fake-control). Now triggers slot regeneration → prompt rebuild → sync.
   niche_custom_variables:  { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'slot_regen' },
@@ -282,6 +286,10 @@ export const settingsBodySchema = z.object({
   outbound_time_window_start: z.union([z.string().regex(/^\d{2}:\d{2}$/), z.null()]).optional(),
   outbound_time_window_end: z.union([z.string().regex(/^\d{2}:\d{2}$/), z.null()]).optional(),
   outbound_max_attempts: z.union([z.number().int().min(1).max(10), z.null()]).optional(),
+
+  // Inbound personality
+  inbound_personality_enabled: z.boolean().optional(),
+  inbound_personality: z.union([z.string(), z.null()]).optional(),
 
   // Admin-only: God Mode
   telegram_bot_token: z.string().min(1).optional(),
@@ -488,6 +496,15 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   }
   if (body.outbound_max_attempts !== undefined) {
     updates.outbound_max_attempts = body.outbound_max_attempts ?? null
+  }
+
+  // Inbound personality (runtime-only)
+  if (body.inbound_personality_enabled !== undefined) {
+    updates.inbound_personality_enabled = body.inbound_personality_enabled
+  }
+  if (body.inbound_personality !== undefined) {
+    const val = typeof body.inbound_personality === 'string' ? body.inbound_personality.trim() : null
+    updates.inbound_personality = val || null
   }
 
   // system_prompt — validated separately (may be overwritten by prompt patchers)
