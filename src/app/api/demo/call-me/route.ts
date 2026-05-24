@@ -43,11 +43,19 @@ export async function POST(req: NextRequest) {
 
   // Parse body
   const body = await req.json().catch(() => ({}))
-  const rawPhone = (body.phone as string)?.trim() || ''
+  const cleanText = (value: unknown, max = 120) => String(value ?? '')
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/[<>]/g, '')
+    .trim()
+    .slice(0, max)
+  const rawPhone = cleanText(body.phone, 32)
   const phone = rawPhone ? (normalizePhoneNA(rawPhone) || rawPhone) : ''
-  const niche = (body.niche as string)?.trim() || 'auto_glass'
-  const callerName = (body.callerName as string)?.trim() || 'Friend'
-  const callerEmail = (body.callerEmail as string)?.trim() || ''
+  const niche = cleanText(body.niche, 48) || 'auto_glass'
+  const callerName = cleanText(body.callerName, 80) || 'Friend'
+  const callerEmail = cleanText(body.callerEmail, 160)
+  const shopName = cleanText(body.shopName, 120)
+  const painPoint = cleanText(body.painPoint, 80)
+  const demoVariant = cleanText(body.demoVariant, 40)
 
   // Validate phone
   if (!phone || !isValidE164NA(phone)) {
@@ -120,7 +128,46 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const promptWithContext = basePrompt + `\n\n[DEMO MODE — PHONE\nCALLER NAME: ${callerName}\nCALLER PHONE: ${phone}\n${callerEmail ? `CALLER EMAIL: ${callerEmail}\n` : ''}Outbound demo — visitor requested callback. Tools: hangUp, calendar, SMS, transfer.]`
+  if (demoVariant === 'windshield' && niche === 'auto_glass') {
+    voiceId = '87edb04c-06d4-47c2-bd94-683bc47e8fbe'
+    basePrompt = `[THIS IS A LIVE VOICE PHONE CALL — NOT TEXT. Speak in short, natural sentences. No bullets, markdown, or long monologues.]
+
+You are Aisha from End Voicemail, calling because this auto-glass shop prospect requested the live demo.
+Your job is to make them pleasantly surprised: personal, fast, useful, and clearly built for windshield shops.
+
+Tone: warm, confident, human, slightly playful, never robotic. If asked if you're AI, answer plainly: "yeah, I'm the AI voice demo for End Voicemail."
+
+Call structure:
+1. Intro/onboarding: greet them by name, mention their shop if provided, and explain this will be a short two-minute auto-glass demo.
+2. Triage simulation: ask them to imagine they are a windshield caller, then collect the same things a shop needs: repair vs replacement, year/make/model, damage, ADAS/lane-assist camera, urgency, insurance/cash, and callback window. Ask one question at a time.
+3. Owner-summary reveal: explain the owner would get a clean lead summary with status, vehicle, urgency, and next step instead of a useless voicemail.
+4. Conversion handoff: if interested, explain setup simply: they keep their number; missed, busy, and after-hours calls forward to the AI line; no porting. Mention first month free and $120/month after with 250 minutes. Offer to send the follow-up summary if email was provided.
+
+Rules:
+- Do not collect sensitive data.
+- Do not quote exact windshield pricing.
+- Do not pretend a real appointment is booked.
+- Keep each turn under two sentences unless they ask for details.
+- If they sound busy, give the 20-second version and offer follow-up.`
+  }
+
+  const prospectContextLines = [
+    '[DEMO MODE — PHONE',
+    `CALLER NAME: ${callerName}`,
+    `CALLER PHONE: ${phone}`,
+    callerEmail ? `CALLER EMAIL: ${callerEmail}` : '',
+    shopName ? `PROSPECT SHOP NAME: ${shopName}` : '',
+    painPoint ? `PROSPECT PAIN POINT: ${painPoint}` : '',
+    demoVariant ? `DEMO VARIANT: ${demoVariant}` : '',
+    'DEMO OBJECTIVE: give a short personalized demo, then simulate an auto-glass triage, then explain what the shop owner receives.',
+    'CALL FLOW STAGES: 1) intro/onboarding, 2) windshield triage simulation, 3) owner summary reveal, 4) conversion handoff.',
+    'If this is the windshield demo, greet the prospect by name, reference their shop if provided, and make the demo feel built for auto-glass shops.',
+    'Do not collect sensitive customer data. Do not quote guaranteed prices. Do not pretend a real appointment is booked.',
+    'If asked how setup works: they keep their number; missed, busy, and after-hours calls forward to the AI line; no porting required.',
+    'Tools: hangUp, calendar, SMS, transfer.]',
+  ].filter(Boolean).join('\n')
+
+  const promptWithContext = `${basePrompt}\n\n${prospectContextLines}`
 
   // Build tools from demo capabilities config (call-me = Twilio medium + known phone)
   let demoTools: object[] = []

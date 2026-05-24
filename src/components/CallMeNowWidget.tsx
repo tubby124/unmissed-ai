@@ -10,6 +10,16 @@ interface CallMeNowWidgetProps {
   niche?: string
   /** Compact mode for hero embedding (no border/bg, tighter spacing) */
   compact?: boolean
+  /** Collect caller name before placing demo call */
+  collectName?: boolean
+  /** Collect optional email for follow-up */
+  collectEmail?: boolean
+  /** Collect optional shop/company name for prompt personalization */
+  collectShopName?: boolean
+  /** Collect optional missed-call pain point for prompt personalization */
+  collectPain?: boolean
+  /** Copy/layout treatment */
+  variant?: "default" | "windshield"
   /** Called after a call is successfully initiated */
   onCallStarted?: (callSid: string) => void
   /** Called on error */
@@ -17,10 +27,6 @@ interface CallMeNowWidgetProps {
 }
 
 type WidgetState = "idle" | "loading" | "success" | "error"
-
-const COUNTRY_CODES = [
-  { code: "+1", label: "US/CA", flag: "🇺🇸" },
-]
 
 function formatPhoneDisplay(raw: string): string {
   const digits = raw.replace(/\D/g, "")
@@ -34,20 +40,51 @@ function isValidNAPhone(phone: string): boolean {
   return digits.length === 10
 }
 
+function isValidEmail(email: string): boolean {
+  if (!email) return true
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+const painOptions = [
+  { value: "busy-installs", label: "We miss calls during installs" },
+  { value: "after-hours", label: "After-hours callers go to voicemail" },
+  { value: "junk-filtering", label: "We want junk filtered out" },
+  { value: "quote-triage", label: "We want better quote triage" },
+]
+
 export default function CallMeNowWidget({
   niche,
   compact = false,
+  collectName = false,
+  collectEmail = false,
+  collectShopName = false,
+  collectPain = false,
+  variant = "default",
   onCallStarted,
   onError,
 }: CallMeNowWidgetProps) {
   const [phone, setPhone] = useState("")
+  const [callerName, setCallerName] = useState("")
+  const [callerEmail, setCallerEmail] = useState("")
+  const [shopName, setShopName] = useState("")
+  const [painPoint, setPainPoint] = useState("")
   const [countryCode] = useState("+1")
   const [state, setState] = useState<WidgetState>("idle")
   const [errorMsg, setErrorMsg] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
   const digits = phone.replace(/\D/g, "")
-  const isValid = isValidNAPhone(phone)
+  const nameIsValid = !collectName || callerName.trim().length >= 2
+  const emailIsValid = isValidEmail(callerEmail.trim())
+  const isValid = isValidNAPhone(phone) && nameIsValid && emailIsValid
+  const isWindshield = variant === "windshield"
+
+  function clearError() {
+    if (state === "error") {
+      setState("idle")
+      setErrorMsg("")
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -55,7 +92,12 @@ export default function CallMeNowWidget({
 
     setState("loading")
     setErrorMsg("")
-    trackEvent("demo_hero_submit", { niche: niche ?? "unmissed_demo" })
+    trackEvent("demo_hero_submit", {
+      niche: niche ?? "unmissed_demo",
+      variant,
+      has_email: Boolean(callerEmail.trim()),
+      has_shop: Boolean(shopName.trim()),
+    })
 
     const e164 = `${countryCode}${digits}`
 
@@ -63,7 +105,15 @@ export default function CallMeNowWidget({
       const res = await fetch("/api/demo/call-me", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: e164, niche }),
+        body: JSON.stringify({
+          phone: e164,
+          niche,
+          callerName: callerName.trim() || undefined,
+          callerEmail: callerEmail.trim() || undefined,
+          shopName: shopName.trim() || undefined,
+          painPoint: painPoint || undefined,
+          demoVariant: variant,
+        }),
       })
 
       const data = await res.json()
@@ -72,19 +122,23 @@ export default function CallMeNowWidget({
         const msg = data.error || "Something went wrong. Try again."
         setState("error")
         setErrorMsg(msg)
-        trackEvent("demo_call_missed", { niche: niche ?? "unmissed_demo" })
+        trackEvent("demo_call_missed", { niche: niche ?? "unmissed_demo", variant })
         onError?.(msg)
         return
       }
 
       setState("success")
-      trackEvent("demo_call_completed", { niche: niche ?? "unmissed_demo", call_sid: data.callSid ?? "" })
+      trackEvent("demo_call_completed", { niche: niche ?? "unmissed_demo", variant, call_sid: data.callSid ?? "" })
       onCallStarted?.(data.callSid)
 
       // Reset after 20s — outbound Twilio calls can take 15-20s to connect
       setTimeout(() => {
         setState("idle")
         setPhone("")
+        setCallerName("")
+        setCallerEmail("")
+        setShopName("")
+        setPainPoint("")
       }, 20000)
     } catch {
       const msg = "Network error. Check your connection and try again."
@@ -97,10 +151,7 @@ export default function CallMeNowWidget({
   function handlePhoneChange(e: React.ChangeEvent<HTMLInputElement>) {
     const raw = e.target.value.replace(/\D/g, "").slice(0, 10)
     setPhone(raw)
-    if (state === "error") {
-      setState("idle")
-      setErrorMsg("")
-    }
+    clearError()
   }
 
   if (state === "success") {
@@ -122,11 +173,13 @@ export default function CallMeNowWidget({
         >
           <Check size={24} style={{ color: "#10B981" }} />
         </div>
-        <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>
-          {CALL_ME_WIDGET_COPY.successHeading}
+        <p className="text-sm font-semibold text-center" style={{ color: "var(--color-text-1)" }}>
+          {isWindshield ? "Got it — the demo agent is calling now." : CALL_ME_WIDGET_COPY.successHeading}
         </p>
         <p className="text-xs text-center" style={{ color: "var(--color-text-3)" }}>
-          {CALL_ME_WIDGET_COPY.successBody}
+          {isWindshield
+            ? "Answer the call and you’ll hear the same auto-glass triage flow your shop would use."
+            : CALL_ME_WIDGET_COPY.successBody}
         </p>
       </div>
     )
@@ -150,8 +203,79 @@ export default function CallMeNowWidget({
           className="text-sm font-semibold mb-3"
           style={{ color: "var(--color-text-1)" }}
         >
-          {CALL_ME_WIDGET_COPY.standardLabel}
+          {isWindshield ? "Have the auto-glass AI call you" : CALL_ME_WIDGET_COPY.standardLabel}
         </p>
+      )}
+
+      {(collectName || collectEmail || collectShopName || collectPain) && (
+        <div className="grid gap-2 mb-3">
+          {collectName && (
+            <input
+              type="text"
+              value={callerName}
+              onChange={(e) => { setCallerName(e.target.value.slice(0, 80)); clearError() }}
+              placeholder="Your name"
+              autoComplete="name"
+              disabled={state === "loading"}
+              className="px-4 py-3 rounded-lg text-sm outline-none min-w-0"
+              style={{
+                backgroundColor: "var(--color-bg)",
+                border: `1px solid ${state === "error" && !nameIsValid ? "#EF4444" : "var(--color-border)"}`,
+                color: "var(--color-text-1)",
+              }}
+            />
+          )}
+          {collectShopName && (
+            <input
+              type="text"
+              value={shopName}
+              onChange={(e) => { setShopName(e.target.value.slice(0, 120)); clearError() }}
+              placeholder="Shop name (optional)"
+              autoComplete="organization"
+              disabled={state === "loading"}
+              className="px-4 py-3 rounded-lg text-sm outline-none min-w-0"
+              style={{
+                backgroundColor: "var(--color-bg)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text-1)",
+              }}
+            />
+          )}
+          {collectEmail && (
+            <input
+              type="email"
+              value={callerEmail}
+              onChange={(e) => { setCallerEmail(e.target.value.slice(0, 160)); clearError() }}
+              placeholder="Email for the demo summary (optional)"
+              autoComplete="email"
+              disabled={state === "loading"}
+              className="px-4 py-3 rounded-lg text-sm outline-none min-w-0"
+              style={{
+                backgroundColor: "var(--color-bg)",
+                border: `1px solid ${state === "error" && !emailIsValid ? "#EF4444" : "var(--color-border)"}`,
+                color: "var(--color-text-1)",
+              }}
+            />
+          )}
+          {collectPain && (
+            <select
+              value={painPoint}
+              onChange={(e) => { setPainPoint(e.target.value); clearError() }}
+              disabled={state === "loading"}
+              className="px-4 py-3 rounded-lg text-sm outline-none min-w-0"
+              style={{
+                backgroundColor: "var(--color-bg)",
+                border: "1px solid var(--color-border)",
+                color: painPoint ? "var(--color-text-1)" : "var(--color-text-3)",
+              }}
+            >
+              <option value="">What should the demo focus on? (optional)</option>
+              {painOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          )}
+        </div>
       )}
 
       <div className="flex gap-2">
@@ -181,7 +305,7 @@ export default function CallMeNowWidget({
           className="flex-1 px-4 py-3 rounded-lg text-sm outline-none min-w-0"
           style={{
             backgroundColor: "var(--color-bg)",
-            border: `1px solid ${state === "error" ? "#EF4444" : "var(--color-border)"}`,
+            border: `1px solid ${state === "error" && !isValidNAPhone(phone) ? "#EF4444" : "var(--color-border)"}`,
             color: "var(--color-text-1)",
           }}
         />
@@ -195,7 +319,9 @@ export default function CallMeNowWidget({
             backgroundColor:
               !isValid || state === "loading"
                 ? "var(--color-text-3)"
-                : "var(--color-cta)",
+                : isWindshield
+                  ? "#10B981"
+                  : "var(--color-cta)",
             cursor: !isValid || state === "loading" ? "not-allowed" : "pointer",
             opacity: !isValid || state === "loading" ? 0.6 : 1,
           }}
@@ -206,7 +332,7 @@ export default function CallMeNowWidget({
             <Phone size={16} />
           )}
           <span className="hidden sm:inline">
-            {state === "loading" ? CALL_ME_WIDGET_COPY.buttonLoading : CALL_ME_WIDGET_COPY.buttonIdle}
+            {state === "loading" ? CALL_ME_WIDGET_COPY.buttonLoading : isWindshield ? "Call me" : CALL_ME_WIDGET_COPY.buttonIdle}
           </span>
         </button>
       </div>
@@ -226,7 +352,9 @@ export default function CallMeNowWidget({
         className="text-xs mt-2"
         style={{ color: "var(--color-text-3)" }}
       >
-        {compact ? CALL_ME_WIDGET_COPY.helperTextCompact : CALL_ME_WIDGET_COPY.helperTextFull}
+        {isWindshield
+          ? "The AI calls your phone, greets you by name, then walks through a real windshield-call demo."
+          : compact ? CALL_ME_WIDGET_COPY.helperTextCompact : CALL_ME_WIDGET_COPY.helperTextFull}
       </p>
 
       {/* Proof line — compact/hero mode only */}
@@ -235,7 +363,7 @@ export default function CallMeNowWidget({
           className="text-xs mt-1 opacity-70"
           style={{ color: "var(--color-text-3)" }}
         >
-          {CALL_ME_WIDGET_COPY.proofLine}
+          {isWindshield ? "Name + phone required. Email optional for the follow-up summary." : CALL_ME_WIDGET_COPY.proofLine}
         </p>
       )}
     </form>
