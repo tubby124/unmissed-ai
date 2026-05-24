@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { createBrowserClient } from '@/lib/supabase/client'
 import { useAdminClient } from '@/contexts/AdminClientContext'
-import { Plus, Phone, Save, Trash2, Star, ChevronDown, ChevronUp, Eye, Sparkles, History } from 'lucide-react'
+import { Plus, Phone, Save, Trash2, Star, ChevronDown, ChevronUp, Eye } from 'lucide-react'
 import CallComposer from '@/components/dashboard/outbound/CallComposer'
 
 interface Template {
@@ -34,9 +33,10 @@ const TONES: Record<string, { label: string; color: string }> = {
 }
 
 export default function OutboundPage() {
-  const supabase = createBrowserClient()
-  const { selectedClient, previewMode } = useAdminClient()
-  const clientId = previewMode && selectedClient ? selectedClient.id : null
+  const { selectedClient, selectedClientId, isAdmin } = useAdminClient()
+  const adminClientId = isAdmin && selectedClientId !== 'all' ? (selectedClient?.id ?? selectedClientId) : null
+  const [ownerClientId, setOwnerClientId] = useState<string | null>(null)
+  const clientId = isAdmin ? adminClientId : ownerClientId
 
   const [templates, setTemplates] = useState<Template[]>([])
   const [activeTab, setActiveTab] = useState<TabView>('templates')
@@ -56,20 +56,32 @@ export default function OutboundPage() {
   const [saving, setSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
 
-  async function loadTemplates() {
-    if (!clientId) return
+  async function loadTemplates(targetClientId: string | null) {
     setLoading(true)
-    const res = await fetch(`/api/dashboard/outbound/templates?client_id=${clientId}`)
+    const url = targetClientId
+      ? `/api/dashboard/outbound/templates?client_id=${encodeURIComponent(targetClientId)}`
+      : '/api/dashboard/outbound/templates'
+    const res = await fetch(url)
     if (res.ok) {
       const data = await res.json()
       setTemplates(data.templates ?? [])
+      if (!isAdmin && data.clientId) setOwnerClientId(data.clientId)
     }
     setLoading(false)
   }
 
   useEffect(() => {
-    if (clientId) loadTemplates()
-  }, [clientId]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (isAdmin) {
+      if (adminClientId) {
+        loadTemplates(adminClientId)
+      } else {
+        setTemplates([])
+        setLoading(false)
+      }
+      return
+    }
+    loadTemplates(null)
+  }, [isAdmin, adminClientId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createTemplate() {
     if (!clientId || !formName || !formGoal) return
@@ -90,17 +102,17 @@ export default function OutboundPage() {
     setSaving(false)
     setShowCreateForm(false)
     resetForm()
-    loadTemplates()
+    loadTemplates(clientId)
   }
 
   async function deleteTemplate(id: string) {
     await fetch(`/api/dashboard/outbound/templates/${id}`, { method: 'DELETE' })
-    loadTemplates()
+    loadTemplates(clientId)
   }
 
   async function setDefault(id: string) {
     await fetch(`/api/dashboard/outbound/templates/${id}/set-default`, { method: 'POST' })
-    loadTemplates()
+    loadTemplates(clientId)
   }
 
   function resetForm() {
@@ -133,7 +145,7 @@ Opening: "${formOpening || 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...
 "${formVm || 'Hi {{LEAD_NAME}}, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...'}"`
   }
 
-  if (!clientId) {
+  if (isAdmin && !clientId) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <div className="rounded-2xl p-8 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
