@@ -432,8 +432,9 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
                 {activeTab === id && (
                   <motion.div
                     layoutId="settings-tab-indicator"
+                    layout={!prefersReducedMotion}
                     className="absolute bottom-0 left-0 right-0 h-[2px] rounded-full bg-blue-500"
-                    transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                    transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", stiffness: 400, damping: 35 }}
                   />
                 )}
               </button>
@@ -470,13 +471,13 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
         </div>
       )}
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={!prefersReducedMotion}>
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ type: "spring", stiffness: 300, damping: 24 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+          exit={prefersReducedMotion ? {} : { opacity: 0, y: -8 }}
+          transition={prefersReducedMotion ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 24 }}
         >
 
       {/* ─── Agent & Voice Tab ──────────────────────────────────────── */}

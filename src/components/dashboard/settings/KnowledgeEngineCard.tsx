@@ -79,7 +79,9 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
         setGaps((gapsData.gaps ?? []).slice(0, 3))
         setGapsCount(gapsData.total_unanswered_queries ?? 0)
       }
-    } catch { /* silent */ } finally {
+    } catch {
+      toast.error('Failed to load knowledge stats')
+    } finally {
       setStatsLoading(false)
     }
   }, [client.id])
@@ -293,7 +295,9 @@ export default function KnowledgeEngineCard({ client, isAdmin, previewMode, onCl
                       })
                       const data = await res.json()
                       if (data.url) window.location.href = data.url
-                    } catch { /* silent */ }
+                    } catch {
+                      toast.error('Failed to open upgrade page')
+                    }
                   }}
                   className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
                 >

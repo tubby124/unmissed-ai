@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { toast } from 'sonner'
 import type { PromptVersion } from './constants'
 
 interface PromptVersionsCardProps {
@@ -20,11 +21,17 @@ export default function PromptVersionsCard({ clientId, isAdmin, onRestore }: Pro
 
   const load = useCallback(async () => {
     setLoading(true)
-    const params = isAdmin ? `?client_id=${clientId}` : ''
-    const res = await fetch(`/api/dashboard/settings/prompt-versions${params}`)
-    if (res.ok) {
-      const data = await res.json()
-      setVersions(data.versions || [])
+    try {
+      const params = isAdmin ? `?client_id=${clientId}` : ''
+      const res = await fetch(`/api/dashboard/settings/prompt-versions${params}`)
+      if (res.ok) {
+        const data = await res.json()
+        setVersions(data.versions || [])
+      } else {
+        toast.error('Failed to load prompt versions')
+      }
+    } catch {
+      toast.error('Failed to load prompt versions')
     }
     setLoading(false)
   }, [clientId, isAdmin])
@@ -38,19 +45,25 @@ export default function PromptVersionsCard({ clientId, isAdmin, onRestore }: Pro
 
   async function restore(versionId: string) {
     setRestoring(versionId)
-    const body: Record<string, unknown> = { version_id: versionId }
-    if (isAdmin) body.client_id = clientId
-    const res = await fetch('/api/dashboard/settings/prompt-versions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    if (res.ok) {
-      const data = await res.json().catch(() => ({}))
-      const restoredContent = data.restored_content as string | undefined
-      if (restoredContent) onRestore(restoredContent)
-      setOpen(false)
-      await load()
+    try {
+      const body: Record<string, unknown> = { version_id: versionId }
+      if (isAdmin) body.client_id = clientId
+      const res = await fetch('/api/dashboard/settings/prompt-versions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        const data = await res.json().catch(() => ({}))
+        const restoredContent = data.restored_content as string | undefined
+        if (restoredContent) onRestore(restoredContent)
+        setOpen(false)
+        await load()
+      } else {
+        toast.error('Failed to restore prompt version')
+      }
+    } catch {
+      toast.error('Failed to restore prompt version')
     }
     setRestoring(null)
   }

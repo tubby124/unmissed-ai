@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { toast } from 'sonner'
 
 interface PromptVersion {
   id: string
@@ -32,7 +33,7 @@ export default function ActivityLog({ clientId, isAdmin }: ActivityLogProps) {
     fetch(url)
       .then(r => r.ok ? r.json() : Promise.reject())
       .then(data => setVersions((data.versions ?? []).slice(0, 8)))
-      .catch(() => setVersions([]))
+      .catch(() => { setVersions([]); toast.error('Failed to load recent changes') })
       .finally(() => setLoading(false))
   }, [open, clientId, isAdmin])
 

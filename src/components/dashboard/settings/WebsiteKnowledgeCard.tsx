@@ -68,7 +68,7 @@ export default function WebsiteKnowledgeCard({ client, isAdmin, previewMode }: W
           setMaxUrls(data.maxWebsiteUrls ?? 3)
         }
       })
-      .catch(() => {})
+      .catch(() => toast.error('Failed to load website sources'))
       .finally(() => setSourcesLoaded(true))
   }, [client.id])
 

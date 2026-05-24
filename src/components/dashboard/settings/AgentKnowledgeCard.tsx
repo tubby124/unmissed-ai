@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import type { ClientAgentConfig } from '@/types/client-agent-config'
 import { usePatchSettings } from './usePatchSettings'
@@ -67,7 +68,7 @@ export default function AgentKnowledgeCard({ client, clientId, isAdmin = false, 
         .filter(e => e.approved > 0)
         .sort((a, b) => b.approved - a.approved)
       setSources(entries)
-    }).catch(() => {})
+    }).catch(() => toast.error('Failed to load knowledge sources'))
   }, [knowledgeEnabled, id])
 
   const stats = [

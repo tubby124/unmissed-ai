@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { createBrowserClient } from '@/lib/supabase/client'
 import NoBookings from '@/components/dashboard/empty-states/NoBookings'
 import PageHeader from '@/components/dashboard/PageHeader'
@@ -29,6 +30,7 @@ type Filter = '' | 'upcoming' | 'today' | 'past' | 'cancelled'
 const PAGE_SIZE = 50
 
 export default function CalendarPage() {
+  const { prefersReducedMotion } = usePrefersReducedMotion()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -131,7 +133,7 @@ export default function CalendarPage() {
       {!loading && bookings.length === 0 && <NoBookings />}
 
       {!loading && bookings.length > 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <motion.div initial={prefersReducedMotion ? {} : { opacity: 0 }} animate={prefersReducedMotion ? {} : { opacity: 1 }} className="space-y-6">
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard label="Upcoming" value={counts.upcoming} color="indigo" />
@@ -186,13 +188,13 @@ export default function CalendarPage() {
               </div>
 
               {/* Grouped timeline */}
-              <AnimatePresence mode="wait">
+              <AnimatePresence mode="wait" initial={!prefersReducedMotion}>
                 <motion.div
                   key={filter}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
+                  initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
+                  animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+                  exit={prefersReducedMotion ? {} : { opacity: 0, y: -8 }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
                   className="space-y-6"
                 >
                   {filtered.length === 0 && (
@@ -225,9 +227,9 @@ export default function CalendarPage() {
                         {group.bookings.map((b, i) => (
                           <motion.div
                             key={b.id}
-                            initial={{ opacity: 0, x: -12 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: gi * 0.05 + i * 0.03 }}
+                            initial={prefersReducedMotion ? {} : { opacity: 0, x: -12 }}
+                            animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
+                            transition={prefersReducedMotion ? { duration: 0 } : { delay: gi * 0.05 + i * 0.03 }}
                             className="relative"
                           >
                             {/* Timeline dot */}

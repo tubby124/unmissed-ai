@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import { createBrowserClient } from '@/lib/supabase/client'
 import NoNotifications from '@/components/dashboard/empty-states/NoNotifications'
 import NotificationsConfigSection from './NotificationsConfigSection'
@@ -82,6 +83,7 @@ function channelColor(ch: string): { bg: string; text: string; border: string } 
 const PAGE_SIZE = 50
 
 export default function NotificationsPage() {
+  const { prefersReducedMotion } = usePrefersReducedMotion()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -188,7 +190,7 @@ export default function NotificationsPage() {
       {!loading && notifications.length === 0 && !channel && !status && <NoNotifications />}
 
       {!loading && (notifications.length > 0 || channel || status) && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <motion.div initial={prefersReducedMotion ? {} : { opacity: 0 }} animate={prefersReducedMotion ? {} : { opacity: 1 }} className="space-y-6">
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard label="Sent" value={counts.sent} color="emerald" />
@@ -234,13 +236,13 @@ export default function NotificationsPage() {
           </div>
 
           {/* Grouped timeline */}
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={!prefersReducedMotion}>
             <motion.div
               key={`${channel}-${status}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, y: 8 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? {} : { opacity: 0, y: -8 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
               className="space-y-6"
             >
               {notifications.length === 0 && (
@@ -276,9 +278,9 @@ export default function NotificationsPage() {
                       return (
                         <motion.div
                           key={n.id}
-                          initial={{ opacity: 0, x: -12 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: gi * 0.05 + i * 0.03 }}
+                          initial={prefersReducedMotion ? {} : { opacity: 0, x: -12 }}
+                          animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
+                          transition={prefersReducedMotion ? { duration: 0 } : { delay: gi * 0.05 + i * 0.03 }}
                           className="relative"
                         >
                           {/* Timeline dot */}

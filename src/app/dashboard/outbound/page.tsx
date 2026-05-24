@@ -5,7 +5,9 @@ import { motion, AnimatePresence } from 'motion/react'
 import { createBrowserClient } from '@/lib/supabase/client'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { Plus, Phone, Save, Trash2, Star, ChevronDown, ChevronUp, Eye, Sparkles, History } from 'lucide-react'
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import CallComposer from '@/components/dashboard/outbound/CallComposer'
+import { toast } from 'sonner'
 
 interface Template {
   id: string
@@ -55,14 +57,19 @@ export default function OutboundPage() {
 
   const [saving, setSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const { prefersReducedMotion } = usePrefersReducedMotion()
 
   async function loadTemplates() {
     if (!clientId) return
     setLoading(true)
-    const res = await fetch(`/api/dashboard/outbound/templates?client_id=${clientId}`)
-    if (res.ok) {
-      const data = await res.json()
-      setTemplates(data.templates ?? [])
+    try {
+      const res = await fetch(`/api/dashboard/outbound/templates?client_id=${clientId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTemplates(data.templates ?? [])
+      }
+    } catch (err) {
+      console.error('Failed to load templates', err)
     }
     setLoading(false)
   }
@@ -74,19 +81,26 @@ export default function OutboundPage() {
   async function createTemplate() {
     if (!clientId || !formName || !formGoal) return
     setSaving(true)
-    await fetch('/api/dashboard/outbound/templates', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: clientId,
-        name: formName,
-        description: formDesc || null,
-        tone: formTone,
-        goal: formGoal,
-        opening: formOpening || null,
-        vm_script: formVm || null,
-      }),
-    })
+    try {
+      const res = await fetch('/api/dashboard/outbound/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          name: formName,
+          description: formDesc || null,
+          tone: formTone,
+          goal: formGoal,
+          opening: formOpening || null,
+          vm_script: formVm || null,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to save')
+      toast.success('Template saved')
+    } catch (err) {
+      console.error('Failed to create template', err)
+      toast.error('Failed to save template')
+    }
     setSaving(false)
     setShowCreateForm(false)
     resetForm()
@@ -94,12 +108,26 @@ export default function OutboundPage() {
   }
 
   async function deleteTemplate(id: string) {
-    await fetch(`/api/dashboard/outbound/templates/${id}`, { method: 'DELETE' })
+    try {
+      const res = await fetch(`/api/dashboard/outbound/templates/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete')
+      toast.success('Template deleted')
+    } catch (err) {
+      console.error('Failed to delete template', err)
+      toast.error('Failed to delete template')
+    }
     loadTemplates()
   }
 
   async function setDefault(id: string) {
-    await fetch(`/api/dashboard/outbound/templates/${id}/set-default`, { method: 'POST' })
+    try {
+      const res = await fetch(`/api/dashboard/outbound/templates/${id}/set-default`, { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to set default')
+      toast.success('Default template updated')
+    } catch (err) {
+      console.error('Failed to set default template', err)
+      toast.error('Failed to set default')
+    }
     loadTemplates()
   }
 
@@ -200,9 +228,10 @@ Opening: "${formOpening || 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...
             templates.map(tpl => (
               <motion.div
                 key={tpl.id}
-                layout
-                initial={{ opacity: 0, y: 10 }}
+                layout={!prefersReducedMotion}
+                initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : undefined}
                 className="rounded-2xl p-4"
                 style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}
               >
@@ -279,20 +308,21 @@ Opening: "${formOpening || 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...
       )}
 
       {/* Create/Edit Form Modal */}
-      <AnimatePresence>
+      <AnimatePresence initial={!prefersReducedMotion}>
         {showCreateForm && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0 }}
+              animate={{ opacity: prefersReducedMotion ? 0.5 : 1 }}
+              exit={prefersReducedMotion ? {} : { opacity: 0 }}
               className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
               onClick={() => setShowCreateForm(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.95, y: 20 }}
+              animate={prefersReducedMotion ? {} : { opacity: 1, scale: 1, y: 0 }}
+              exit={prefersReducedMotion ? {} : { opacity: 0, scale: 0.95, y: 20 }}
+              transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 25 }}
               className="fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-3xl p-5"
               style={{ backgroundColor: 'var(--color-bg)', border: '1px solid var(--color-border)' }}
             >
@@ -408,7 +438,7 @@ Opening: "${formOpening || 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...
       )}
 
       {/* Call Composer Modal */}
-      <AnimatePresence>
+      <AnimatePresence initial={!prefersReducedMotion}>
         {showComposer && clientId && (
           <CallComposer
             clientId={clientId}
