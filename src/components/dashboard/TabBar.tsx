@@ -19,6 +19,7 @@ const CLIENT_TABS = [
   { href: '/dashboard/go-live', label: 'Go Live' },
   { href: '/dashboard/knowledge', label: 'Knowledge' },
   { href: '/dashboard/calls', label: 'Calls & Leads' },
+  { href: '/dashboard/outbound', label: 'Outbound' },
   { href: '/dashboard/settings', label: 'Settings' },
 ]
 
