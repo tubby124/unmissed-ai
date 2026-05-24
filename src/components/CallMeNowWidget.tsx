@@ -278,49 +278,51 @@ export default function CallMeNowWidget({
         </div>
       )}
 
-      <div className="flex gap-2">
-        {/* Country code (static for now — NA only) */}
-        <div
-          className="flex items-center gap-1 px-3 rounded-lg text-sm shrink-0"
-          style={{
-            backgroundColor: "var(--color-bg)",
-            border: "1px solid var(--color-border)",
-            color: "var(--color-text-2)",
-          }}
-        >
-          <span className="text-xs">+1</span>
-          <ChevronDown size={12} style={{ color: "var(--color-text-3)" }} />
-        </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex min-w-0 flex-1 gap-2">
+          {/* Country code (static for now — NA only) */}
+          <div
+            className="flex items-center gap-1 px-3 rounded-lg text-sm shrink-0"
+            style={{
+              backgroundColor: "var(--color-bg)",
+              border: "1px solid var(--color-border)",
+              color: "var(--color-text-2)",
+            }}
+          >
+            <span className="text-xs">+1</span>
+            <ChevronDown size={12} style={{ color: "var(--color-text-3)" }} />
+          </div>
 
-        {/* Phone input */}
-        <input
-          ref={inputRef}
-          type="tel"
-          inputMode="numeric"
-          value={formatPhoneDisplay(phone)}
-          onChange={handlePhoneChange}
-          placeholder="(555) 123-4567"
-          autoComplete="tel-national"
-          disabled={state === "loading"}
-          className="flex-1 px-4 py-3 rounded-lg text-sm outline-none min-w-0"
-          style={{
-            backgroundColor: "var(--color-bg)",
-            border: `1px solid ${state === "error" && !isValidNAPhone(phone) ? "#EF4444" : "var(--color-border)"}`,
-            color: "var(--color-text-1)",
-          }}
-        />
+          {/* Phone input */}
+          <input
+            ref={inputRef}
+            type="tel"
+            inputMode="numeric"
+            value={formatPhoneDisplay(phone)}
+            onChange={handlePhoneChange}
+            placeholder="(555) 123-4567"
+            autoComplete="tel-national"
+            disabled={state === "loading"}
+            className="min-w-0 flex-1 px-4 py-3 rounded-lg text-sm outline-none"
+            style={{
+              backgroundColor: "var(--color-bg)",
+              border: `1px solid ${state === "error" && !isValidNAPhone(phone) ? "#EF4444" : "var(--color-border)"}`,
+              color: "var(--color-text-1)",
+            }}
+          />
+        </div>
 
         {/* Submit button */}
         <button
           type="submit"
           disabled={!isValid || state === "loading"}
-          className="flex items-center gap-2 px-5 py-3 rounded-lg text-white font-semibold text-sm shrink-0 transition-all"
+          className="flex w-full items-center justify-center gap-2 px-5 py-3 rounded-lg text-white font-semibold text-sm shrink-0 transition-all sm:w-auto"
           style={{
             backgroundColor:
               !isValid || state === "loading"
                 ? "var(--color-text-3)"
                 : isWindshield
-                  ? "#10B981"
+                  ? "var(--color-primary)"
                   : "var(--color-cta)",
             cursor: !isValid || state === "loading" ? "not-allowed" : "pointer",
             opacity: !isValid || state === "loading" ? 0.6 : 1,
@@ -331,7 +333,7 @@ export default function CallMeNowWidget({
           ) : (
             <Phone size={16} />
           )}
-          <span className="hidden sm:inline">
+          <span>
             {state === "loading" ? CALL_ME_WIDGET_COPY.buttonLoading : isWindshield ? "Call me" : CALL_ME_WIDGET_COPY.buttonIdle}
           </span>
         </button>
@@ -363,7 +365,7 @@ export default function CallMeNowWidget({
           className="text-xs mt-1 opacity-70"
           style={{ color: "var(--color-text-3)" }}
         >
-          {isWindshield ? "Name + phone required. Email optional for the follow-up summary." : CALL_ME_WIDGET_COPY.proofLine}
+          {isWindshield ? "Name + phone only. We use it to place this demo call." : CALL_ME_WIDGET_COPY.proofLine}
         </p>
       )}
     </form>

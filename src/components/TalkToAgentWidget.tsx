@@ -13,7 +13,7 @@ import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand"
 
 type WidgetStep = "closed" | "form" | "call"
 
-const EXCLUDED_PREFIXES = ["/dashboard", "/onboard", "/admin", "/api", "/login"]
+const EXCLUDED_PREFIXES = ["/dashboard", "/onboard", "/admin", "/api", "/login", "/for-auto-glass"]
 
 export default function TalkToAgentWidget() {
   const pathname = usePathname()
