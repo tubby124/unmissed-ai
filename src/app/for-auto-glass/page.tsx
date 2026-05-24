@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowRight, Bell, CheckCircle2, MessageSquareText, PhoneCall, ShieldCheck, Sparkles, Wrench } from "lucide-react"
+import { ArrowRight, Bell, CheckCircle2, MessageSquareText, ShieldCheck, Sparkles, Wrench } from "lucide-react"
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import CallMeNowWidget from "@/components/CallMeNowWidget"
@@ -10,49 +10,49 @@ import { BRAND_DOMAIN, BRAND_NAME } from "@/lib/brand"
 export const metadata: Metadata = {
   title: `AI Receptionist for Auto Glass Shops — ${BRAND_NAME}`,
   description:
-    "A live AI receptionist demo for windshield and auto-glass shops. Enter your number, get the call, hear the triage flow, and see how missed calls become quote-ready leads.",
+    "End Voicemail answers missed, busy, and after-hours calls for windshield and auto-glass shops, captures quote details, and sends the owner a clean lead summary.",
   alternates: {
     canonical: `https://${BRAND_DOMAIN}/for-auto-glass`,
   },
   openGraph: {
     title: `AI Receptionist for Auto Glass Shops — ${BRAND_NAME}`,
     description:
-      "Stop losing windshield jobs to voicemail. The AI answers, captures vehicle details, sends a text, and gives the shop owner a clean callback summary.",
+      "Stop losing windshield jobs to voicemail. End Voicemail captures vehicle details, urgency, insurance/cash status, and the best callback window.",
   },
 }
 
 const triage = [
-  "Repair vs. replacement",
-  "Year, make, model, and glass location",
-  "ADAS / lane-assist calibration flag",
-  "Insurance vs. cash and urgency",
-  "Best callback window",
+  "Repair or replacement",
+  "Vehicle year, make, model, and glass location",
+  "ADAS / lane-assist calibration needs",
+  "Insurance or cash-pay status",
+  "Urgency and best callback window",
 ]
 
-const flow = [
+const benefits = [
   {
-    title: "Email gets the click",
-    body: "The shop owner lands here from a simple windshield-focused email — no long form, no sales maze.",
+    title: "Answers when your team can’t",
+    body: "Busy installing glass, driving, closed for the night, or already on another call? The AI answers so the customer does not call the next shop.",
   },
   {
-    title: "They enter name + number",
-    body: "The AI calls them immediately and proves the experience instead of making them read a SaaS pitch.",
+    title: "Captures quote-ready details",
+    body: "It asks for the vehicle, glass issue, calibration flags, insurance/cash status, urgency, and callback window — the details your team needs before quoting.",
   },
   {
-    title: "Aisha runs the demo",
-    body: "She greets them by name, simulates a real windshield caller, then explains the owner summary they would receive.",
+    title: "Sends you the clean summary",
+    body: "You get the lead details in plain English, with the hot ones clearly marked so you know who needs a callback first.",
   },
   {
-    title: "Text + onboarding handoff",
-    body: "If they like it, the agent can text the next step and push them toward setup while the excitement is still fresh.",
+    title: "Works with your existing number",
+    body: "You keep your business phone number. Missed, busy, and after-hours calls forward to End Voicemail. No porting, app, or new phone system required.",
   },
 ]
 
 const ownerSummary = [
-  ["Lead", "HOT windshield quote"],
+  ["Lead type", "Windshield replacement quote"],
   ["Vehicle", "2021 Toyota RAV4"],
-  ["Need", "Cracked windshield + calibration"],
-  ["Next step", "Call back before 3 PM"],
+  ["Details", "Cracked windshield + calibration likely"],
+  ["Callback", "Today before 3 PM"],
 ]
 
 export default function ForAutoGlassPage() {
@@ -72,27 +72,27 @@ export default function ForAutoGlassPage() {
                 className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] lg:mx-0"
                 style={{ color: "var(--color-primary)", borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
               >
-                <Sparkles size={14} /> Windshield shop demo
+                <Sparkles size={14} /> AI receptionist for auto glass
               </div>
 
               <h1 className="mx-auto max-w-3xl text-4xl font-black leading-[1.05] tracking-[-0.045em] sm:text-5xl lg:mx-0 lg:text-[3.65rem]">
-                Your missed windshield calls should turn into quote-ready leads.
+                Stop losing windshield jobs when nobody answers the phone.
               </h1>
 
               <p className="mx-auto mt-5 max-w-xl text-base leading-7 sm:text-lg lg:mx-0" style={{ color: "var(--color-text-2)" }}>
-                Send an auto-glass owner here from an email. They enter their name and phone, Aisha calls them, runs a real windshield-call demo, then can text the next step while the call is still hot.
+                End Voicemail answers missed, busy, and after-hours calls for auto-glass shops. It collects the vehicle details, flags urgent jobs, and sends you a clean callback summary so your team can quote faster.
               </p>
 
               <div className="mx-auto mt-7 max-w-md rounded-2xl border p-4 shadow-sm lg:mx-0" style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}>
                 <div className="mb-3 flex items-start justify-between gap-3 text-left">
                   <div>
-                    <p className="text-sm font-bold">Try the windshield AI call</p>
+                    <p className="text-sm font-bold">Hear how your missed calls would sound</p>
                     <p className="mt-1 text-xs" style={{ color: "var(--color-text-3)" }}>
-                      Just name + phone. The demo does the selling.
+                      Enter your name and phone. The AI calls you with a short auto-glass demo.
                     </p>
                   </div>
                   <span className="rounded-full px-2.5 py-1 text-xs font-bold" style={{ backgroundColor: "var(--color-accent-tint)", color: "var(--color-primary)" }}>
-                    Calls now
+                    Instant demo
                   </span>
                 </div>
                 <CallMeNowWidget
@@ -123,9 +123,9 @@ export default function ForAutoGlassPage() {
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--color-primary)" }}>
-                  Conversion flow
+                  What it does
                 </p>
-                <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] sm:text-3xl">The page is the trapdoor. The phone call is the demo.</h2>
+                <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] sm:text-3xl">A receptionist that knows auto-glass calls.</h2>
               </div>
               <Link href="/onboard?niche=auto_glass" className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-primary)" }}>
                 Start setup <ArrowRight size={16} />
@@ -133,7 +133,7 @@ export default function ForAutoGlassPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {flow.map((item, index) => (
+              {benefits.map((item, index) => (
                 <div key={item.title} className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
                   <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black" style={{ backgroundColor: "var(--color-accent-tint)", color: "var(--color-primary)" }}>
                     {index + 1}
@@ -152,9 +152,9 @@ export default function ForAutoGlassPage() {
               <div className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold" style={{ backgroundColor: "var(--color-accent-tint)", color: "var(--color-primary)" }}>
                 <Wrench size={15} /> Auto-glass intake
               </div>
-              <h2 className="text-3xl font-black tracking-[-0.04em] sm:text-4xl">Aisha asks like a trained front desk — not a generic bot.</h2>
+              <h2 className="text-3xl font-black tracking-[-0.04em] sm:text-4xl">The AI asks the same questions your front desk would.</h2>
               <p className="mt-4 leading-7" style={{ color: "var(--color-text-2)" }}>
-                The point is not to ask the prospect for a pile of fields on the website. The call collects the useful stuff naturally and proves what their own customers would experience.
+                Instead of a blank voicemail, you get the details that matter for a windshield quote. The caller gets a helpful conversation, and your team gets a cleaner handoff.
               </p>
               <div className="mt-5 grid gap-2">
                 {triage.map((item) => (
@@ -173,8 +173,8 @@ export default function ForAutoGlassPage() {
                     <Bell size={19} />
                   </div>
                   <div>
-                    <p className="font-bold">Owner summary preview</p>
-                    <p className="text-xs" style={{ color: "var(--color-text-3)" }}>What the shop gets after the call</p>
+                    <p className="font-bold">Lead summary preview</p>
+                    <p className="text-xs" style={{ color: "var(--color-text-3)" }}>What you receive after the call</p>
                   </div>
                 </div>
                 <span className="rounded-full bg-red-500/10 px-3 py-1 text-xs font-bold text-red-500">HOT</span>
@@ -191,10 +191,10 @@ export default function ForAutoGlassPage() {
 
               <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
                 <div className="mb-2 flex items-center gap-2 text-sm font-bold">
-                  <MessageSquareText size={16} style={{ color: "var(--color-primary)" }} /> SMS during the call
+                  <MessageSquareText size={16} style={{ color: "var(--color-primary)" }} /> Text follow-up available
                 </div>
                 <p className="text-sm leading-6" style={{ color: "var(--color-text-2)" }}>
-                  If they ask for the next step, Aisha can text the setup link from the demo flow. That turns “cool demo” into “let’s onboard” before they wander off.
+                  If a caller needs a link, appointment details, or next-step instructions, End Voicemail can send a text while the call is fresh.
                 </p>
               </div>
             </div>
@@ -206,18 +206,18 @@ export default function ForAutoGlassPage() {
             <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr] lg:items-center">
               <div>
                 <div className="mb-3 inline-flex items-center gap-2 text-sm font-bold" style={{ color: "var(--color-primary)" }}>
-                  <ShieldCheck size={17} /> Concierge setup
+                  <ShieldCheck size={17} /> Simple setup
                 </div>
-                <h2 className="text-3xl font-black tracking-[-0.04em] sm:text-4xl">We watch the first calls, tune it, then back off.</h2>
+                <h2 className="text-3xl font-black tracking-[-0.04em] sm:text-4xl">Keep your number. Forward the calls you miss.</h2>
                 <p className="mt-4 leading-7" style={{ color: "var(--color-text-2)" }}>
-                  After payment and forwarding verification, the first week is a watch window: every real call gets checked early, weird calls get flagged, and once stable the client just gets normal lead alerts.
+                  You do not need to port your number or replace your phone system. Forward missed, busy, or after-hours calls to End Voicemail, test the call path, and start receiving lead summaries.
                 </p>
               </div>
               <div className="grid gap-2 text-sm">
                 {[
-                  ["Days 1–3", "Watch every real call + failures"],
-                  ["Days 4–7", "Only hot/warm/weird calls"],
-                  ["After stable", "Normal alerts; ops sees drift only"],
+                  ["Step 1", "Build the AI from your shop details"],
+                  ["Step 2", "Forward missed, busy, or after-hours calls"],
+                  ["Step 3", "Receive clean lead summaries after each call"],
                 ].map(([label, body]) => (
                   <div key={label} className="rounded-xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
                     <p className="font-bold">{label}</p>
