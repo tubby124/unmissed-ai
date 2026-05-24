@@ -23,9 +23,19 @@ const NAV_ITEMS: PaletteItem[] = [
   { label: 'Notifications', href: '/dashboard/notifications', group: 'Navigate', keywords: 'notifications alerts telegram' },
   { label: 'Go Live Setup', href: '/dashboard/go-live', group: 'Navigate', keywords: 'setup forwarding live' },
   { label: 'Advisor', href: '/dashboard/advisor', group: 'Navigate', keywords: 'advisor ai chat' },
+  { label: 'Outbound Calling', href: '/dashboard/outbound', group: 'Navigate', keywords: 'outbound call dial aisha template' },
+  { label: 'Live Calls', href: '/dashboard/live', group: 'Navigate', keywords: 'live active calls now monitoring' },
+  { label: 'Calendar', href: '/dashboard/calendar', group: 'Navigate', keywords: 'calendar bookings schedule' },
+  { label: 'Agent Config', href: '/dashboard/agent', group: 'Navigate', keywords: 'agent identity voice personality' },
+  { label: 'Voices', href: '/dashboard/voices', group: 'Navigate', keywords: 'voices library preview audio' },
+  { label: 'Insights', href: '/dashboard/insights', group: 'Navigate', keywords: 'insights analytics stats charts' },
+  { label: 'Billing & Plan', href: '/dashboard/billing', group: 'Navigate', keywords: 'billing plan payment usage' },
 ]
 
 const ACTION_ITEMS: PaletteItem[] = [
+  { label: 'New call', action: 'newCall', group: 'Actions', keywords: 'call dial outbound' },
+  { label: 'New template', action: 'newTemplate', group: 'Actions', keywords: 'template personality create' },
+  { label: 'Go to Setup', href: '/dashboard/setup', group: 'Navigate', keywords: 'setup forwarding provisioning' },
   { label: 'Sign out', action: 'signOut', group: 'Account', keywords: 'logout sign out' },
 ]
 
@@ -76,6 +86,11 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       await supabase.auth.signOut()
       router.push('/login')
       router.refresh()
+    } else if (item.action === 'newCall') {
+      router.push('/dashboard/outbound')
+      setTimeout(() => router.push('/dashboard/outbound?compose=true'), 50)
+    } else if (item.action === 'newTemplate') {
+      router.push('/dashboard/outbound?newTemplate=true')
     }
   }
 

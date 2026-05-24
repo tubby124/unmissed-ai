@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
 import type { ClientConfig } from './page'
 import { NICHE_CONFIG, getNicheConfig, DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { parsePromptSections } from '@/lib/prompt-sections'
@@ -36,6 +37,7 @@ interface SettingsViewProps {
 }
 
 export default function SettingsView({ clients, isAdmin, appUrl, initialClientId, initialTab }: SettingsViewProps) {
+  const { prefersReducedMotion } = usePrefersReducedMotion()
   const { previewMode } = useAdminClient()
 
   const [selectedId, setSelectedId] = useState(
