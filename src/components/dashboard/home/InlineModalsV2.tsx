@@ -127,7 +127,7 @@ function GreetingModal(p: CommonProps) {
         setInitial(greeting)
         setValue(greeting)
       })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch greeting', err); toast.error('Failed to load greeting') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [])
@@ -785,7 +785,7 @@ function VoiceModal(p: CommonProps) {
     fetch('/api/dashboard/voices', { signal: AbortSignal.timeout(10000) })
       .then(r => r.ok ? r.json() : null)
       .then(json => { if (!cancelled && json?.voices) setVoices(json.voices) })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch voices', err); toast.error('Failed to load voices') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true; audioRef.current?.pause() }
   }, [])

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
+import { toast } from 'sonner'
 import Link from 'next/link'
 import type { ClientConfig } from '@/app/dashboard/settings/page'
 import { knowledgeRoutes } from '@/lib/dashboard-routes'
@@ -26,7 +27,7 @@ export default function KnowledgeProvenanceCard({ client }: Props) {
           setLastRun(data.lastCompilerRun)
         }
       })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch knowledge stats', err); toast.error('Failed to load knowledge stats') })
   }, [client.id])
 
   const hasGbp = !!client.gbp_place_id

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'motion/react'
+import { toast } from 'sonner'
 import AudioWaveformPlayer from './AudioWaveformPlayer'
 import { buildCalendarUrl } from '@/lib/calendar-url'
 
@@ -123,7 +124,7 @@ export default function CallRowExpanded({
       fetch(`/api/dashboard/calls/${call.ultravox_call_id}/sms-status`)
         .then(r => r.ok ? r.json() : null)
         .then(d => d && setSmsOptOut({ opted_out: d.opted_out, opted_out_at: d.opted_out_at }))
-        .catch(() => {})
+        .catch(err => { console.error('Failed to fetch SMS status', err); toast.error('Failed to check SMS status') })
     }
   }, [expanded, call.sms_outcome, call.ultravox_call_id, smsOptOut])
 
@@ -137,7 +138,7 @@ export default function CallRowExpanded({
     fetch(`/api/dashboard/calls/${call.ultravox_call_id}/sms-history`)
       .then(r => r.ok ? r.json() : null)
       .then((d: SmsHistory | null) => d && setSmsHistory(d))
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch SMS history', err); toast.error('Failed to load SMS history') })
   }, [expanded, call.sms_outcome, call.caller_phone, call.ultravox_call_id, smsHistory])
 
   function copyText(text: string, key: string) {

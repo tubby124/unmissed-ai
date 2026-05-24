@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
+import { toast } from 'sonner'
 
 interface Gap {
   query: string
@@ -76,7 +77,8 @@ export default function AgentKnowsCard({
         setGaps(Array.isArray(j.gaps) ? j.gaps.slice(0, 10) : [])
         setGapsLoaded(true)
       })
-      .catch(() => {
+      .catch(err => {
+        console.error('Failed to fetch knowledge gaps', err)
         if (!cancelled) setGapsLoaded(true)
       })
     return () => { cancelled = true }

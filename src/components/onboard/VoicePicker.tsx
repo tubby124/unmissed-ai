@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 interface Voice {
   voiceId: string
@@ -41,7 +42,7 @@ export default function VoicePicker({ selectedVoiceId, onSelect }: Props) {
     fetch('/api/public/voices')
       .then(r => r.json())
       .then(data => setVoices(data.voices || []))
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch voices', err); toast.error('Failed to load voice options') })
       .finally(() => setLoading(false))
   }, [])
 

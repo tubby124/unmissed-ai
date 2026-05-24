@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 
 interface FileUploadPanelProps {
   clientId: string
@@ -123,7 +124,7 @@ export default function FileUploadPanel({ clientId, previewMode, onChunkAdded }:
           setQuota({ used: data.sourceCount, max: data.maxSources })
         }
       })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch knowledge stats', err); toast.error('Failed to load storage info') })
   }, [clientId])
 
   const atLimit = quota !== null && quota.used >= quota.max

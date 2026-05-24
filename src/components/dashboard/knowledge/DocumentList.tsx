@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 
 interface KnowledgeDoc {
   id: string
@@ -27,7 +28,7 @@ export default function DocumentList({ clientId, refreshTrigger }: DocumentListP
       .then(data => {
         if (data?.docs) setDocs(data.docs)
       })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch documents', err); toast.error('Failed to load document list') })
       .finally(() => setLoading(false))
   }, [clientId])
 

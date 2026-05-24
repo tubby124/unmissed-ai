@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 import { knowledgeRoutes } from '@/lib/dashboard-routes'
 
 interface StatsResponse {
@@ -127,7 +128,7 @@ export default function KnowledgeSourceRegistry({
     fetch(`/api/dashboard/knowledge/stats?client_id=${clientId}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setStats(data) })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to refresh stats', err); toast.error('Failed to refresh knowledge sources') })
   }
 
   useEffect(() => {

@@ -441,7 +441,7 @@ export default function KnowledgePageView({
       .then(data => {
         if (data?.conflicts) setConflicts(data.conflicts as ConflictEntry[])
       })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch conflicts', err); toast.error('Failed to load conflicts') })
   }, [isAdmin])
 
   // Fetch health score data
@@ -463,7 +463,7 @@ export default function KnowledgePageView({
           }))
         }
       })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch health stats', err); toast.error('Failed to load health data') })
 
     // Gaps endpoint for unanswered count
     const gapsUrl = isAdmin
@@ -479,7 +479,7 @@ export default function KnowledgePageView({
           }))
         }
       })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch gap count', err) })
   }, [isAdmin])
 
   useEffect(() => {

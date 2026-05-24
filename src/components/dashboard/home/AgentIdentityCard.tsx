@@ -306,7 +306,7 @@ export default function AgentIdentityCard({
     fetch('/api/dashboard/voices')
       .then(r => r.json())
       .then(d => setVoices(d.voices || []))
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch voices', err); toast.error('Failed to load voices') })
       .finally(() => setVoicesLoading(false))
   }, [voiceExpanded])
 

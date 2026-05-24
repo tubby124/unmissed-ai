@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion'
+import { toast } from 'sonner'
 import type { ClientConfig } from './page'
 import { NICHE_CONFIG, getNicheConfig, DEFAULT_MINUTE_LIMIT } from '@/lib/niche-config'
 import { parsePromptSections } from '@/lib/prompt-sections'
@@ -147,7 +148,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     fetch(`/api/dashboard/knowledge/gaps?${params}`)
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setKnowledgeGapCount(d.total ?? 0) })
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch gap count', err); toast.error('Failed to load gap count') })
   }, [selectedId])
 
   // ─── Voice state (shared with VoiceTab) ──────────────────────────────────────
@@ -158,7 +159,7 @@ export default function SettingsView({ clients, isAdmin, appUrl, initialClientId
     fetch('/api/dashboard/voices')
       .then(r => r.json())
       .then(d => setVoices(d.voices || []))
-      .catch(() => {})
+      .catch(err => { console.error('Failed to fetch voices', err); toast.error('Failed to load voices') })
       .finally(() => setVoicesLoading(false))
   }, [])
 

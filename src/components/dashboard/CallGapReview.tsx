@@ -122,7 +122,7 @@ export default function CallGapReview({ callId, clientId, isAdmin = false }: Cal
           resolution_type: destination,
           ...(isAdmin ? { client_id: clientId } : {}),
         }),
-      }).catch(() => { /* non-fatal */ })
+      }).catch(err => { console.error('Failed to mark gap resolved', err); toast.error('Failed to mark gap as resolved') })
 
       toast.success(
         destination === 'faq'
