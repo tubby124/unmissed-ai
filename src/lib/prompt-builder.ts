@@ -41,7 +41,14 @@ export function buildPromptFromIntake(intake: Record<string, unknown>, websiteCo
 
   // D268 (Phase 3): Slot composition — replaces the 700-line template-body injection pipeline
   const ctx = buildSlotContext(intake)
-  return buildPromptFromSlots(ctx)
+  let prompt = buildPromptFromSlots(ctx)
+
+  // D435: Inbound personality layer — appends a voice/style layer on top of the base prompt
+  if (intake.inbound_personality_enabled && intake.inbound_personality) {
+    prompt += `\n\n---\n## PERSONALITY\n\n${intake.inbound_personality}`
+  }
+
+  return prompt
 }
 
 // ── Validation pass (extracted to prompt-validation.ts) ──────────────────────

@@ -196,6 +196,10 @@ export function clientRowToIntake(
     // Agent restrictions
     agent_restrictions: client.agent_restrictions,
 
+    // Inbound personality
+    inbound_personality_enabled: client.inbound_personality_enabled ?? false,
+    inbound_personality: client.inbound_personality,
+
     // Insurance
     insurance_preset: client.insurance_preset,
     insurance_status: client.insurance_status,
