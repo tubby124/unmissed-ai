@@ -8,9 +8,9 @@ import HeroCallMockup from "@/components/HeroCallMockup"
 import { BRAND_DOMAIN, BRAND_NAME } from "@/lib/brand"
 
 export const metadata: Metadata = {
-  title: `AI Receptionist for Auto Glass Shops — ${BRAND_NAME}`,
+  title: `Auto Glass Answering Service & AI Receptionist — ${BRAND_NAME}`,
   description:
-    "End Voicemail answers missed, busy, and after-hours calls for windshield and auto-glass shops, captures quote details, and sends the owner a clean lead summary.",
+    "AI receptionist and answering service for auto glass shops. Capture windshield repair and replacement quote details from missed, busy, and after-hours calls.",
   alternates: {
     canonical: `https://${BRAND_DOMAIN}/for-auto-glass`,
   },
@@ -55,10 +55,74 @@ const ownerSummary = [
   ["Callback", "Today before 3 PM"],
 ]
 
+const faqs = [
+  {
+    question: "What is an auto glass answering service?",
+    answer:
+      "It answers missed, busy, and after-hours calls for windshield repair and replacement shops, asks the right quote questions, and sends the shop a clean lead summary instead of leaving the caller in voicemail.",
+  },
+  {
+    question: "Can it collect windshield quote details?",
+    answer:
+      "Yes. End Voicemail can ask for the vehicle year, make, model, glass location, repair vs replacement need, calibration flags, insurance or cash-pay status, urgency, and the best callback window.",
+  },
+  {
+    question: "Do I need to change my business phone number?",
+    answer:
+      "No. Your shop keeps its existing phone number. You forward missed, busy, or after-hours calls to End Voicemail, then receive summaries after calls are handled.",
+  },
+  {
+    question: "Is this only for after-hours calls?",
+    answer:
+      "No. Many auto-glass shops use it for after-hours calls, lunch breaks, busy lines, calls that ring out, and times when the team is installing glass or driving between jobs.",
+  },
+]
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Service",
+      name: "AI receptionist for auto glass shops",
+      serviceType: "Auto glass answering service",
+      provider: {
+        "@type": "Organization",
+        name: BRAND_NAME,
+        url: `https://${BRAND_DOMAIN}`,
+      },
+      areaServed: "Canada",
+      description:
+        "End Voicemail answers missed, busy, and after-hours calls for windshield repair and auto-glass shops, captures quote details, and sends clean lead summaries.",
+      offers: {
+        "@type": "Offer",
+        price: "119",
+        priceCurrency: "CAD",
+        availability: "https://schema.org/InStock",
+        url: `https://${BRAND_DOMAIN}/for-auto-glass`,
+      },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: faqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.answer,
+        },
+      })),
+    },
+  ],
+}
+
 export default function ForAutoGlassPage() {
   return (
     <>
       <Navbar />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <main style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text-1)" }}>
         <section className="relative overflow-hidden px-4 pb-14 pt-28 sm:pb-18 sm:pt-32 lg:pb-20">
           <div
@@ -225,6 +289,36 @@ export default function ForAutoGlassPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="px-4 pb-20">
+          <div className="mx-auto max-w-6xl rounded-3xl border p-6 sm:p-8" style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}>
+            <div className="mb-6 max-w-2xl">
+              <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--color-primary)" }}>
+                Auto-glass answering service FAQ
+              </p>
+              <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] sm:text-4xl">Common questions from windshield shops.</h2>
+              <p className="mt-3 leading-7" style={{ color: "var(--color-text-2)" }}>
+                Built for windshield repair, windshield replacement, mobile auto-glass service, and shops that need a windshield repair answering service when the front desk cannot answer every call.
+              </p>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-2">
+              {faqs.map((faq) => (
+                <div key={faq.question} className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
+                  <h3 className="font-bold tracking-tight">{faq.question}</h3>
+                  <p className="mt-2 text-sm leading-6" style={{ color: "var(--color-text-2)" }}>{faq.answer}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-col gap-3 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
+              <p className="text-sm leading-6" style={{ color: "var(--color-text-2)" }}>
+                Want the general missed-call AI receptionist instead? See the main <Link href="/" className="font-semibold underline" style={{ color: "var(--color-primary)" }}>End Voicemail service</Link>.
+              </p>
+              <Link href="/onboard?niche=auto_glass" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-primary)" }}>
+                Start setup <ArrowRight size={16} />
+              </Link>
             </div>
           </div>
         </section>
