@@ -24,9 +24,8 @@ export default function FaqAccordion() {
           {FAQ_ITEMS.map((faq, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 8 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+                  initial={false}
+                  animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.05 }}
               className="rounded-xl overflow-hidden"
               style={{ border: "1px solid var(--color-border)" }}

@@ -63,10 +63,10 @@ export default function TryDemoPopup() {
 
               <div className="min-w-0 flex-1">
                 <p className="text-white text-sm font-semibold leading-tight">
-                  Talk to Zara, our AI receptionist
+                  Get a real phone demo
                 </p>
                 <p className="text-gray-400 text-xs mt-0.5">
-                  Free, no sign-up. Browser call, no phone needed.
+                  Put in your number. The AI calls you — no browser mic.
                 </p>
 
                 <Link
@@ -75,7 +75,7 @@ export default function TryDemoPopup() {
                   className="inline-block mt-2.5 px-4 py-1.5 rounded-lg text-white text-xs font-semibold transition-colors"
                   style={{ backgroundColor: "#3B82F6" }}
                 >
-                  Try it now
+                  Call me now
                 </Link>
               </div>
             </div>

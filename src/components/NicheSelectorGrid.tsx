@@ -9,7 +9,7 @@ import { NICHES } from "@/lib/niches";
 
 export default function NicheSelectorGrid() {
   const [hoveredNiche, setHoveredNiche] = useState<string | null>(null);
-  const [selectedNiche, setSelectedNiche] = useState<string | null>(null);
+  const [selectedNiche, setSelectedNiche] = useState<string | null>("auto-glass");
 
   const activeId = hoveredNiche || selectedNiche;
   const activeNiche = NICHES.find((n) => n.id === activeId);
@@ -50,9 +50,8 @@ export default function NicheSelectorGrid() {
               return (
                 <motion.div
                   key={niche.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
+                  initial={false}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 24, delay: i * 0.05 }}
                   whileHover={{ scale: 1.03, y: -2 }}
                 >
@@ -103,7 +102,7 @@ export default function NicheSelectorGrid() {
               {activeNiche ? (
                 <motion.div
                   key={activeNiche.id}
-                  initial={{ opacity: 0, scale: 0.98 }}
+                  initial={false}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ type: "spring", stiffness: 300, damping: 24 }}
@@ -116,7 +115,7 @@ export default function NicheSelectorGrid() {
               ) : (
                 <motion.div
                   key="empty"
-                  initial={{ opacity: 0, scale: 0.98 }}
+                  initial={false}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ type: "spring", stiffness: 300, damping: 24 }}

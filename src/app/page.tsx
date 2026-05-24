@@ -14,7 +14,6 @@ import { faqSchema } from "@/lib/schema";
 import HeroCallMockup from "@/components/HeroCallMockup";
 import HeroContent from "@/components/HeroContent";
 import CallMeNowWidget from "@/components/CallMeNowWidget";
-// TalkToAgentWidget moved to root layout — available site-wide
 import { TRIAL, PUBLIC_PLANS, getPlanDisplayMonthly } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 import { PRICING_SECTION, FINAL_CTA } from "@/lib/marketing-content";
@@ -199,7 +198,6 @@ export default async function HomePage() {
       </main>
 
       <Footer />
-      {/* TalkToAgentWidget rendered in root layout */}
     </>
   );
 }

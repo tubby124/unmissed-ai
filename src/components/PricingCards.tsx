@@ -38,9 +38,8 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
           return (
             <motion.div
               key={plan.id}
-              initial={shouldReduceMotion ? false : { opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              initial={false}
+              animate={{ opacity: 1, y: 0 }}
               transition={
                 shouldReduceMotion
                   ? { duration: 0 }

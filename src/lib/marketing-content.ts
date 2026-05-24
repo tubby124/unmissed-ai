@@ -104,9 +104,9 @@ export const DEMO_SECTION = {
   eyebrow: 'Live Demo',
   headline: 'Hear it answer.',
   subheadline: 'Sample calls your AI agent can handle — caller greeted, job details captured, summary prepared.',
-  ctaLabel: 'Talk to an AI Agent Live',
+  ctaLabel: 'Get a Phone Demo Call',
   ctaHref: '/try',
-  ctaSubtext: 'No sign-up · Browser demo',
+  ctaSubtext: 'No browser mic · We call your phone',
 }
 
 // ─── How It Works ────────────────────────────────────────────────────

@@ -32,9 +32,8 @@ export default function HowItWorks() {
             return (
               <motion.div
                 key={step.number}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-50px' }}
+                initial={false}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 24, delay: i * 0.1 }}
                 className="relative rounded-2xl p-6"
                 style={{

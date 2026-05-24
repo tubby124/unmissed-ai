@@ -242,7 +242,7 @@ Rules:
     if (!demoNumber) {
       console.error('[call-me] No demo Twilio number configured (DEMO_TWILIO_NUMBER)')
       return NextResponse.json(
-        { error: 'Demo calling is not configured. Please try the browser demo instead.' },
+        { error: 'Demo calling is not configured. Please try again later.' },
         { status: 503 }
       )
     }

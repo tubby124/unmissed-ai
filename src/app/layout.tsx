@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import TalkToAgentWidget from "@/components/TalkToAgentWidget";
 import { BRAND_NAME } from "@/lib/brand";
 import { websiteSchema, localBusinessSchema } from "@/lib/schema";
 import { PUBLIC_PLANS, CURRENCY, getPlanDisplayMonthly } from "@/lib/pricing";
@@ -201,7 +200,6 @@ export default function RootLayout({
           <main id="main">
             {children}
           </main>
-          <TalkToAgentWidget />
         </ThemeProvider>
       </body>
     </html>
