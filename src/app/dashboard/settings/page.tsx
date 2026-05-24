@@ -36,6 +36,7 @@ export interface ClientConfig {
   context_data_label: string | null
   google_calendar_id: string | null
   booking_enabled: boolean | null
+  booking_provider: string | null
   booking_service_duration_minutes: number | null
   booking_buffer_minutes: number | null
   calendar_beta_enabled: boolean | null

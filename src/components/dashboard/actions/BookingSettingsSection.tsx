@@ -19,6 +19,7 @@ export default function BookingSettingsSection({ client, isAdmin, previewMode }:
       initialDuration={client.booking_service_duration_minutes ?? 30}
       initialBuffer={client.booking_buffer_minutes ?? 0}
       initialBookingEnabled={client.booking_enabled ?? false}
+      initialBookingProvider={(client.booking_provider as 'google' | 'gettimely' | null | undefined) ?? 'google'}
       previewMode={previewMode}
     />
   )
