@@ -7,40 +7,40 @@ import Footer from "@/components/Footer"
 import CallMeNowWidget from "@/components/CallMeNowWidget"
 import { Phone, ArrowRight, CheckCircle2 } from "lucide-react"
 
-const AGENTS = [
+const DEMOS = [
+  {
+    id: "voicemail_replacement",
+    company: "Service Business",
+    agent: "Zara",
+    niche: "Voicemail Replacement",
+    description: "Hear Zara answer like your missed-call receptionist: caller name, reason for calling, urgency, and the clean summary you get instead of an audio voicemail.",
+    color: "#10B981",
+    variant: "default" as const,
+  },
   {
     id: "auto_glass",
     company: "Auto Glass Shop",
-    agent: "Aisha",
+    agent: "Zara",
     niche: "Auto Glass",
-    description: "Windshield repair and replacement calls: vehicle details, damage type, urgency, insurance/cash, and callback window.",
+    description: "Windshield callers: vehicle details, damage type, insurance/cash, urgency, and whether the job is worth calling back first.",
     color: "#3B82F6",
     variant: "windshield" as const,
   },
   {
     id: "property_mgmt",
     company: "Property Management Office",
-    agent: "Nicole",
+    agent: "Zara",
     niche: "Property Management",
-    description: "Maintenance requests, tenant issues, rental inquiries, and clean summaries for the manager.",
+    description: "Tenant or owner calls: issue, property, urgency, contact details, and a clean next-step summary for the manager.",
     color: "#8B5CF6",
-    variant: "default" as const,
-  },
-  {
-    id: "real_estate",
-    company: "Real Estate Team",
-    agent: "Aisha",
-    niche: "Real Estate",
-    description: "Showing requests, buyer/seller questions, contact details, urgency, and next-step summaries.",
-    color: "#10B981",
     variant: "default" as const,
   },
 ]
 
-type Agent = (typeof AGENTS)[number]
+type Demo = (typeof DEMOS)[number]
 
 export default function TryPage() {
-  const [selectedAgent, setSelectedAgent] = useState<Agent>(AGENTS[0])
+  const [selectedAgent, setSelectedAgent] = useState<Demo>(DEMOS[0])
 
   return (
     <>
@@ -60,17 +60,17 @@ export default function TryPage() {
                 className="mb-5 text-4xl font-black leading-[1.05] sm:text-5xl lg:text-6xl"
                 style={{ color: "var(--color-text-1)" }}
               >
-                Put in your number. The AI calls you.
+                Never listen to another voicemail again.
               </h1>
               <p className="max-w-xl text-lg leading-relaxed" style={{ color: "var(--color-text-2)" }}>
-                No browser microphone. No fake chat widget. This is a real phone-call preview of how End Voicemail answers, qualifies, and summarizes missed calls for a business.
+                This is the End Voicemail promise in one call: Zara answers instead of a voicemail box, asks the caller what matters, then gives you the clean summary you would rather read than listen to.
               </p>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-3">
                 {[
-                  "Calls your phone",
-                  "Asks real intake questions",
-                  "Shows the owner-summary flow",
+                  "Zara calls your phone",
+                  "Shows what callers experience",
+                  "Turns voicemail into a summary",
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-2)" }}>
                     <CheckCircle2 size={16} style={{ color: "var(--color-primary)" }} />
@@ -106,7 +106,7 @@ export default function TryPage() {
               </div>
 
               <div className="mb-5 grid gap-2">
-                {AGENTS.map((agent) => {
+                {DEMOS.map((agent) => {
                   const active = agent.id === selectedAgent.id
                   return (
                     <button
@@ -154,9 +154,9 @@ export default function TryPage() {
             style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
           >
             {[
-              ["1", "Enter your number", "The demo places an outbound call to your phone, like a real customer callback."],
-              ["2", "Act like a caller", "Give the AI a normal business scenario. It asks the intake questions one at a time."],
-              ["3", "Hear the summary flow", "The AI explains what the owner receives: lead type, urgency, details, and next step."],
+              ["1", "Enter your number", "Zara places a real outbound call to your phone. No browser mic, no fake chat demo."],
+              ["2", "Act like a missed caller", "Ask a normal business question or leave a job request. Zara handles it like the voicemail replacement your callers would reach."],
+              ["3", "See the useful version of voicemail", "Instead of replaying audio, the owner gets the lead type, urgency, caller details, and next step."],
             ].map(([num, title, body]) => (
               <div key={num}>
                 <div
@@ -174,10 +174,10 @@ export default function TryPage() {
 
         <section className="px-4 pb-24 text-center">
           <h2 className="text-3xl font-black" style={{ color: "var(--color-text-1)" }}>
-            Want this on your real missed calls?
+            Want this replacing your actual voicemail?
           </h2>
           <p className="mx-auto mt-3 max-w-xl" style={{ color: "var(--color-text-2)" }}>
-            Set up your AI number, forward missed/busy/after-hours calls, and run a real test with your business line.
+            Set up your AI number, forward missed/busy/after-hours calls, and stop digging through voicemail audio to find the calls worth returning.
           </p>
           <Link
             href={`/onboard?niche=${selectedAgent.id}`}

@@ -19,13 +19,13 @@ import { PUBLIC_PLANS, SETUP, MINUTE_RELOAD, POLICIES, getPlanDisplayMonthly } f
 
 // ─── Hero ────────────────────────────────────────────────────────────
 export const HERO = {
-  eyebrow: 'Missed-call AI for service businesses',
-  headline: ['End voicemail', 'with an AI that', 'answers missed calls.'],
+  eyebrow: 'The voicemail replacement for busy businesses',
+  headline: ['Never listen to', 'another business', 'voicemail again.'],
   /** Highlighted portion of the last headline line (rendered in primary color) */
-  headlineAccent: 'answers missed calls.',
+  headlineAccent: 'voicemail again.',
   subtitle:
-    "Forward unanswered calls to your AI number. It answers in your business name, qualifies the lead, and sends you the summary so you can call back ready.",
-  ctaLabel: "Hear the demo before you activate.",
+    "End Voicemail replaces the voicemail inbox with an AI receptionist. When you miss a call, Zara answers, asks what matters, and sends you the clean summary — so you call back knowing exactly who is worth your time.",
+  ctaLabel: "Hear Zara call you before you activate.",
   proofLine: "Want to hear it first? Get a demo call from Zara below.",
 }
 
@@ -38,30 +38,30 @@ export const CALL_ME_WIDGET_COPY = {
   /** Expanded helper text in non-compact mode */
   helperTextFull:     "We'll call your phone and connect you live. No app needed.",
   /** Proof line — shows under input in hero compact mode */
-  proofLine:          "Hear how End Voicemail answers, qualifies, and follows up with callers. Your real voicemail test happens after checkout, when you forward missed calls from your business line.",
+  proofLine:          "Hear how Zara replaces voicemail: she answers, asks the right questions, and shows you the exact summary you would get instead of an audio inbox.",
   /** Success heading — urgency, not celebration */
   successHeading:     "Pick up now — Zara is calling from an unknown number.",
   /** Success body — sets expectation + reinforces value */
-  successBody:        "That's Zara, our AI receptionist. This previews the call style your real agent uses after you forward missed calls.",
+  successBody:        "That's Zara, the public demo receptionist. Your real business agent uses the same voicemail-replacement flow after you forward missed calls.",
   /** Button states */
   buttonIdle:         "Call Me Now",
   buttonLoading:      "Calling...",
 }
 
-// ─── Talk to Zara Widget Copy ─────────────────────────────────────────
+// ─── Zara Phone Demo Copy ─────────────────────────────────────────────
 export const TALK_TO_ZARA_COPY = {
-  /** Floating button label (desktop) */
-  floatingLabel:      "Talk to Zara",
+  /** Floating button label (legacy/admin only) */
+  floatingLabel:      "Get a Call from Zara",
   /** Small subline shown under floating label on desktop */
-  floatingSubline:    "browser · no phone",
+  floatingSubline:    "phone demo · no browser mic",
   /** Form intro */
-  formIntro:          "Tell Zara a bit about yourself — she'll tailor the conversation:",
+  formIntro:          "Tell Zara where to call — she'll show you the voicemail replacement flow:",
   /** Phone placeholder */
-  phonePlaceholder:   "Mobile # (optional) — Zara will text you a recap",
+  phonePlaceholder:   "Mobile number for the demo call",
   /** Submit button */
-  submitLabel:        "Talk to Zara",
+  submitLabel:        "Call Me Now",
   /** Skip link */
-  skipLabel:          "Skip — just start the call",
+  skipLabel:          "Continue without demo",
 }
 
 // ─── Hero Call Mockup ────────────────────────────────────────────────
@@ -101,28 +101,28 @@ export const TRUST_BAR = {
 
 // ─── Demo Section (DemoAudioPlayer) ─────────────────────────────────
 export const DEMO_SECTION = {
-  eyebrow: 'Live Demo',
-  headline: 'Hear it answer.',
-  subheadline: 'Sample calls your AI agent can handle — caller greeted, job details captured, summary prepared.',
-  ctaLabel: 'Get a Phone Demo Call',
+  eyebrow: 'Live Phone Demo',
+  headline: 'Hear Zara replace voicemail.',
+  subheadline: 'Put in your number and Zara calls you. You hear the caller experience, then see why a clean summary beats another voicemail recording.',
+  ctaLabel: 'Get a Call from Zara',
   ctaHref: '/try',
-  ctaSubtext: 'No browser mic · We call your phone',
+  ctaSubtext: 'No browser mic · Zara calls your phone',
 }
 
 // ─── How It Works ────────────────────────────────────────────────────
 export const HOW_IT_WORKS = {
-  eyebrow: 'How It Works',
-  headline: 'Four steps from checkout to replacing voicemail.',
-  subheadline: 'Your agent is built during signup. Then you forward missed calls and run a real test.',
+  eyebrow: 'How It Replaces Voicemail',
+  headline: 'Missed calls become clean summaries, not audio chores.',
+  subheadline: 'Your customer still calls your normal business number. If you do not answer, Zara picks up instead of voicemail and turns the call into a usable follow-up.',
   /** Shown below the steps grid */
   proofLine: '50 activation minutes included · Real forwarded-call test · Email alerts first, Telegram optional',
   steps: [
     {
       number: '01',
       icon: PhoneIncoming as LucideIcon,
-      title: 'Forward missed calls to your AI number',
+      title: 'Forward missed calls away from voicemail',
       description:
-        'After checkout, you get a real AI number. Forward unanswered calls from your existing business line so callers reach your agent instead of voicemail.',
+        'After checkout, you get a real AI number. Forward unanswered calls from your existing business line so missed callers reach Zara instead of a voicemail box.',
     },
     {
       number: '02',
@@ -151,15 +151,15 @@ export const HOW_IT_WORKS = {
 // ─── Pricing Section (homepage inline) ───────────────────────────────
 export const PRICING_SECTION = {
   eyebrow: 'Pricing',
-  headline: 'Activate a real AI number, then test it with 50 included minutes.',
-  subheadline: 'AI Receptionist is $119/mo with 250 included minutes for businesses that want booking, business knowledge, and lead ranking.',
+  headline: 'Replace voicemail with a real AI number and 50 activation minutes.',
+  subheadline: 'AI Receptionist is $119/mo with 250 included minutes for businesses that want every missed call answered, qualified, and summarized.',
   fullPricingLinkText: 'See full pricing details and feature comparison →',
 }
 
 // ─── Final CTA (homepage) ────────────────────────────────────────────
 export const FINAL_CTA = {
-  headline: 'The next missed call is a job you won\'t get back.',
-  subheadline: 'Every unanswered call goes to whoever picked up. Make sure that\'s you.',
+  headline: 'Your next voicemail should be the last one you have to hear.',
+  subheadline: 'Send missed calls to Zara instead. Get the summary, call back smarter, and stop wasting time replaying audio.',
   signupLinkText: 'Get your AI number →',
 }
 
