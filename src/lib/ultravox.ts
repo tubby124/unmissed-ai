@@ -217,9 +217,11 @@ interface CreateDemoCallOptions {
   tools?: object[]
   /** Completed webhook URL — enables post-call processing for demo calls */
   callbackUrl?: string
+  /** Metadata echoed back by Ultravox completed callbacks. */
+  metadata?: Record<string, string>
 }
 
-export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDuration, timeExceededMessage, tools, callbackUrl }: CreateDemoCallOptions) {
+export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDuration, timeExceededMessage, tools, callbackUrl, metadata }: CreateDemoCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
@@ -236,6 +238,7 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
   // Only add Twilio medium for phone IVR demos; omit for browser WebRTC
   if (useTwilio) body.medium = { twilio: {} }
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
+  if (metadata) body.metadata = metadata
 
   const res = await fetch(`${ULTRAVOX_BASE}/calls`, {
     method: 'POST',

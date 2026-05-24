@@ -96,7 +96,7 @@ function IntakeRow({ intake, onCreateAccount, onGeneratePrompt, onActivate }: {
                 onClick={e => { e.stopPropagation(); onActivate(intake) }}
                 className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-lg px-3 py-1 transition-colors"
               >
-                Activate ($25)
+                Activate
               </button>
             )}
             {isActivated && (
@@ -309,7 +309,7 @@ function ActivateModal({ intake, onClose }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm px-4" style={{ backgroundColor: "var(--color-surface)" }}>
       <div className="w-full max-w-md rounded-2xl border backdrop-blur-xl p-6 shadow-2xl" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-raised)" }}>
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold" style={{ color: "var(--color-text-1)" }}>Activate Client — $25 Setup</h2>
+          <h2 className="font-semibold" style={{ color: "var(--color-text-1)" }}>Activate Client</h2>
           <button onClick={onClose} className="transition-colors" style={{ color: "var(--color-text-3)" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -320,7 +320,7 @@ function ActivateModal({ intake, onClose }: {
         {!checkoutUrl ? (
           <>
             <p className="text-sm mb-5" style={{ color: "var(--color-text-2)" }}>
-              Send a $25 setup payment link to{' '}
+              Setup-fee links are retired. Use the public subscription checkout or trial conversion path for{' '}
               <span className="font-medium" style={{ color: "var(--color-text-1)" }}>{intake.business_name}</span>
               {intake.contact_email && (
                 <> (<span style={{ color: "var(--color-text-2)" }}>{intake.contact_email}</span>)</>

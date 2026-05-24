@@ -225,7 +225,7 @@ function StatusContent() {
                 />
                 <div>
                   <span className="text-sm font-medium text-foreground">Pick from available numbers</span>
-                  <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Save $5 — $20 CAD setup</span>
+                  <span className="ml-2 text-xs font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">No setup fee</span>
                   <p className="text-xs text-muted-foreground/70 mt-0.5">Ready to go, nothing wrong — just in stock</p>
                 </div>
               </label>
@@ -272,7 +272,7 @@ function StatusContent() {
                 />
                 <div>
                   <span className="text-sm font-medium text-foreground">Get a fresh local number</span>
-                  <span className="ml-2 text-xs text-muted-foreground">$25 CAD</span>
+                  <span className="ml-2 text-xs text-muted-foreground">No setup fee</span>
                   <p className="text-xs text-muted-foreground/70 mt-0.5">Assigned from your province after payment</p>
                 </div>
               </label>
@@ -293,7 +293,7 @@ function StatusContent() {
         >
           {loading
             ? "Redirecting to checkout..."
-            : `Activate my agent — ${selectedNumber ? "$20" : "$25"} setup + subscription`}
+            : "Activate my agent — start subscription"}
         </button>
 
         <p className="text-xs text-muted-foreground/70">
@@ -304,7 +304,7 @@ function StatusContent() {
         </p>
 
         <p className="text-xs text-muted-foreground/70">
-          One-time setup fee + monthly subscription. Your first 50 activation minutes are included. Secure checkout powered by Stripe.
+          No setup fee. Your first month is yours to prove it works, backed by the 30-day money-back guarantee. Secure checkout powered by Stripe.
         </p>
       </div>
     );

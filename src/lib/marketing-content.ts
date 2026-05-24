@@ -183,9 +183,9 @@ export const FAQ_ITEMS = [
       `Three differences. First, pricing: many alternatives charge per minute or per caller — your bill rises when you're busy. We charge a flat base rate starting at $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo, with prepaid reload packs when you need extra minutes. Second, setup: they're self-serve platforms where you configure everything. We build your agent from your Google Business Profile and website during signup — you answer a few questions, we handle the rest. Third, specificity: your agent is trained on your trade, not a generic script. Booking and live call transfer are available on eligible plans.`,
   },
   {
-    question: 'What does the $25 setup fee cover?',
+    question: 'Is there a setup fee?',
     answer:
-      `The ${SETUP.label} covers building your custom AI agent — trained on your specific trade, services, hours, and common questions. ${SETUP.description} You don't configure anything yourself.`,
+      `${SETUP.label}. Your custom AI agent is built from your Google Business Profile, website, setup answers, services, hours, and common questions. ${SETUP.description} You don't configure everything yourself.`,
   },
   {
     question: 'What if the agent says something wrong?',

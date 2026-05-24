@@ -14,10 +14,10 @@
 // ─── Currency ───────────────────────────────────────────────────────
 export const CURRENCY = "CAD";
 
-// ─── Setup Fee ──────────────────────────────────────────────────────
+// ─── Setup ──────────────────────────────────────────────────────────
 export const SETUP = {
-  price: 25,
-  label: "$25 one-time setup",
+  price: 0,
+  label: "No setup fee",
   includes: "Built from your Google Business Profile and website before your first forwarded-call test",
   description: "Your agent is built from your business info as you onboard. It becomes live after you forward missed calls and complete the real phone-path test.",
 };
@@ -213,8 +213,8 @@ export const STRIPE_IDS = {
 
   // Prices (LIVE) — legacy flat-rate + add-ons (tier prices are in PLANS[] above)
   subscription30: "price_1TCqWD0tFbm4ZBYUCY6ZPT8B",  // $30/mo CAD recurring (legacy)
-  setupFresh25: "price_1TBqFM0tFbm4ZBYUw652WMUb",    // $25 one-time (fresh number)
-  setupInventory20: "price_1TBqFM0tFbm4ZBYUC6rzz3pH", // $20 one-time (inventory number)
+  setupFresh25: "price_1TBqFM0tFbm4ZBYUw652WMUb",    // retired setup price (fresh number)
+  setupInventory20: "price_1TBqFM0tFbm4ZBYUC6rzz3pH", // retired setup price (inventory number)
   minuteReload10: "price_1TCqWF0tFbm4ZBYUm6MZjnpN",   // $10 one-time (50 min reload)
   minuteReload15: "price_1TYHSu0tFbm4ZBYUUyn2LhOe",   // $15 one-time (100 min reload) — created 2026-05-17 via Stripe API
   minuteReload30: "price_1TYHSu0tFbm4ZBYUCh3giVb1",   // $30 one-time (200 min reload) — created 2026-05-17 via Stripe API

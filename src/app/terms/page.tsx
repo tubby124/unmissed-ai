@@ -92,7 +92,7 @@ export default function TermsPage() {
                   <li>Subscription fees are billed monthly in advance at the rate corresponding to your selected service tier</li>
                   <li>All prices are in Canadian Dollars (CAD) unless otherwise stated</li>
                   <li>Plans include monthly minutes; extra minutes, when needed, are purchased as prepaid reload packs rather than surprise overages</li>
-                  <li>A one-time setup fee may apply for new accounts</li>
+                  <li>No setup fee applies unless a custom enterprise agreement states otherwise</li>
                   <li>You are responsible for providing accurate billing information and keeping it current</li>
                   <li>Failed payments may result in temporary suspension of your agent until payment is resolved</li>
                 </ul>

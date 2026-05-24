@@ -1,92 +1,17 @@
 /**
  * POST /api/stripe/create-checkout
  *
- * Admin only. Creates a Stripe Checkout session for the $25 setup fee (fresh number).
- * Returns { url } — admin sends this to the client or opens it themselves.
+ * Admin only. Legacy setup-fee checkout route.
  *
- * Body: { intakeId: string, clientId: string }
+ * Setup fees are retired. This endpoint is intentionally disabled so an admin
+ * cannot accidentally send an obsolete setup-payment link.
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
-import { createServerClient, createServiceClient } from '@/lib/supabase/server'
-import { APP_URL } from '@/lib/app-url'
-import { BRAND_NAME } from '@/lib/brand'
+import { NextResponse } from 'next/server'
 
-function getStripe() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
-}
-
-export async function POST(req: NextRequest) {
-  // ── Admin auth ─────────────────────────────────────────────────────────────
-  const supabase = await createServerClient()
-  const { data: { user }, error: authErr } = await supabase.auth.getUser()
-  if (authErr || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const { data: cu } = await supabase
-    .from('client_users')
-    .select('role')
-    .eq('user_id', user.id)
-    .order('role').limit(1).maybeSingle()
-
-  if (cu?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  // ── Parse body ─────────────────────────────────────────────────────────────
-  const body = await req.json().catch(() => ({})) as { intakeId?: string; clientId?: string }
-  const { intakeId, clientId } = body
-
-  if (!intakeId || !clientId) {
-    return NextResponse.json({ error: 'intakeId and clientId required' }, { status: 400 })
-  }
-
-  // ── Load intake + client to get slug ───────────────────────────────────────
-  const svc = createServiceClient()
-
-  const { data: intake } = await svc
-    .from('intake_submissions')
-    .select('business_name, contact_email')
-    .eq('id', intakeId)
-    .single()
-
-  const { data: client } = await svc
-    .from('clients')
-    .select('slug, status')
-    .eq('id', clientId)
-    .single()
-
-  if (!intake || !client) {
-    return NextResponse.json({ error: 'Intake or client not found' }, { status: 404 })
-  }
-
-  if (client.status === 'active') {
-    return NextResponse.json({ error: 'Client is already active' }, { status: 409 })
-  }
-
-  // ── Create Stripe Checkout session ─────────────────────────────────────────
-  const session = await getStripe().checkout.sessions.create({
-    mode: 'payment',
-    line_items: [
-      {
-        price_data: {
-          currency: 'cad',
-          unit_amount: 2500,
-          product_data: {
-            name: `${BRAND_NAME} Voice Agent Setup`,
-            description: `One-time setup fee — includes 50 free minutes.`,
-          },
-        },
-        quantity: 1,
-      },
-    ],
-    metadata: {
-      intake_id: intakeId,
-      client_id: clientId,
-      client_slug: client.slug,
-    },
-    customer_email: intake.contact_email ?? undefined,
-    success_url: `${APP_URL}/dashboard/clients?activated={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${APP_URL}/dashboard/clients`,
-  })
-
-  return NextResponse.json({ url: session.url })
+export async function POST() {
+  return NextResponse.json(
+    { error: 'Setup-fee checkout is retired. Use public subscription checkout or trial conversion.' },
+    { status: 410 }
+  )
 }

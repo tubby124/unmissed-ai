@@ -1,9 +1,9 @@
 /**
  * POST /api/stripe/create-public-checkout
  *
- * Public (no auth required). Creates a Stripe Checkout session for the setup fee + subscription.
+ * Public (no auth required). Creates a Stripe Checkout session for the subscription.
  * 3-tier pricing: Lite/Core/Pro monthly CAD plans. Promo codes available at checkout.
- * Fresh number: $25 CAD setup. Inventory number: $20 CAD setup.
+ * No setup fee.
  * 50 activation minutes included after checkout.
  * Auto-provisions the clients row + Ultravox agent if not already done by admin.
  *
@@ -473,18 +473,11 @@ export async function POST(req: NextRequest) {
 
   let session: { url: string | null }
   try {
-    const isInventory = !!selectedNumber
     session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
       customer: stripeCustomerId,
       allow_promotion_codes: true,
       line_items: [
-        {
-          price: isInventory
-            ? process.env.STRIPE_SETUP_INVENTORY_PRICE_ID!
-            : process.env.STRIPE_SETUP_PRICE_ID!,
-          quantity: 1,
-        },
         {
           price: subscriptionPriceId,
           quantity: 1,

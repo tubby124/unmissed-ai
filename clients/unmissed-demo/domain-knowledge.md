@@ -1,31 +1,32 @@
-# unmissed.ai — Domain Knowledge for Zara (Demo Agent)
+# EndVoicemail.ai — Domain Knowledge for Zara (Demo Agent)
 
 ## What We Do
 
-unmissed.ai is an AI voice receptionist platform for small businesses. We answer calls, qualify leads, and alert owners instantly — 24/7, flat rate. You forward your existing business number to us. No app, no hardware, no setup headaches.
+EndVoicemail.ai is an AI voice receptionist platform for small businesses. We answer missed, busy, and after-hours calls, qualify leads, and alert owners instantly — 24/7, flat rate. You forward unanswered calls from your existing business number to us. No app, no hardware, no setup headaches.
 
-## Pricing (CURRENT — updated 2026-03-30)
+## Pricing (CURRENT — updated 2026-05-24)
 
-- **$29/month CAD** — founding member rate. Use code `FOUNDING29` at checkout.
-- **$49/month CAD** — regular price after founding period ends.
-- **$25 one-time setup fee** — custom AI agent built from your Google Business Profile and website.
-- **7-day free trial** — all features included, no credit card required.
-- **100 minutes/month** included. Flat rate — no per-minute charges, ever.
-- Setup: self-serve at unmissed.ai/onboard (~5 min) or done-for-you in 48 hours.
+- **No setup fee.**
+- **AI Receptionist: $119/month CAD founding price** with 250 included minutes.
+- **First month to prove it works:** if it does not work for the business, cancel and use the 30-day money-back guarantee.
+- Custom AI agent built from the business Google Business Profile, website, and setup answers.
+- Setup: self-serve at endvoicemail.ai/onboard or book a setup walkthrough.
 
-Note: Previous beta pricing was $20/mo. We're now $29/mo founding rate.
+Do not mention a $25 setup fee. Do not describe the first month as unlimited free usage unless billing is changed to support that.
 
 ## How It Works
 
 1. Business owner signs up and selects their niche.
-2. We build a custom AI agent from their Google Business Profile + website (takes 5 min).
-3. Owner forwards their existing business number to the unmissed.ai number (standard call forwarding — no app, no device).
-4. When a caller calls, the AI agent answers, qualifies them, and alerts the owner instantly.
-5. Owner gets a Telegram + SMS alert immediately. HOT leads can be transferred live to the owner.
+2. If their business exists on Google, they select the Google Business Profile so we pull name, phone, website, and hours.
+3. We scan the business website for services, FAQs, and policies.
+4. Owner adds deeper rules: pricing/ranges, service area, emergency handling, booking rules, escalation rules, and what counts as a hot lead.
+5. Owner forwards missed, busy, or after-hours calls from their existing business number to the EndVoicemail AI number.
+6. When a caller calls, the AI agent answers, qualifies them, and alerts the owner instantly.
+7. Owner gets a Telegram/SMS/email alert depending on configuration. HOT leads can be transferred live to the owner when enabled.
 
-## What's Included (all plans, including trial)
+## What's Included
 
-- 24/7 answering, 100 minutes/month
+- 24/7 answering, 250 included minutes/month
 - Lead scoring (HOT / WARM / COLD / JUNK)
 - Instant Telegram + SMS alerts to owner with full lead summary
 - Automatic SMS follow-up to caller post-call
@@ -111,7 +112,7 @@ Use ONE line per call after identifying the caller's industry. Never stack them.
 | Goodcall | $79/mo + per-caller | $129+ |
 | Smith.ai | $95/mo + per-call | $455+ |
 | Ask Benny | $49 CAD/mo + per-minute | $99+ CAD |
-| **unmissed.ai** | **$29/mo flat (founding)** | **$29** |
+| **EndVoicemail.ai** | **$119/mo CAD flat (founding)** | **$119 CAD** |
 
 Key differentiators:
 - **Flat rate** — competitors charge per-minute and get expensive as you scale.
@@ -138,23 +139,23 @@ Key differentiators:
 
 ## Key People
 
-- **Hasan Sharif** — founder, built unmissed.ai, active realtor in Saskatoon SK. Direct: +1 (306) 850-7687
+- **Hasan Sharif** — founder, built EndVoicemail.ai, active realtor in Saskatoon SK. Direct: +1 (306) 850-7687
 - **Zara** — demo agent. Shows prospects exactly what their own agent would sound and act like.
 
 ## CTA URLs
 
-- Sign up / free trial: unmissed.ai/onboard
-- Pricing page: unmissed.ai/pricing
-- Interactive demo: unmissed.ai/try
+- Sign up / setup: endvoicemail.ai/onboard
+- Pricing page: endvoicemail.ai/pricing
+- Interactive demo: endvoicemail.ai/try
 
 ## Common Objections — Extended
 
 **"Is this a robot?"** → Yes, an AI. That's the product — this call IS the demo.
-**"Too expensive"** → What's one missed job worth? Most clients recover $29 in their first call.
+**"Too expensive"** → What's one missed job worth? The first month is there to prove the agent earns its keep.
 **"I have a receptionist"** → Does she answer at midnight? We fill after-hours and overflow.
 **"Needs CRM sync"** → On the roadmap. Currently: Telegram + SMS alerts instantly.
 **"How do I know it works?"** → You're on a call with it right now.
-**"I'm too busy to set it up"** → Takes 5 minutes at unmissed.ai/onboard. Or we build it for you in 48 hours.
+**"I'm too busy to set it up"** → Start at endvoicemail.ai/onboard, or book a setup walkthrough.
 **"What if I don't have 100 minutes of calls?"** → Flat rate means unused minutes don't cost you extra. You're paying for peace of mind.
 **"What if the AI gets it wrong?"** → You get every call summary. You can override anything. The agent gets better over time via the Learning Loop.
 **"Do you support multiple locations?"** → One agent per number. Multiple locations = multiple agents. Contact us for volume pricing.
@@ -162,7 +163,7 @@ Key differentiators:
 ## Telegram Alert Format for Demo Leads
 
 ```
-NEW DEMO LEAD — unmissed.ai
+NEW DEMO LEAD — EndVoicemail.ai
 
 Name: [if captured]
 Phone: [caller number from callerContext]

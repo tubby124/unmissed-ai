@@ -10,6 +10,7 @@ import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { normalizePhoneNA } from '@/lib/utils/phone'
+import { sendAlert } from '@/lib/telegram'
 
 // 3 calls per IP per hour (S13x: shared limiter replaces inline Map)
 const perIpLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000)
@@ -71,14 +72,35 @@ export async function POST(req: NextRequest) {
   // Fetch live prompt from Supabase if configured
   let basePrompt = demo.systemPrompt
   let voiceId = demo.voiceId
+  let liveClient: {
+    id: string
+    slug: string | null
+    business_name: string | null
+    telegram_bot_token: string | null
+    telegram_chat_id: string | null
+    telegram_chat_id_2: string | null
+    telegram_notifications_enabled: boolean | null
+  } | null = null
   if (demo.useLivePrompt && demo.clientSlug) {
     try {
       const supabase = createServiceClient()
       const { data: client } = await supabase
         .from('clients')
-        .select('id, slug, niche, business_name, system_prompt, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note')
+        .select('id, slug, niche, business_name, system_prompt, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_notifications_enabled')
         .eq('slug', demo.clientSlug)
         .single()
+
+      if (client) {
+        liveClient = {
+          id: client.id as string,
+          slug: client.slug as string | null,
+          business_name: client.business_name as string | null,
+          telegram_bot_token: client.telegram_bot_token as string | null,
+          telegram_chat_id: client.telegram_chat_id as string | null,
+          telegram_chat_id_2: client.telegram_chat_id_2 as string | null,
+          telegram_notifications_enabled: client.telegram_notifications_enabled as boolean | null,
+        }
+      }
 
       if (client?.system_prompt) {
         // Resolve {{templateContext}} placeholders — live prompts have these from Agents API
@@ -141,7 +163,7 @@ Call structure:
 1. Intro/onboarding: greet them by name, mention their shop if provided, and explain this will be a short two-minute auto-glass demo.
 2. Triage simulation: ask them to imagine they are a windshield caller, then collect the same things a shop needs: repair vs replacement, year/make/model, damage, ADAS/lane-assist camera, urgency, insurance/cash, and callback window. Ask one question at a time.
 3. Owner-summary reveal: explain the owner would get a clean lead summary with status, vehicle, urgency, and next step instead of a useless voicemail.
-4. Conversion handoff: if interested, explain setup simply: they keep their number; missed, busy, and after-hours calls forward to the AI line; no porting. Mention first month free and $119/month after with 250 minutes. If they want the next step, use sendTextMessage to text them the setup link: https://endvoicemail.ai/onboard?niche=auto_glass
+4. Conversion handoff: if interested, explain setup simply: they keep their number; missed, busy, and after-hours calls forward to the AI line; no porting. Mention there is no setup fee, the AI Receptionist is $119/month CAD with 250 included minutes, and the first month proves it works with a 30-day money-back guarantee. If they want the next step, use sendTextMessage to text them the setup link: https://endvoicemail.ai/onboard?niche=auto_glass
 
 Rules:
 - Do not collect sensitive data.
@@ -191,6 +213,15 @@ Rules:
       useTwilio: true,
       tools: demoTools,
       callbackUrl: demoCallbackUrl,
+      metadata: {
+        source: 'call-me-widget',
+        demo_id: demo.id,
+        caller_phone: phone,
+        caller_name: callerName,
+        caller_email: callerEmail,
+        shop_name: shopName,
+        demo_variant: demoVariant,
+      },
     })
 
     console.log(`[demo:call-me] callId=${uvCall.callId} tools=${demoTools.length} medium=twilio-outbound phone=${phone}`)
@@ -243,6 +274,39 @@ Rules:
       if (error) console.error(`[call-me] Failed to log demo call: ${error.message}`)
     } catch (e) {
       console.error('[call-me] Demo call log threw:', e)
+    }
+
+    // 5. Immediate owner alert — the completed webhook sends the post-call summary later.
+    if (liveClient?.telegram_bot_token && liveClient.telegram_chat_id && liveClient.telegram_notifications_enabled !== false) {
+      const alert = [
+        '🧪 <b>Demo call started</b>',
+        `<b>${liveClient.business_name || demo.companyName}</b>`,
+        `Caller: ${callerName} (${phone})`,
+        callerEmail ? `Email: ${callerEmail}` : null,
+        shopName ? `Shop: ${shopName}` : null,
+        painPoint ? `Pain: ${painPoint}` : null,
+        `Demo: ${demoVariant || niche}`,
+        `Twilio SID: ${call.sid}`,
+        `Ultravox: ${uvCall.callId}`,
+      ].filter(Boolean).join('\n')
+
+      const sent = await sendAlert(
+        liveClient.telegram_bot_token,
+        liveClient.telegram_chat_id,
+        alert,
+        liveClient.telegram_chat_id_2 ?? undefined
+      )
+
+      const { error: notifyLogError } = await supabase.from('notification_logs').insert({
+        call_id: null,
+        client_id: liveClient.id,
+        channel: 'telegram',
+        recipient: liveClient.telegram_chat_id,
+        content: alert.slice(0, 10000),
+        status: sent ? 'sent' : 'failed',
+        error: sent ? null : 'demo call start alert failed',
+      })
+      if (notifyLogError) console.error(`[call-me] Failed to log demo Telegram alert: ${notifyLogError.message}`)
     }
 
     return NextResponse.json({
