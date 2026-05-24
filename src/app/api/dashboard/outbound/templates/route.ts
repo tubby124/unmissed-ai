@@ -19,7 +19,9 @@ export async function GET(req: NextRequest) {
 
   if (!cu) return new NextResponse('Forbidden', { status: 403 })
 
-  const isAdminOrOwner = cu.role === 'admin' || cu.client_id === clientId
+  if (cu.role !== 'admin' && cu.client_id !== clientId) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
 
   let query = supabase
     .from('outbound_templates')
@@ -28,11 +30,7 @@ export async function GET(req: NextRequest) {
     .order('is_default', { ascending: false })
     .order('name', { ascending: true })
 
-  if (isAdminOrOwner) {
-    query = query.or(`client_id.eq.${clientId},is_builtin.eq.true`)
-  } else {
-    query = query.eq('client_id', clientId)
-  }
+  query = query.or(`client_id.eq.${clientId},is_builtin.eq.true`)
 
   const { data: templates, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

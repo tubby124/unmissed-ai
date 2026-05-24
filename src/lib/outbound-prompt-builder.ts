@@ -9,7 +9,7 @@
  *   {{LEAD_NAME}}, {{LEAD_PHONE}}, {{LEAD_NOTES}}, {{BUSINESS_NAME}}, {{AGENT_NAME}}
  */
 
-export type OutboundTone = 'warm' | 'professional' | 'direct'
+export type OutboundTone = 'warm' | 'professional' | 'direct' | 'flirty' | 'busty' | 'custom'
 
 export interface OutboundPromptFields {
   goal: string
@@ -24,6 +24,9 @@ const TONE_DESCRIPTIONS: Record<OutboundTone, string> = {
   warm: 'Be conversational, friendly, and empathetic. Use natural contractions. The goal is to build rapport first.',
   professional: 'Be polished and concise. Friendly but efficient. Minimal small talk — respect their time.',
   direct: 'Get to the point immediately. Respect their time above everything. Short sentences, clear ask.',
+  flirty: 'Be playful and high-energy while staying respectful. Keep the caller smiling, but do not cross consent or professionalism boundaries.',
+  busty: 'Be bold, cheeky, and memorable while still respecting the caller and the business purpose of the call.',
+  custom: 'Follow the custom template instructions exactly. Preserve the business goal, caller respect, and short-turn rules.',
 }
 
 /**

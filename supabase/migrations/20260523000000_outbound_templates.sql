@@ -21,6 +21,92 @@ CREATE TABLE IF NOT EXISTS outbound_templates (
 
 CREATE INDEX IF NOT EXISTS idx_outbound_templates_client ON outbound_templates(client_id);
 
+ALTER TABLE outbound_templates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS outbound_templates_select_own_or_builtin ON outbound_templates;
+CREATE POLICY outbound_templates_select_own_or_builtin
+  ON outbound_templates
+  FOR SELECT
+  TO authenticated
+  USING (
+    is_builtin
+    OR EXISTS (
+      SELECT 1
+      FROM client_users
+      WHERE client_users.user_id = auth.uid()
+        AND (
+          client_users.role = 'admin'
+          OR client_users.client_id = outbound_templates.client_id
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS outbound_templates_insert_own_or_admin ON outbound_templates;
+CREATE POLICY outbound_templates_insert_own_or_admin
+  ON outbound_templates
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    is_builtin = false
+    AND EXISTS (
+      SELECT 1
+      FROM client_users
+      WHERE client_users.user_id = auth.uid()
+        AND (
+          client_users.role = 'admin'
+          OR client_users.client_id = outbound_templates.client_id
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS outbound_templates_update_own_or_admin ON outbound_templates;
+CREATE POLICY outbound_templates_update_own_or_admin
+  ON outbound_templates
+  FOR UPDATE
+  TO authenticated
+  USING (
+    is_builtin = false
+    AND EXISTS (
+      SELECT 1
+      FROM client_users
+      WHERE client_users.user_id = auth.uid()
+        AND (
+          client_users.role = 'admin'
+          OR client_users.client_id = outbound_templates.client_id
+        )
+    )
+  )
+  WITH CHECK (
+    is_builtin = false
+    AND EXISTS (
+      SELECT 1
+      FROM client_users
+      WHERE client_users.user_id = auth.uid()
+        AND (
+          client_users.role = 'admin'
+          OR client_users.client_id = outbound_templates.client_id
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS outbound_templates_delete_own_or_admin ON outbound_templates;
+CREATE POLICY outbound_templates_delete_own_or_admin
+  ON outbound_templates
+  FOR DELETE
+  TO authenticated
+  USING (
+    is_builtin = false
+    AND EXISTS (
+      SELECT 1
+      FROM client_users
+      WHERE client_users.user_id = auth.uid()
+        AND (
+          client_users.role = 'admin'
+          OR client_users.client_id = outbound_templates.client_id
+        )
+    )
+  );
+
 -- 2. Add columns to clients table
 ALTER TABLE clients
   ADD COLUMN IF NOT EXISTS outbound_allowed_start            time,

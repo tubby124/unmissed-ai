@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Phone, X, Loader2, CheckCircle, XCircle } from 'lucide-react'
-import { createBrowserClient } from '@/lib/supabase/client'
 
 interface Template {
   id: string
@@ -40,19 +39,28 @@ export default function CallComposer({ clientId, templates, onClose, onCallPlace
     setStatus('creating')
     setError('')
 
-    // First get or create a campaign lead
-    const supabase = createBrowserClient()
-    const { data: lead } = await supabase
-      .from('campaign_leads')
-      .insert({
+    const normalizedPhone = phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`
+    const templateId = selectedTemplateId || defaultTpl?.id || null
+
+    const leadRes = await fetch('/api/dashboard/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         client_id: clientId,
-        phone: phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`,
+        phone: normalizedPhone,
         name,
         notes: notes || null,
-        status: 'queued',
-      })
-      .select('id')
-      .single()
+      }),
+    })
+
+    if (!leadRes.ok) {
+      const err = await leadRes.json().catch(() => ({ error: leadRes.statusText }))
+      setError(err.error || 'Failed to create lead')
+      setStatus('failed')
+      return
+    }
+
+    const { lead } = await leadRes.json()
 
     if (!lead) {
       setError('Failed to create lead')
@@ -64,7 +72,7 @@ export default function CallComposer({ clientId, templates, onClose, onCallPlace
     const res = await fetch('/api/dashboard/leads/dial-out', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lead_id: lead.id }),
+      body: JSON.stringify({ lead_id: lead.id, template_id: templateId }),
     })
 
     if (!res.ok) {

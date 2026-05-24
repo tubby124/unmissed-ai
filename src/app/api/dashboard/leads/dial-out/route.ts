@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!cu || cu.role === 'viewer') return new NextResponse('Forbidden', { status: 403 })
 
   const body = await req.json().catch(() => ({}))
-  const { lead_id } = body
+  const { lead_id, template_id } = body
 
   if (!lead_id) return NextResponse.json({ error: 'lead_id required' }, { status: 400 })
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   // Fetch client config — include outbound_prompt + structured fields + all context fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at, service_areas')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, outbound_allowed_start, outbound_allowed_end, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at, service_areas')
     .eq('id', clientId)
     .single()
 
@@ -92,9 +92,53 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const svc = createServiceClient()
+
+  let selectedTemplate: {
+    client_id: string
+    is_builtin: boolean
+    goal: string
+    tone: string
+    opening: string | null
+    vm_script: string | null
+    call_notes: string | null
+    special_instructions: string | null
+  } | null = null
+
+  if (typeof template_id === 'string' && template_id) {
+    const { data: template, error: templateError } = await svc
+      .from('outbound_templates')
+      .select('client_id, is_builtin, goal, tone, opening, vm_script, call_notes, special_instructions')
+      .eq('id', template_id)
+      .maybeSingle()
+
+    if (templateError) {
+      return NextResponse.json({ error: templateError.message }, { status: 500 })
+    }
+    if (!template) {
+      return NextResponse.json({ error: 'Template not found' }, { status: 404 })
+    }
+    if (!template.is_builtin && template.client_id !== clientId) {
+      return new NextResponse('Forbidden', { status: 403 })
+    }
+    selectedTemplate = template
+  }
+
   // If outbound_prompt is null but structured fields exist, assemble on the fly and backfill DB
   let outboundPrompt = client.outbound_prompt as string | null
-  if (!outboundPrompt && (client.outbound_goal || client.outbound_opening)) {
+  let vmScript = (client.outbound_vm_script as string | null) ?? null
+
+  if (selectedTemplate) {
+    vmScript = selectedTemplate.vm_script
+    outboundPrompt = assembleOutboundPrompt({
+      goal: selectedTemplate.goal,
+      tone: selectedTemplate.tone as OutboundTone,
+      opening: selectedTemplate.opening ?? "Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. I'm trying to reach {{LEAD_NAME}} — do you have a quick minute?",
+      vmScript: selectedTemplate.vm_script ?? 'Hi {{LEAD_NAME}}, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. Just reaching out — give us a call back when you get a chance. Thanks!',
+      callNotes: selectedTemplate.call_notes,
+      specialInstructions: selectedTemplate.special_instructions,
+    })
+  } else if (!outboundPrompt && (client.outbound_goal || client.outbound_opening)) {
     outboundPrompt = assembleOutboundPrompt({
       goal: (client.outbound_goal as string | null) ?? 'Follow up and schedule a conversation',
       tone: ((client.outbound_tone as string | null) ?? 'warm') as OutboundTone,
@@ -102,7 +146,7 @@ export async function POST(req: NextRequest) {
       vmScript: (client.outbound_vm_script as string | null) ?? 'Hi {{LEAD_NAME}}, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}. Just reaching out — give us a call back when you get a chance. Thanks!',
     })
     // Backfill so subsequent dials skip this assembly step (fire-and-forget, non-blocking)
-    void createServiceClient().from('clients').update({ outbound_prompt: outboundPrompt }).eq('id', clientId)
+    void svc.from('clients').update({ outbound_prompt: outboundPrompt }).eq('id', clientId)
   }
 
   if (!outboundPrompt) {
@@ -124,7 +168,6 @@ export async function POST(req: NextRequest) {
     }, { status: 400 })
   }
 
-  const vmScript = (client.outbound_vm_script as string | null) ?? null
   const vmSafety = validateOutboundVmScript(vmScript)
   if (!vmSafety.ok) {
     return NextResponse.json({ error: vmSafety.error }, { status: 400 })
@@ -206,7 +249,6 @@ export async function POST(req: NextRequest) {
   // Twilio outbound dial → Ultravox stream
   // If the client has a voicemail script configured, enable AMD so we can play it instead
   // of connecting the AI agent to an answering machine.
-  const svc = createServiceClient()
   let twilio_sid: string
   try {
     const twilioClient = twilio(accountSid, authToken)
