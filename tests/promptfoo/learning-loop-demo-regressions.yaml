@@ -1,0 +1,71 @@
+# Promptfoo test suite — EndVoicemail Learning Loop demo regressions
+# Run: npx promptfoo eval -c tests/promptfoo/learning-loop-demo-regressions.yaml
+
+description: EndVoicemail demo Learning Loop regressions — booking confirmation and nonsense redirect
+
+providers:
+  - id: openrouter:anthropic/claude-haiku-4.5
+    config:
+      max_tokens: 220
+      temperature: 0
+
+prompts:
+  - file://prompts/chat.json
+
+defaultTest:
+  vars:
+    system_prompt: file://../../clients/unmissed-demo/SYSTEM_PROMPT.txt
+    context_data: |
+      [DEMO MODE — PHONE CALLBACK. Tools: checkCalendarAvailability, bookAppointment, sendTextMessage, hangUp.
+      The caller is in the booking stage. Hasan's schedule has Tuesday, May 26 at 4:30 PM available.
+      The agent previously offered Tuesday, May 26 at 4:30 PM and is waiting for confirmation before booking.]
+  assert:
+    - type: not-icontains
+      value: "bookAppointment"
+    - type: not-icontains
+      value: "you're booked"
+    - type: javascript
+      value: "!/Monday/i.test(output)"
+      threshold: 1
+
+tests:
+  - description: "Off-topic interjection does not count as booking confirmation"
+    vars:
+      caller_message: "You smell that?"
+    assert:
+      - type: llm-rubric
+        provider: openrouter:anthropic/claude-haiku-4.5
+        value: "The response briefly acknowledges confusion or that it did not catch the caller, then redirects back to the pending booking confirmation. It must NOT treat the off-topic line as yes, must NOT say the appointment is booked, and must NOT invoke bookAppointment."
+      - type: icontains-any
+        value:
+          - "didn't catch"
+          - "back to the booking"
+          - "does 4:30"
+          - "Tuesday"
+
+  - description: "Agent confirms exact requested day and time before booking"
+    vars:
+      caller_message: "Yeah, I wanted tomorrow at 5 p.m."
+      context_data: |
+        [DEMO MODE — PHONE CALLBACK. Tools: checkCalendarAvailability, bookAppointment, sendTextMessage, hangUp.
+        The caller requested tomorrow at 5 PM. The agent has not yet checked or confirmed a final slot.]
+    assert:
+      - type: llm-rubric
+        provider: openrouter:anthropic/claude-haiku-4.5
+        value: "The response should move toward checking or confirming the exact requested day/time. It must not silently change the day to Monday or a different time. It must not book until the exact day and time have been repeated back and the caller gives a clear yes."
+      - type: not-icontains
+        value: "Monday at 4:30"
+      - type: not-icontains
+        value: "you're booked"
+      - type: not-icontains
+        value: "bookAppointment"
+
+  - description: "Clear yes after exact confirmation can proceed to booking"
+    vars:
+      caller_message: "Yes, Tuesday at 4:30 works."
+    assert:
+      - type: llm-rubric
+        provider: openrouter:anthropic/claude-haiku-4.5
+        value: "The caller clearly confirmed the exact day and time. The response may proceed with booking or say it is booking that exact slot. It must keep the day Tuesday and time 4:30 PM, not change to Monday or another time."
+      - type: not-icontains
+        value: "Monday"
