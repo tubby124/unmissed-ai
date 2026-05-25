@@ -689,3 +689,153 @@ ${transcriptText.slice(0, 8500)}`,
     if (nlErr2) console.error(`[completed] notification_logs insert failed (email-fail): ${nlErr2.message}`)
   }
 }
+
+// ── Owner SMS Alert (per-call notification to business owner) ────────────────
+
+/** Resolve the destination phone for owner-SMS alerts. */
+export function resolveSmsOwnerDestination(
+  client: Pick<CompletedClient, 'alert_phone' | 'callback_phone'>
+): string | null {
+  return client.alert_phone || client.callback_phone || null
+}
+
+/**
+ * Build the SMS body sent to the owner after a call.
+ * Compact, action-first format. Empty string for JUNK (caller will be filtered).
+ */
+export function buildOwnerSmsBody(params: {
+  classification: Classification
+  callerPhone: string
+  businessName: string | null
+  testMode: boolean
+}): string {
+  const { classification, callerPhone, businessName, testMode } = params
+  if (classification.status === 'JUNK') return ''
+
+  const ownerAlert = buildOwnerAlertDetails(classification, callerPhone, businessName)
+  const prefix = testMode ? 'TEST — ' : ''
+
+  const lines: string[] = [
+    `${prefix}${ownerAlert.urgencyLabel}: ${ownerAlert.callerName}`,
+    `${ownerAlert.formattedPhone}`,
+    `Re: ${ownerAlert.reasonForCall}`,
+    `→ ${ownerAlert.requiredNextStep}`,
+  ]
+
+  // Truncate to 1600 chars (Twilio 10-segment cap for SMS — defensive).
+  const body = lines.join('\n')
+  return body.length > 1600 ? body.slice(0, 1597) + '...' : body
+}
+
+export async function sendOwnerSmsAlert(
+  ctx: NotificationContext,
+  opts: { testMode?: boolean } = {}
+): Promise<void> {
+  const { supabase, client, slug, callId, callLogId, callerPhone, classification } = ctx
+  const testMode = opts.testMode === true
+
+  // Skip per the spec gate: explicit opt-in via sms_alerts_enabled = true
+  if (client.sms_alerts_enabled !== true) {
+    console.log(`[completed] Owner SMS SKIPPED for slug=${slug}: sms_alerts_enabled=${client.sms_alerts_enabled}`)
+    return
+  }
+
+  // Resolve destination (alert_phone falls back to callback_phone)
+  const toNumber = resolveSmsOwnerDestination(client)
+  if (!toNumber) {
+    console.log(`[completed] Owner SMS SKIPPED slug=${slug}: no alert_phone or callback_phone`)
+    if (!testMode && callLogId) {
+      const { error: nlErr } = await supabase.from('notification_logs').insert({
+        call_id: callLogId,
+        client_id: client.id,
+        channel: 'sms_owner',
+        recipient: 'unknown',
+        content: 'owner SMS skipped: no destination',
+        status: 'skipped_no_destination',
+      })
+      if (nlErr) console.error(`[completed] notification_logs insert failed (sms_owner-skip): ${nlErr.message}`)
+    }
+    return
+  }
+
+  // Resolve FROM (client's own Twilio number)
+  const fromNumber = client.twilio_number
+  if (!fromNumber) {
+    console.log(`[completed] Owner SMS SKIPPED slug=${slug}: no twilio_number (cannot send FROM)`)
+    if (!testMode && callLogId) {
+      const { error: nlErr } = await supabase.from('notification_logs').insert({
+        call_id: callLogId,
+        client_id: client.id,
+        channel: 'sms_owner',
+        recipient: toNumber,
+        content: 'owner SMS skipped: no FROM number',
+        status: 'skipped_no_from',
+      })
+      if (nlErr) console.error(`[completed] notification_logs insert failed (sms_owner-skip): ${nlErr.message}`)
+    }
+    return
+  }
+
+  // Build body
+  const body = buildOwnerSmsBody({
+    classification,
+    callerPhone,
+    businessName: client.business_name,
+    testMode,
+  })
+  if (!body) {
+    console.log(`[completed] Owner SMS SKIPPED slug=${slug} callId=${callId}: empty body (JUNK)`)
+    return
+  }
+
+  // Send via Twilio
+  try {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID
+    const authToken = process.env.TWILIO_AUTH_TOKEN
+    if (!accountSid || !authToken) {
+      console.error(`[completed] Owner SMS FAILED slug=${slug}: missing TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN env`)
+      return
+    }
+
+    const twilioClient = twilio(accountSid, authToken)
+    const twilioMsg = await twilioClient.messages.create({
+      body,
+      from: fromNumber,
+      to: toNumber,
+    })
+    console.log(`[completed] Owner SMS sent slug=${slug} callId=${callId} to=${toNumber} sid=${twilioMsg.sid} testMode=${testMode}`)
+    // Cost monitoring marker (spec §7.5)
+    console.log(`[sms_owner_alert] client=${slug} cost_estimate_cad=$0.011`)
+
+    if (!testMode && callLogId) {
+      const { error: nlErr } = await supabase.from('notification_logs').insert({
+        call_id: callLogId,
+        client_id: client.id,
+        channel: 'sms_owner',
+        recipient: toNumber,
+        content: body.slice(0, 10000),
+        status: 'sent',
+        external_id: twilioMsg.sid,
+      })
+      if (nlErr) console.error(`[completed] notification_logs insert failed (sms_owner): ${nlErr.message}`)
+    }
+  } catch (smsErr) {
+    console.error(`[completed] Owner SMS FAILED slug=${slug} callId=${callId}:`, smsErr)
+    if (!testMode && callLogId) {
+      const { error: nlErr2 } = await supabase.from('notification_logs').insert({
+        call_id: callLogId,
+        client_id: client.id,
+        channel: 'sms_owner',
+        recipient: toNumber,
+        content: body.slice(0, 10000),
+        status: 'failed',
+        error: String(smsErr).slice(0, 1000),
+      })
+      if (nlErr2) console.error(`[completed] notification_logs insert failed (sms_owner-fail): ${nlErr2.message}`)
+    }
+    if (testMode) {
+      // In test mode the API route needs to know the send failed — rethrow.
+      throw smsErr
+    }
+  }
+}
