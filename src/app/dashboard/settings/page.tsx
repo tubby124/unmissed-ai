@@ -92,6 +92,10 @@ export interface ClientConfig {
   state: string | null
   services_offered: string | null
   callback_phone: string | null
+  // Multichannel owner-alert fields (added 2026-05-25)
+  alert_phone: string | null
+  alert_email: string | null
+  sms_alerts_enabled: boolean | null
   // IVR — voicemail menu pre-filter
   ivr_enabled: boolean | null
   ivr_prompt: string | null
