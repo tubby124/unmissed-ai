@@ -43,17 +43,11 @@ Ship a 3-channel owner-alert system (SMS, Email, Telegram) that:
 |---|---|---|---|
 | `alert_phone` | `text` nullable | `null` | SMS destination. Reads as `client.alert_phone ?? client.callback_phone`. |
 | `alert_email` | `text` nullable | `null` | Email destination. Reads as `client.alert_email ?? client.contact_email`. |
-| `sms_alerts_enabled` | `boolean` nullable | `null` (UI treats null as ON for new clients) | New default channel toggle. |
-| `pending_sms_optin` | `boolean` | `false` | Marker for the Phase-4 Telegram outreach flow. Set when DM is sent; cleared on reply. |
+| `sms_alerts_enabled` | `boolean` nullable | `null` (UI treats null as OFF until owner enables in dashboard) | New channel toggle. |
 
-**Per the control-plane mutation contract:** all four are classified `DB_ONLY` in `FIELD_REGISTRY` (`src/lib/settings-schema.ts`). Not added to `needsAgentSync` because they have zero Ultravox/prompt/tool impact.
+**Per the control-plane mutation contract:** all three are classified `DB_ONLY` in `FIELD_REGISTRY` (`src/lib/settings-schema.ts`). Not added to `needsAgentSync` because they have zero Ultravox/prompt/tool impact.
 
-**Backfill SQL in same migration** (preserves no-redeploy rule for 4 working clients):
-```sql
-UPDATE clients
-SET sms_alerts_enabled = false, pending_sms_optin = true
-WHERE slug IN ('hasan-sharif', 'exp-realty', 'windshield-hub', 'urban-vibe', 'manzil-isa');
-```
+**No migration backfill needed.** Existing 5 clients get `sms_alerts_enabled=null` which the UI treats as OFF. They'll see the new SMS card in the dashboard with the toggle off, and can flip it themselves when they want. Hasan will DM them on Telegram manually to tell them the feature exists. New clients (Velly onwards) same default — owner flips it in dashboard or Hasan flips it via SQL during concierge onboarding.
 
 ### 4.2 Conceptual model — multi-channel OR
 
@@ -80,7 +74,7 @@ Drop codex's uncommitted change. Single `RESEND_API_KEY` (DNS is on endvoicemail
 - Revert `src/lib/email/send.ts` — delete `getResendApiKey()` helper, restore single `process.env.RESEND_API_KEY` read.
 - Revert `.env.example` — delete `RESEND_API_KEY_ENDVOICEMAIL_SEND=` line.
 
-## 5. Components & Files (~8 files changed)
+## 5. Components & Files (~6 files changed)
 
 ### Backend — call dispatch path
 1. **`src/lib/completed-notifications.ts`**
@@ -105,13 +99,8 @@ Drop codex's uncommitted change. Single `RESEND_API_KEY` (DNS is on endvoicemail
 
 5. **`src/app/api/dashboard/settings/route.ts`** — extend `updates{}` accumulator to accept `alert_phone`, `alert_email`, `sms_alerts_enabled`. Validate `alert_phone` against E.164 regex `^\+[1-9]\d{1,14}$`. Validate `alert_email` against the existing email regex used for `contact_email`. These are DB-only — do NOT trigger `needsAgentSync`.
 
-### Backend — Telegram outreach (one-off helper)
-6. **`scripts/outreach/sms-optin-broadcast.ts` (NEW)** — admin-run script. DMs the existing 5 clients via their `telegram_chat_id` with a yes/no question. Sets `pending_sms_optin=true` on those rows.
-
-7. **`src/app/api/webhook/telegram/route.ts`** — extend message handler: if message text matches `/^(yes|y|yeah|yep)/i` AND `pending_sms_optin=true` on the matching client, set `sms_alerts_enabled=true`, `pending_sms_optin=false`, and reply `"✅ SMS alerts on. You'll get a text on your next call."`. If `/^(no|n|nah)/i`, set `pending_sms_optin=false` and reply `"Got it — staying with Telegram."` Anything else: ignore (lets normal flow continue).
-
 ### Frontend — dashboard UI
-8. **`src/app/dashboard/notifications/NotificationsConfigSection.tsx`** — restructure from 2 toggles into 3 channel cards. Each card:
+6. **`src/app/dashboard/notifications/NotificationsConfigSection.tsx`** — restructure from 2 toggles into 3 channel cards. Each card:
    ```
    ┌───────────────────────────────────────────┐
    │ [icon] CHANNEL NAME           [Enable ▢]  │
@@ -226,7 +215,7 @@ If owner-SMS enabled but `twilio_number` null (shouldn't happen post-provision b
 
 **Gate A — Hasan self-test (slug `hasan-sharif`, Aisha system) [MUST SHIP]**
 1. Run migration on prod Supabase.
-2. SQL: set `sms_alerts_enabled=true`, `pending_sms_optin=false`, `alert_phone='<Hasan's cell>'`, `email_notifications_enabled=true`, `alert_email='hasan.sharif@exprealty.com'`. (Migration backfill set `pending_sms_optin=true` for all 5 clients including Hasan; Gate A explicitly clears it on his row since he's a self-test, not awaiting an opt-in reply.)
+2. SQL: set `sms_alerts_enabled=true`, `alert_phone='<Hasan's cell>'`, `email_notifications_enabled=true`, `alert_email='hasan.sharif@exprealty.com'`.
 3. Verify 3 channel cards render on `/dashboard/notifications`.
 4. Click "Send test SMS" → confirm SMS lands.
 5. Click "Send test email" → confirm email lands.
@@ -256,8 +245,8 @@ Grep Railway logs monthly to tally trial-period SMS spend. If excessive, revisit
 ## 8. Launch Sequence (priority-ordered)
 
 ### Phase 0 — Code ship (1 PR, 1 deploy)
-1. Migration adds 4 columns + backfill SQL.
-2. 8 file changes per Section 5.
+1. Migration adds 3 columns. No backfill UPDATE needed (existing rows get null, UI shows OFF).
+2. 6 file changes per Section 5.
 3. Vitest + Playwright pass locally.
 4. Push → Railway auto-deploys.
 5. Drift-detector run against `hasan-sharif` → ✅ zero agent change.
@@ -288,20 +277,19 @@ See Section 7.3 Gate A. Only must-ship gate in this design.
 - [ ] Stripe price ID matches `buy.stripe.com/bJeeV5dzu43Z16J6z22VG01`
 - [ ] `kausarimam10@yahoo.com` is in `client_users` for Velly slug, role='owner'
 
-### Phase 4 — Existing-client opt-in broadcast [DEFERRED, after Gates A + B]
-1. Run `npx tsx scripts/outreach/sms-optin-broadcast.ts` — DMs Omar (exp-realty), Mark (windshield-hub), Alisha (urban-vibe), Fatima (manzil-isa). Sets `pending_sms_optin=true`.
-2. As they reply yes/no via Telegram, the extended `/api/webhook/telegram` handler auto-flips `sms_alerts_enabled` and uses `callback_phone` as default `alert_phone` (or prompts for one if missing).
+### Phase 4 — Manual Telegram notification of existing clients [Hasan does this manually]
+After Gate A passes, Hasan DMs Omar / Mark / Alisha / Fatima individually on Telegram saying "hey, we just launched SMS call alerts — log into your dashboard and flip the SMS toggle if you want them in addition to Telegram." Each owner self-configures via `/dashboard/notifications`. No code/script for this.
 
 ### Phase 5 — Ongoing
-- All new trial clients get `sms_alerts_enabled=null` (UI default ON) at provision time.
+- All clients (new and existing) get `sms_alerts_enabled=null` by default. UI shows it as OFF; owner enables it themselves.
 - `/dashboard/notifications` is the long-term self-service surface.
-- After 30 days of real usage: review trial-period Twilio SMS spend, decide whether to gate SMS to paid-only.
+- After 30 days of real usage: review Twilio SMS spend (from cost-monitoring log line in Section 7.5), decide whether to gate SMS to paid-only.
 
 ## 9. Risks & Mitigations
 
 | Risk | Severity | Mitigation |
 |---|---|---|
-| Existing clients get surprise SMS | High | Migration backfill sets `sms_alerts_enabled=false` for all 5 existing clients explicitly. They opt-in via Phase 4 Telegram broadcast. |
+| Existing clients get surprise SMS | High | No backfill. Default is null (UI shows OFF). No client gets SMS until they explicitly flip the toggle in their dashboard. |
 | Owner-SMS sent from client's `twilio_number` triggers A2P 10DLC compliance flags | Medium | Only existing twilio_number-holders are eligible. Hasan owns the Twilio account — registration handled at account level. Re-verify in Twilio console before Phase 4. |
 | SMS cost during trials eats margin | Medium | Cost-monitoring log line + 30-day review (Section 7.5). Can gate SMS to paid-only via a one-line check in `sendOwnerSmsAlert` if needed. |
 | Removing the email niche gate spams existing voicemail-only clients | Low | Voicemail niche clients already get email per the existing gate — behavior unchanged for them. Non-voicemail clients only get email if `email_notifications_enabled !== false && (alert_email || contact_email)` resolved. Migration does not flip `email_notifications_enabled` on existing rows. |
