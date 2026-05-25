@@ -154,7 +154,7 @@ export default function TryPage() {
             style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
           >
             {[
-              ["1", "Enter your number", "Zara places a real demo call to your phone. No browser mic, no fake chat demo."],
+              ["1", "Enter your number", "Zara places a real demo call to your phone. No app install, no fake chat demo."],
               ["2", "Act like a missed caller", "Ask a normal business question or leave a job request. Zara handles it like the demo version of the agent your callers would reach."],
               ["3", "See the useful version of voicemail", "Instead of replaying audio, the owner gets the lead type, urgency, caller details, and next step. In production, the agent name and script are yours."],
             ].map(([num, title, body]) => (

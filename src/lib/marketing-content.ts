@@ -53,7 +53,7 @@ export const TALK_TO_ZARA_COPY = {
   /** Floating button label (legacy/admin only) */
   floatingLabel:      "Get a Call from Zara",
   /** Small subline shown under floating label on desktop */
-  floatingSubline:    "phone demo · no browser mic",
+  floatingSubline:    "phone demo · Zara calls you",
   /** Form intro */
   formIntro:          "Tell Zara where to call — she'll show you the voicemail replacement flow:",
   /** Phone placeholder */
@@ -106,7 +106,7 @@ export const DEMO_SECTION = {
   subheadline: 'Put in your number and Zara calls you. You hear the caller experience, then see why a clean summary beats another voicemail recording.',
   ctaLabel: 'Get a Call from Zara',
   ctaHref: '/try',
-  ctaSubtext: 'No browser mic · Zara calls your phone',
+  ctaSubtext: 'Real phone demo · Zara calls your phone',
 }
 
 // ─── How It Works ────────────────────────────────────────────────────

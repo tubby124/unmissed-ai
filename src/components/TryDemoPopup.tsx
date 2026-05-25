@@ -66,7 +66,7 @@ export default function TryDemoPopup() {
                   Get a real phone demo
                 </p>
                 <p className="text-gray-400 text-xs mt-0.5">
-                  Put in your number. The AI calls you — no browser mic.
+                  Put in your number. Zara calls your phone.
                 </p>
 
                 <Link
