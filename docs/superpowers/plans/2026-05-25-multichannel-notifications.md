@@ -614,7 +614,7 @@ EOF
 
 ## Task 4: Unify the email gate semantics
 
-> **Pre-deploy state (Task 0.5):** _[populated by Task 0.5 step 2]_
+> **Pre-deploy state (Task 0.5, queried 2026-05-25 against project `qwhvblomlgeapzhnuwlb` — note: plan-author wrote `kntgxkvgxlhrwonlfbny` in error; correct unmissed.ai prod ref per package.json is `qwhvblomlgeapzhnuwlb`):** 4 active production clients (hasan-sharif, exp-realty, urban-vibe, windshield-hub) all have `email_notifications_enabled = false` explicitly — no impact. manzil-isa not in this DB (legacy n8n). BUT 12 additional rows have NULL flag + contact_email set (1 active canary `end-voicemail-canary-1779144262462`, 11 paused). Excluding the 2 with niche=voicemail OR mode=message_only (which already default ON under old gate), **10 rows would receive surprise per-call email after the Task 4 gate change. Step 6 backfill SQL IS REQUIRED.**
 
 **Files:**
 - Modify: `src/lib/completed-notifications.ts:158-166` (`shouldSendPerCallEmail`)
