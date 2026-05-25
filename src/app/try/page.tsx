@@ -63,14 +63,14 @@ export default function TryPage() {
                 Never listen to another voicemail again.
               </h1>
               <p className="max-w-xl text-lg leading-relaxed" style={{ color: "var(--color-text-2)" }}>
-                This is the End Voicemail promise in one call: Zara answers instead of a voicemail box, asks the caller what matters, then gives you the clean summary you would rather read than listen to.
+                This is the End Voicemail promise in one call: Zara is our public demo assistant. Your real agent can be named whatever you want, answer with your business context, and send the clean summary you would rather read than listen to.
               </p>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-3">
                 {[
-                  "Zara calls your phone",
+                  "Demo assistant: Zara",
                   "Shows what callers experience",
-                  "Turns voicemail into a summary",
+                  "Your real agent gets your name",
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-2)" }}>
                     <CheckCircle2 size={16} style={{ color: "var(--color-primary)" }} />
@@ -154,9 +154,9 @@ export default function TryPage() {
             style={{ backgroundColor: "var(--color-surface)", border: "1px solid var(--color-border)" }}
           >
             {[
-              ["1", "Enter your number", "Zara places a real outbound call to your phone. No browser mic, no fake chat demo."],
-              ["2", "Act like a missed caller", "Ask a normal business question or leave a job request. Zara handles it like the voicemail replacement your callers would reach."],
-              ["3", "See the useful version of voicemail", "Instead of replaying audio, the owner gets the lead type, urgency, caller details, and next step."],
+              ["1", "Enter your number", "Zara places a real demo call to your phone. No browser mic, no fake chat demo."],
+              ["2", "Act like a missed caller", "Ask a normal business question or leave a job request. Zara handles it like the demo version of the agent your callers would reach."],
+              ["3", "See the useful version of voicemail", "Instead of replaying audio, the owner gets the lead type, urgency, caller details, and next step. In production, the agent name and script are yours."],
             ].map(([num, title, body]) => (
               <div key={num}>
                 <div

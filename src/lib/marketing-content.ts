@@ -24,9 +24,9 @@ export const HERO = {
   /** Highlighted portion of the last headline line (rendered in primary color) */
   headlineAccent: 'voicemail again.',
   subtitle:
-    "End Voicemail replaces the voicemail inbox with an AI receptionist. When you miss a call, Zara answers, asks what matters, and sends you the clean summary — so you call back knowing exactly who is worth your time.",
-  ctaLabel: "Hear Zara call you before you activate.",
-  proofLine: "Want to hear it first? Get a demo call from Zara below.",
+    "End Voicemail replaces the voicemail inbox with an AI receptionist. Zara is our demo assistant; your real agent can use your business name, your preferred name, and your rules. When you miss a call, the agent asks what matters and sends the clean summary — so you call back knowing exactly who is worth your time.",
+  ctaLabel: "Hear Zara demo the flow before you activate.",
+  proofLine: "Want to hear it first? Get a demo call from Zara below — then name your own agent during setup.",
 }
 
 // ─── Call Me Now Widget Copy ──────────────────────────────────────────
@@ -42,7 +42,7 @@ export const CALL_ME_WIDGET_COPY = {
   /** Success heading — urgency, not celebration */
   successHeading:     "Pick up now — Zara is calling from an unknown number.",
   /** Success body — sets expectation + reinforces value */
-  successBody:        "That's Zara, the public demo receptionist. Your real business agent uses the same voicemail-replacement flow after you forward missed calls.",
+  successBody:        "That's Zara, the public demo receptionist. Your real business agent can be named whatever you want and uses the same voicemail-replacement flow after you forward missed calls.",
   /** Button states */
   buttonIdle:         "Call Me Now",
   buttonLoading:      "Calling...",
@@ -113,7 +113,7 @@ export const DEMO_SECTION = {
 export const HOW_IT_WORKS = {
   eyebrow: 'How It Replaces Voicemail',
   headline: 'Missed calls become clean summaries, not audio chores.',
-  subheadline: 'Your customer still calls your normal business number. If you do not answer, Zara picks up instead of voicemail and turns the call into a usable follow-up.',
+  subheadline: 'Your customer still calls your normal business number. If you do not answer, your AI agent picks up instead of voicemail and turns the call into a usable follow-up.',
   /** Shown below the steps grid */
   proofLine: '50 activation minutes included · Real forwarded-call test · Email alerts first, Telegram optional',
   steps: [
@@ -122,7 +122,7 @@ export const HOW_IT_WORKS = {
       icon: PhoneIncoming as LucideIcon,
       title: 'Forward missed calls away from voicemail',
       description:
-        'After checkout, you get a real AI number. Forward unanswered calls from your existing business line so missed callers reach Zara instead of a voicemail box.',
+        'After checkout, you get a real AI number. Forward unanswered calls from your existing business line so missed callers reach your named agent instead of a voicemail box.',
     },
     {
       number: '02',
@@ -159,7 +159,7 @@ export const PRICING_SECTION = {
 // ─── Final CTA (homepage) ────────────────────────────────────────────
 export const FINAL_CTA = {
   headline: 'Your next voicemail should be the last one you have to hear.',
-  subheadline: 'Send missed calls to Zara instead. Get the summary, call back smarter, and stop wasting time replaying audio.',
+  subheadline: 'Send missed calls to your named AI agent instead. Get the summary, call back smarter, and stop wasting time replaying audio.',
   signupLinkText: 'Get your AI number →',
 }
 
