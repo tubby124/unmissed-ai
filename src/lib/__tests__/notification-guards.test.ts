@@ -121,45 +121,50 @@ describe('S8d: CompletedClient guard prerequisites', () => {
     assert.equal(unknownPhone, 'unknown', 'unknown phone → guard triggers')
   })
 
-  test('email guard: voicemail replacement defaults to email; non-message modes require opt-in', () => {
+  test('email guard: all niches default to email when flag is not explicitly false', () => {
+    // Voicemail niche: unchanged behavior
     assert.equal(
       shouldSendPerCallEmail({ niche: 'voicemail', call_handling_mode: null, email_notifications_enabled: null }),
       true,
       'voicemail niche default email path passes guard'
     )
-
     assert.equal(
       shouldSendPerCallEmail({ niche: 'plumbing', call_handling_mode: 'message_only', email_notifications_enabled: null }),
       true,
       'message_only service niche gets default email path'
     )
-
     assert.equal(
       shouldSendPerCallEmail({ niche: 'hvac', call_handling_mode: 'message_only', email_notifications_enabled: false }),
       false,
       'message_only can explicitly opt out'
     )
 
+    // Non-voicemail niche: NEW behavior — defaults ON unless explicitly false
     assert.equal(
       shouldSendPerCallEmail({ niche: 'real_estate', call_handling_mode: 'triage', email_notifications_enabled: true }),
       true,
       'non-message mode explicit opt-in passes guard'
     )
-
     assert.equal(
       shouldSendPerCallEmail({ niche: 'real_estate', call_handling_mode: 'triage', email_notifications_enabled: null }),
+      true,
+      'non-message mode with null flag now defaults ON (Task 4 — unified semantic)'
+    )
+    assert.equal(
+      shouldSendPerCallEmail({ niche: 'real_estate', call_handling_mode: 'triage', email_notifications_enabled: false }),
       false,
-      'non-message mode without opt-in triggers guard'
+      'non-message mode can explicitly opt out'
     )
 
     const junkClass: Partial<Classification> = { status: 'JUNK' }
-    assert.ok(junkClass.status === 'JUNK', 'JUNK classification → guard triggers')
+    assert.ok(junkClass.status === 'JUNK', 'JUNK classification → guard triggers (separate path)')
 
     const noEmail: Partial<CompletedClient> = {
       niche: 'voicemail',
       contact_email: null,
+      alert_email: null,
     }
-    assert.ok(!noEmail.contact_email, 'no contact_email → guard triggers')
+    assert.ok(!noEmail.contact_email && !noEmail.alert_email, 'no email destination → guard triggers (separate path)')
   })
 })
 

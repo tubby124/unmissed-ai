@@ -160,13 +160,13 @@ export function buildOwnerAlertDetails(
 }
 
 export function shouldSendPerCallEmail(client: Pick<CompletedClient, 'niche' | 'call_handling_mode' | 'email_notifications_enabled'>): boolean {
-  const isVoicemailReplacement = client.niche === 'voicemail' || client.call_handling_mode === 'message_only'
-
-  if (isVoicemailReplacement) {
-    return client.email_notifications_enabled !== false
-  }
-
-  return client.email_notifications_enabled === true
+  // Unified semantic (2026-05-25 Task 4): every niche defaults ON unless
+  // email_notifications_enabled is explicitly set to false. Existing
+  // non-voicemail clients with NULL flag were opted out via the optional
+  // backfill SQL in Task 4 step 6 to preserve their pre-deploy behavior.
+  // Voicemail-specific helper variables retained for documentation;
+  // the niche distinction no longer affects the return value.
+  return client.email_notifications_enabled !== false
 }
 
 // ── Idempotency Guard ────────────────────────────────────────────────────────
