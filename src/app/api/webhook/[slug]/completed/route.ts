@@ -9,6 +9,7 @@ import {
   sendTelegramNotification,
   sendSmsFollowUp,
   sendEmailNotification,
+  sendOwnerSmsAlert,
   notificationsAlreadySent,
   type CompletedClient,
 } from '@/lib/completed-notifications'
@@ -157,7 +158,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, call_handling_mode, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, business_hours_weekday, knowledge_backend, website_url, website_scrape_status, business_facts, extra_qa, system_prompt, first_call_at')
+        .select('id, business_name, niche, call_handling_mode, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, business_hours_weekday, knowledge_backend, website_url, website_scrape_status, business_facts, extra_qa, system_prompt, first_call_at, alert_phone, alert_email, sms_alerts_enabled, callback_phone')
         .eq('slug', slug)
         .single()
 
@@ -376,6 +377,9 @@ export async function POST(
 
         // ── SMS post-call follow-up ────────────────────────────────────────────
         await sendSmsFollowUp(notifCtx)
+
+        // ── Owner SMS alert (NEW 2026-05-25, owner-direction) ──────────────────
+        await sendOwnerSmsAlert(notifCtx)
 
         // ── Voicemail-to-email ─────────────────────────────────────────────────
         await sendEmailNotification(notifCtx)
