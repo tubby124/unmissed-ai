@@ -8,12 +8,12 @@ import Link from "next/link";
 import { BRAND_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = {
-  title: `Hear a Real Demo — ${BRAND_NAME}`,
+  title: `Hear a Phone Demo — ${BRAND_NAME}`,
   description:
-    "Listen to AI receptionist demo calls for auto glass, HVAC, plumbing, and more. Preview the call style before activation.",
+    "Hear how EndVoicemail replaces voicemail with a real phone assistant and clean missed-call summaries.",
   openGraph: {
-    title: `Hear a Real Demo — ${BRAND_NAME}`,
-    description: "Real AI receptionist calls for auto glass, HVAC, plumbing, dental, legal, and salon businesses.",
+    title: `Hear a Phone Demo — ${BRAND_NAME}`,
+    description: "Real phone demos and missed-call summaries for auto glass, HVAC, plumbing, dental, legal, and salon businesses.",
   },
 };
 
@@ -30,13 +30,13 @@ export default function DemoPage() {
               className="text-xs font-mono uppercase tracking-widest mb-3"
               style={{ color: "var(--color-primary)" }}
             >
-              Live Demo
+              Phone Demo
             </p>
             <h1 className="text-4xl md:text-5xl font-black mb-4" style={{ color: "var(--color-text-1)" }}>
-              Hear it before you buy.
+              Hear voicemail get replaced.
             </h1>
             <p className="text-xl" style={{ color: "var(--color-text-2)" }}>
-              Real calls. Real agents. Real leads captured.
+              Hear the caller experience, then see the clean summary you get instead of an audio inbox.
               Pick your industry below.
             </p>
           </div>
@@ -64,18 +64,17 @@ export default function DemoPage() {
           </div>
         </section>
 
-        {/* Talk to an agent live CTA */}
+        {/* Phone demo CTA */}
         <section
           className="py-20 px-4 text-center"
           style={{ backgroundColor: "var(--color-bg)", borderTop: "1px solid var(--color-border)" }}
         >
           <div className="max-w-xl mx-auto">
             <h2 className="text-3xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
-              Want to talk to an agent yourself?
+              Want Zara to call your phone?
             </h2>
             <p className="text-lg mb-6" style={{ color: "var(--color-text-2)" }}>
-              Talk to a live AI agent right in your browser — no phone needed.
-              Pick from auto glass, property management, or real estate.
+              Enter your number and Zara calls you with the demo — no app install, no fake chat demo.
             </p>
             <div className="flex flex-col items-center gap-4">
               <Link
@@ -83,7 +82,7 @@ export default function DemoPage() {
                 className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
                 style={{ backgroundColor: "var(--color-primary)" }}
               >
-                Try an Agent Live &rarr;
+                Get a Phone Demo Call &rarr;
               </Link>
               <Link
                 href="/onboard"
