@@ -316,7 +316,7 @@ Rules:
   } catch (err) {
     console.error(`[call-me] Failed to create outbound demo call: ${err}`)
     return NextResponse.json(
-      { error: 'Failed to place the call. Please try again or use the browser demo.' },
+      { error: 'Failed to place the call. Please try again in a moment.' },
       { status: 500 }
     )
   }
