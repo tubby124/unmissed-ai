@@ -10,7 +10,7 @@ import { BRAND_NAME } from "@/lib/brand";
 export const metadata: Metadata = {
   title: `Hear a Phone Demo — ${BRAND_NAME}`,
   description:
-    "Hear how EndVoicemail replaces voicemail with a real phone assistant and clean missed-call summaries.",
+    "See how EndVoicemail replaces voicemail with a receptionist-style demo flow: ask, wait, probe, summarize, and convert missed calls into callback-ready leads.",
   openGraph: {
     title: `Hear a Phone Demo — ${BRAND_NAME}`,
     description: "Real phone demos and missed-call summaries for auto glass, HVAC, plumbing, dental, legal, and salon businesses.",
@@ -36,8 +36,8 @@ export default function DemoPage() {
               Hear voicemail get replaced.
             </h1>
             <p className="text-xl" style={{ color: "var(--color-text-2)" }}>
-              Hear the caller experience, then see the clean summary you get instead of an audio inbox.
-              Pick your industry below.
+              Hear the demo flow we actually want: Zara asks one useful question, waits, probes, then turns the call into a clean owner summary.
+              Industry tabs are examples — the default is generic voicemail replacement.
             </p>
           </div>
         </section>

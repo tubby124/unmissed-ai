@@ -102,8 +102,8 @@ export const TRUST_BAR = {
 // ─── Demo Section (DemoAudioPlayer) ─────────────────────────────────
 export const DEMO_SECTION = {
   eyebrow: 'Live Phone Demo',
-  headline: 'Hear Zara replace voicemail.',
-  subheadline: 'Put in your number and Zara calls you. You hear the caller experience, then see why a clean summary beats another voicemail recording.',
+  headline: 'Watch Zara turn a missed call into a callback-ready lead.',
+  subheadline: 'This is the intended flow: ask one useful question, wait, probe, summarize the lead, then show the owner why reading a clean alert beats replaying voicemail audio.',
   ctaLabel: 'Get a Call from Zara',
   ctaHref: '/try',
   ctaSubtext: 'Real phone demo · Zara calls your phone',

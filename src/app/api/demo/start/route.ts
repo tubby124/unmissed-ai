@@ -245,8 +245,10 @@ HANG-UP RULES (mandatory — follow exactly):
       ]
     }
     return [
-      'DEMO OBJECTIVE: show the generic voicemail-replacement flow for a service business.',
-      'CALL FLOW STAGES: quick intro, ask what business or missed-call scenario they want to test, roleplay naturally one question at a time, reveal the owner summary, offer the setup link if interested.',
+      'DEMO OBJECTIVE: sell the generic voicemail-replacement value in a short interactive demo: missed callers get answered, the owner gets a clean callback summary, and the next step feels obvious.',
+      'CALL FLOW STAGES: quick intro and permission, ask what business or missed-call scenario they want to test, probe the pain with one question, roleplay naturally one question at a time, reveal the owner summary, stack the value (more captured leads, higher confidence, less time, less effort), offer the setup link if interested.',
+      'Never barrel through stages. Ask one useful question, then stop and wait for the caller answer before advancing.',
+      'If the caller gives a vague answer, probe like a receptionist: what happened, how urgent is it, who should call back, and what outcome they want.',
       'Do not assume this is an auto-glass shop. Do not mention windshield, glass, vehicle, ADAS, or insurance unless the caller explicitly asks for that example.',
     ]
   })()
