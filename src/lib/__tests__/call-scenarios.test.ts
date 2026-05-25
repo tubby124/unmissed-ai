@@ -709,16 +709,17 @@ describe('Phase 8 — General / other niche', () => {
       ],
     },
     {
-      id: 'gen-02-resolves-to-auto-glass',
+      id: 'gen-02-other-stays-generic',
       niche: 'other',
       callerType: 'unknown',
-      intentSummary: "'other' niche resolves to auto_glass production template (per resolveProductionNiche)",
-      // resolveProductionNiche maps unknown niches → auto_glass (most complete template)
-      // So 'other' gets auto_glass content, not a generic fallback.
+      intentSummary: "'other' niche uses the generic production template, not auto-glass fallback",
       expectedContains: [
-        'VEHICLE DETAILS',
+        'COMPLETION CHECK',
       ],
       mustNotContain: [
+        'VEHICLE DETAILS',
+        'SENSOR CHECK',
+        'windshield',
         'RENTAL INQUIRY',  // not PM
       ],
     },

@@ -8,7 +8,7 @@
   "scripts": {
     "reset-test": "node ../scripts/reset-test-calls.js",
     "dev": "next dev",
-    "build": "next build",
+    "build": "NODE_OPTIONS=--max-old-space-size=4096 next build",
     "start": "next start",
     "lint": "eslint",
     "test:capabilities": "npx tsx --test src/lib/__tests__/capabilities.test.ts",

@@ -411,7 +411,7 @@ describe('Shared standard: restaurant (knowledge only, no transfer/booking)', ()
   })
 })
 
-describe('Shared standard: other (resolves to auto_glass template)', () => {
+describe('Shared standard: other (generic template)', () => {
   const intake = makeMinimalIntake('other')
   const prompt = buildPromptFromIntake(intake)
 
@@ -422,9 +422,11 @@ describe('Shared standard: other (resolves to auto_glass template)', () => {
     assert.ok(prompt.length > 1000, `Other prompt too short: ${prompt.length}`)
   })
 
-  test('resolves to auto_glass production template (not minimal fallback)', () => {
-    // resolveProductionNiche: unrecognised niche → auto_glass (most complete template)
-    assert.ok(prompt.includes('VEHICLE DETAILS') || prompt.includes('SENSOR CHECK'))
+  test('uses generic production defaults, not auto-glass fallback', () => {
+    assert.ok(prompt.includes('COMPLETION CHECK'))
+    assert.ok(!prompt.includes('VEHICLE DETAILS'))
+    assert.ok(!prompt.includes('SENSOR CHECK'))
+    assert.ok(!/windshield/i.test(prompt))
     assert.ok(!prompt.includes('RENTAL INQUIRY'))  // not property_management
     assert.ok(!prompt.includes('PRICE QUOTING EXCEPTION'))  // not print_shop
   })
