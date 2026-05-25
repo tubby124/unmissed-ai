@@ -25,6 +25,29 @@ export interface DemoNiche {
 
 export const DEMOS: DemoNiche[] = [
   {
+    id: "voicemail-replacement",
+    label: "Voicemail Replacement",
+    agentName: "Zara",
+    companyName: "EndVoicemail.ai Demo",
+    messages: [
+      { role: "agent", text: "Hey, this is Zara from EndVoicemail. What kind of calls are you missing right now?" },
+      { role: "caller", text: "Mostly new customers calling after hours or when we’re busy." },
+      { role: "agent", text: "Got it. What would you want captured every time so you don’t have to listen to a voicemail?" },
+      { role: "caller", text: "Name, phone, what they need, and whether it’s urgent." },
+      { role: "agent", text: "Perfect. That’s exactly the flow — I answer, ask the useful questions one at a time, then send you the clean summary." },
+      { role: "caller", text: "So I get the details instead of an audio message?" },
+      { role: "agent", text: "Exactly. Caller handled, lead captured, and you know who needs a callback first." },
+    ],
+    outcome: {
+      status: "WARM",
+      statusColor: "#F59E0B",
+      caller: "New customer",
+      intent: "Missed-call replacement — capture name, need, urgency, callback info",
+      nextStep: "Owner gets clean summary + callback priority",
+      duration: "1:21",
+    },
+  },
+  {
     id: "auto-glass",
     label: "Auto Glass",
     agentName: "Tyler",

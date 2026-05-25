@@ -1,11 +1,34 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildDemoTools } from '../ultravox'
+import { normalizeDemoId } from '../demo-prompts'
 
 // ── Phase F0: Capability-truth tests for demo paths ──────────────────────────
 // Asserts that buildDemoTools returns EXACTLY the right tools for each demo path.
 // No extras, no missing. This catches the class of bug where a path claims tools
 // it cannot actually deliver.
+
+describe('normalizeDemoId — public demo IDs never fall into the wrong vertical', () => {
+  it('maps generic/marketing IDs to unmissed_demo', () => {
+    assert.equal(normalizeDemoId(undefined), 'unmissed_demo')
+    assert.equal(normalizeDemoId(''), 'unmissed_demo')
+    assert.equal(normalizeDemoId('voicemail_replacement'), 'unmissed_demo')
+    assert.equal(normalizeDemoId('voicemail'), 'unmissed_demo')
+    assert.equal(normalizeDemoId('unmissed_demo'), 'unmissed_demo')
+  })
+
+  it('maps vertical aliases only when explicitly selected', () => {
+    assert.equal(normalizeDemoId('auto_glass'), 'auto_glass')
+    assert.equal(normalizeDemoId('auto-glass'), 'auto_glass')
+    assert.equal(normalizeDemoId('windshield'), 'auto_glass')
+    assert.equal(normalizeDemoId('property_mgmt'), 'property_mgmt')
+    assert.equal(normalizeDemoId('property_management'), 'property_mgmt')
+  })
+
+  it('falls unknown public IDs back to generic voicemail replacement, not auto glass', () => {
+    assert.equal(normalizeDemoId('some-random-landing-page-id'), 'unmissed_demo')
+  })
+})
 
 describe('buildDemoTools — browser path (WebRTC, no phone)', () => {
   const tools = buildDemoTools('unmissed-demo', {

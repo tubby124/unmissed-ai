@@ -33,6 +33,34 @@ export interface DemoAgent {
   capabilities?: DemoCapabilities
 }
 
+// Public pages and analytics use marketing-facing IDs. Runtime routes must resolve
+// those to DEMO_AGENTS keys consistently; otherwise generic demos can drift into
+// vertical demos or browser demos can reject valid public IDs.
+export const DEFAULT_DEMO_ID = 'unmissed_demo'
+
+export const PUBLIC_DEMO_ID_MAP: Record<string, string> = {
+  '': DEFAULT_DEMO_ID,
+  voicemail: DEFAULT_DEMO_ID,
+  voicemail_replacement: DEFAULT_DEMO_ID,
+  unmissed: DEFAULT_DEMO_ID,
+  unmissed_demo: DEFAULT_DEMO_ID,
+  auto_glass: 'auto_glass',
+  'auto-glass': 'auto_glass',
+  windshield: 'auto_glass',
+  property_mgmt: 'property_mgmt',
+  property_management: 'property_mgmt',
+  'property-management': 'property_mgmt',
+}
+
+export function normalizeDemoId(value: unknown, fallback = DEFAULT_DEMO_ID): string {
+  const key = String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s/]+/g, '_')
+    .slice(0, 80)
+  return PUBLIC_DEMO_ID_MAP[key] || fallback
+}
+
 // Voice IDs from Ultravox — if changing a production voice, update here too.
 // Fallback voice in /api/demo/start catches stale IDs, but keep these current.
 const VOICE_TYLER = 'b0e6b5c1-3100-44d5-8578-9015aa3023ae'   // Mark (windshield-hub prod voice)

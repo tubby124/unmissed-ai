@@ -59,7 +59,7 @@ export default function DemoPage() {
               </p>
             </div>
             <ErrorBoundary>
-              <LeadCard niche="auto-glass" />
+              <LeadCard niche="voicemail" />
             </ErrorBoundary>
           </div>
         </section>

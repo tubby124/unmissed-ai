@@ -1,11 +1,24 @@
 import { BRAND_NAME } from '@/lib/brand'
 
 interface LeadCardProps {
-  niche?: "auto-glass" | "hvac" | "plumbing" | "dental" | "legal" | "salon" | "realty";
+  niche?: "voicemail" | "auto-glass" | "hvac" | "plumbing" | "dental" | "legal" | "salon" | "realty";
   className?: string;
 }
 
 const leadData = {
+  "voicemail": {
+    badge: "🌡️ WARM LEAD",
+    badgeColor: "#F59E0B",
+    title: "Missed Call — New Customer",
+    fields: [
+      { label: "Caller", value: "New customer" },
+      { label: "Need", value: "Asked about availability and pricing" },
+      { label: "Urgency", value: "Wants callback today" },
+      { label: "Source", value: "Missed / after-hours call" },
+      { label: "Phone", value: "(403) 555-0198" },
+    ],
+    time: "2 min ago · Calgary, AB",
+  },
   "auto-glass": {
     badge: "🔥 HOT LEAD",
     badgeColor: "#EF4444",
@@ -99,7 +112,7 @@ const leadData = {
   },
 };
 
-export default function LeadCard({ niche = "auto-glass", className = "" }: LeadCardProps) {
+export default function LeadCard({ niche = "voicemail", className = "" }: LeadCardProps) {
   const data = leadData[niche];
 
   return (

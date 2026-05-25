@@ -4,7 +4,7 @@ import twilio from 'twilio'
 import { createDemoCall, buildDemoTools, signCallbackUrl } from '@/lib/ultravox'
 import { buildStreamTwiml } from '@/lib/twilio'
 import { createServiceClient } from '@/lib/supabase/server'
-import { DEMO_AGENTS } from '@/lib/demo-prompts'
+import { DEMO_AGENTS, normalizeDemoId } from '@/lib/demo-prompts'
 import { APP_URL } from '@/lib/app-url'
 import { globalDemoBudget, GLOBAL_DEMO_KEY } from '@/lib/demo-budget'
 import { SlidingWindowRateLimiter } from '@/lib/rate-limiter'
@@ -61,20 +61,7 @@ export async function POST(req: NextRequest) {
   // Public pages use marketing-facing IDs that don't always match DEMO_AGENTS keys.
   // Never fall through to auto_glass by accident — that made the generic voicemail demo
   // start talking like a glass-shop demo.
-  const demoKeyMap: Record<string, string> = {
-    '': 'unmissed_demo',
-    voicemail: 'unmissed_demo',
-    voicemail_replacement: 'unmissed_demo',
-    unmissed: 'unmissed_demo',
-    unmissed_demo: 'unmissed_demo',
-    auto_glass: 'auto_glass',
-    'auto-glass': 'auto_glass',
-    windshield: 'auto_glass',
-    property_mgmt: 'property_mgmt',
-    property_management: 'property_mgmt',
-    'property-management': 'property_mgmt',
-  }
-  const niche = demoKeyMap[requestedNiche] || 'unmissed_demo'
+  const niche = normalizeDemoId(requestedNiche)
 
   // Validate phone
   if (!phone || !isValidE164NA(phone)) {

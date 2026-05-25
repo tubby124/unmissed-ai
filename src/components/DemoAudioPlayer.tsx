@@ -10,7 +10,7 @@ import DemoOutcome from "./DemoOutcome"
 import { DEMO_SECTION } from "@/lib/marketing-content"
 
 export default function DemoAudioPlayer() {
-  const [activeTab, setActiveTab] = useState("auto-glass")
+  const [activeTab, setActiveTab] = useState("voicemail-replacement")
   const [visibleCount, setVisibleCount] = useState(0)
   const [isTyping, setIsTyping] = useState(false)
   const [showOutcome, setShowOutcome] = useState(false)

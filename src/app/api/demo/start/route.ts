@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { createDemoCall, buildDemoTools, signCallbackUrl } from '@/lib/ultravox'
 import { createServiceClient } from '@/lib/supabase/server'
-import { DEMO_AGENTS } from '@/lib/demo-prompts'
+import { DEMO_AGENTS, normalizeDemoId } from '@/lib/demo-prompts'
 import { OnboardingData } from '@/types/onboarding'
 import { toIntakePayload } from '@/lib/intake-transform'
 import { buildPromptFromIntake } from '@/lib/prompt-builder'
@@ -144,11 +144,12 @@ HANG-UP RULES (mandatory — follow exactly):
   }
 
   // ── Standard demo mode: DEMO_AGENTS lookup ──────────────────────────────────
-  const demoId = body.demoId as string
+  const requestedDemoId = body.demoId as string
+  const demoId = normalizeDemoId(requestedDemoId)
 
-  if (!demoId || !DEMO_AGENTS[demoId]) {
+  if (!DEMO_AGENTS[demoId]) {
     return NextResponse.json(
-      { error: 'Invalid demoId. Choose: auto_glass, property_mgmt, or real_estate' },
+      { error: 'Invalid demoId. Choose: unmissed_demo, auto_glass, property_mgmt, or real_estate' },
       { status: 400 }
     )
   }
@@ -228,7 +229,32 @@ HANG-UP RULES (mandatory — follow exactly):
   }
 
   // Build context block — same UPPERCASE format as buildAgentContext()
+  const demoObjective = (() => {
+    if (demoId === 'auto_glass') {
+      return [
+        'DEMO OBJECTIVE: run an auto-glass/windshield receptionist simulation only because auto-glass was selected.',
+        'CALL FLOW STAGES: intro, windshield triage, owner-summary reveal, conversion handoff.',
+        'Collect one item at a time: repair vs replacement, vehicle year/make/model, damage, ADAS/lane-assist camera, urgency, insurance/cash, callback window.',
+      ]
+    }
+    if (demoId === 'property_mgmt') {
+      return [
+        'DEMO OBJECTIVE: run a property-management missed-call simulation only because property management was selected.',
+        'CALL FLOW STAGES: intro, caller type, issue/property/urgency, manager-summary reveal.',
+        'Do not talk about auto glass unless the caller explicitly asks to switch demos.',
+      ]
+    }
+    return [
+      'DEMO OBJECTIVE: show the generic voicemail-replacement flow for a service business.',
+      'CALL FLOW STAGES: quick intro, ask what business or missed-call scenario they want to test, roleplay naturally one question at a time, reveal the owner summary, offer the setup link if interested.',
+      'Do not assume this is an auto-glass shop. Do not mention windshield, glass, vehicle, ADAS, or insurance unless the caller explicitly asks for that example.',
+    ]
+  })()
+
   const contextParts = [`DEMO MODE — BROWSER`]
+  contextParts.push(`REQUESTED DEMO: ${requestedDemoId || 'default'}`)
+  contextParts.push(`RESOLVED DEMO: ${demoId}`)
+  contextParts.push(...demoObjective)
   contextParts.push(`CALLER NAME: ${callerName}`)
   if (callerPhone) contextParts.push(`CALLER PHONE: ${callerPhone}`)
   if (callerEmail) contextParts.push(`CALLER EMAIL: ${callerEmail}`)
