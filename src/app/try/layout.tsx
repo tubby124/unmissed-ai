@@ -2,12 +2,12 @@ import type { Metadata } from "next"
 import { BRAND_NAME } from "@/lib/brand"
 
 export const metadata: Metadata = {
-  title: `Try a Live AI Agent — ${BRAND_NAME}`,
+  title: `Get a Phone Demo Call — ${BRAND_NAME}`,
   description:
-    "Talk to an AI receptionist right in your browser. No sign-up, no credit card. Try auto glass, property management, or real estate agents live.",
+    "Enter your number and Zara calls your phone with a live EndVoicemail demo. See how missed calls become clean summaries instead of audio voicemail.",
   openGraph: {
-    title: `Try a Live AI Agent — ${BRAND_NAME}`,
-    description: "Talk to an AI receptionist right in your browser. No sign-up required.",
+    title: `Get a Phone Demo Call — ${BRAND_NAME}`,
+    description: "Zara calls your phone with a live demo of voicemail replacement and clean missed-call summaries.",
   },
 }
 
