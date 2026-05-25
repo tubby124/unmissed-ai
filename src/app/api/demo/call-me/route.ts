@@ -51,12 +51,30 @@ export async function POST(req: NextRequest) {
     .slice(0, max)
   const rawPhone = cleanText(body.phone, 32)
   const phone = rawPhone ? (normalizePhoneNA(rawPhone) || rawPhone) : ''
-  const niche = cleanText(body.niche, 48) || 'auto_glass'
+  const requestedNiche = cleanText(body.niche, 48)
   const callerName = cleanText(body.callerName, 80) || 'Friend'
   const callerEmail = cleanText(body.callerEmail, 160)
   const shopName = cleanText(body.shopName, 120)
   const painPoint = cleanText(body.painPoint, 80)
   const demoVariant = cleanText(body.demoVariant, 40)
+
+  // Public pages use marketing-facing IDs that don't always match DEMO_AGENTS keys.
+  // Never fall through to auto_glass by accident — that made the generic voicemail demo
+  // start talking like a glass-shop demo.
+  const demoKeyMap: Record<string, string> = {
+    '': 'unmissed_demo',
+    voicemail: 'unmissed_demo',
+    voicemail_replacement: 'unmissed_demo',
+    unmissed: 'unmissed_demo',
+    unmissed_demo: 'unmissed_demo',
+    auto_glass: 'auto_glass',
+    'auto-glass': 'auto_glass',
+    windshield: 'auto_glass',
+    property_mgmt: 'property_mgmt',
+    property_management: 'property_mgmt',
+    'property-management': 'property_mgmt',
+  }
+  const niche = demoKeyMap[requestedNiche] || 'unmissed_demo'
 
   // Validate phone
   if (!phone || !isValidE164NA(phone)) {
@@ -66,8 +84,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Pick demo agent
-  const demo = DEMO_AGENTS[niche] || DEMO_AGENTS['auto_glass']
+  // Pick demo agent. Unknown public values intentionally resolve to the generic
+  // EndVoicemail demo instead of auto-glass.
+  const demo = DEMO_AGENTS[niche] || DEMO_AGENTS['unmissed_demo']
 
   // Fetch live prompt from Supabase if configured
   let basePrompt = demo.systemPrompt
@@ -173,6 +192,31 @@ Rules:
 - If they sound busy, give the 20-second version and offer follow-up.`
   }
 
+  const selectedDemoObjective = (() => {
+    if (niche === 'auto_glass' && demoVariant === 'windshield') {
+      return [
+        'DEMO OBJECTIVE: give a short personalized auto-glass demo, simulate windshield triage, explain what the shop owner receives, and if they are interested text them the setup link.',
+        'CALL FLOW STAGES: 1) intro/onboarding, 2) windshield triage simulation, 3) owner summary reveal, 4) conversion handoff via SMS setup link when requested.',
+        'Greet the prospect by name, reference their shop if provided, and make the demo feel built for auto-glass shops.',
+        'Auto-glass intake fields: repair vs replacement, vehicle year/make/model, damage, ADAS/lane-assist camera, urgency, insurance/cash, callback window.',
+      ]
+    }
+
+    if (niche === 'property_mgmt') {
+      return [
+        'DEMO OBJECTIVE: simulate a property-management missed call, collect the issue and urgency, then explain the clean manager summary.',
+        'CALL FLOW STAGES: 1) intro, 2) ask whether they are a tenant/owner/prospect, 3) collect issue/property/urgency, 4) summarize the manager handoff.',
+        'Do not talk about auto glass unless the caller explicitly asks to switch demos.',
+      ]
+    }
+
+    return [
+      'DEMO OBJECTIVE: show the generic voicemail-replacement flow for a service business. Probe for what kind of business they run and what missed-call problem they have, then demonstrate the clean summary they would receive instead of audio voicemail.',
+      'CALL FLOW STAGES: 1) quick intro, 2) ask what business or missed-call scenario they want to test, 3) roleplay a caller naturally one question at a time, 4) reveal the owner summary, 5) offer the setup link by SMS if interested.',
+      'Do not assume this is an auto-glass shop. Do not mention windshield, glass, vehicle, ADAS, or insurance unless the caller selected the auto-glass demo or asks for that example.',
+    ]
+  })()
+
   const prospectContextLines = [
     '[DEMO MODE — PHONE',
     `CALLER NAME: ${callerName}`,
@@ -180,10 +224,10 @@ Rules:
     callerEmail ? `CALLER EMAIL: ${callerEmail}` : '',
     shopName ? `PROSPECT SHOP NAME: ${shopName}` : '',
     painPoint ? `PROSPECT PAIN POINT: ${painPoint}` : '',
+    requestedNiche ? `REQUESTED DEMO: ${requestedNiche}` : '',
+    `RESOLVED DEMO: ${niche}`,
     demoVariant ? `DEMO VARIANT: ${demoVariant}` : '',
-    'DEMO OBJECTIVE: give a short personalized demo, then simulate an auto-glass triage, explain what the shop owner receives, and if they are interested text them the setup link.',
-    'CALL FLOW STAGES: 1) intro/onboarding, 2) windshield triage simulation, 3) owner summary reveal, 4) conversion handoff via SMS setup link when requested.',
-    'If this is the windshield demo, greet the prospect by name, reference their shop if provided, and make the demo feel built for auto-glass shops.',
+    ...selectedDemoObjective,
     'Do not collect sensitive customer data. Do not quote guaranteed prices. Do not pretend a real appointment is booked.',
     'If asked how setup works: they keep their number; missed, busy, and after-hours calls forward to the AI line; no porting required.',
     'Tools: hangUp, calendar, SMS, transfer.]',
