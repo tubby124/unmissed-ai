@@ -55,7 +55,15 @@ export function requestedTimeMatchesSlot(
   firstSlot: { displayTime: string; start: string } | undefined,
 ): boolean {
   if (!requestedTime || !firstSlot) return false
+
+  const normalizedRequested = normalizeTime(requestedTime).toLowerCase()
+  const requested24h = toPreferredTime(requestedTime)
+  const slot24h = toPreferredTime(firstSlot.displayTime)
+
+  if (requested24h && slot24h && requested24h === slot24h) return true
+
   return (
+    firstSlot.displayTime.toLowerCase().includes(normalizedRequested) ||
     firstSlot.displayTime.toLowerCase().includes(requestedTime.toLowerCase()) ||
     firstSlot.start.includes(requestedTime)
   )

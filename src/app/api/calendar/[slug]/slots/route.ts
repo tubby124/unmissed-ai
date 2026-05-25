@@ -91,8 +91,10 @@ export async function GET(
     // If the caller requested a specific time and it's the first result, confirm it directly
     const requestedTimeMatches = requestedTimeMatchesSlot(time, slots[0])
     const baseInstruction = requestedTimeMatches
-      ? `The caller's requested time is available. Confirm it directly and proceed to booking — do not offer other options.`
-      : `Available slots: ${slotList}. Read 2-3 options naturally — don't list all of them. Ask which works best.`
+      ? `The caller's requested time is available. Confirm the exact day and time back: "so that's ${slots[0].displayTime} — does that work?" Do not offer other options.`
+      : time
+        ? `The caller requested ${time}, but that exact time is not available. Closest available slots: ${slotList}. Offer the closest one and ask if it works. Do not say the requested time is booked unless explicitly told.`
+        : `Available slots: ${slotList}. Read 2-3 options naturally — don't list all of them. Ask which works best.`
     const response = NextResponse.json({
       available: true,
       slots,

@@ -347,7 +347,7 @@ export function buildCalendarBookingTools(slug: string): UltravoxTool[] {
         modelToolName: 'checkCalendarAvailability',
         precomputable: true,
         timeout: '10s',
-        description: 'Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. "9:00 AM"). Read up to 3 slots back to the caller naturally. If available=false or slots is empty, no openings exist for that day. When the caller asks for a specific time, pass it as the time parameter — the tool returns the 3 closest available slots to that time. If the exact time is not available, say "I don\'t have exactly [time] but I can do [closest slot] — does that work?" — NEVER say a time is "booked" unless the tool explicitly says so.',
+        description: 'Check available appointment slots for a given date. Returns a slots array — each slot has a displayTime string (e.g. "9:00 AM"). If the caller asks for a specific day/time, pass BOTH date and time — never omit the time. When the exact requested time is available, confirm that exact day/time and do not offer alternatives. If the exact time is not available, offer the closest returned slot and ask if it works. NEVER say a time is "booked" unless the tool explicitly says so.',
         dynamicParameters: [
           {
             name: 'date',
@@ -388,7 +388,7 @@ export function buildCalendarBookingTools(slug: string): UltravoxTool[] {
         modelToolName: 'bookAppointment',
         defaultReaction: 'AGENT_REACTION_SPEAKS',
         timeout: '10s',
-        description: 'Book an appointment for a caller. IMPORTANT: pass time exactly as the displayTime value returned by checkCalendarAvailability (e.g. "9:00 AM", "2:30 PM") — do not reformat it. Always include callerPhone from CALLER PHONE in callerContext. If response has booked=false and nextAvailable, offer that slot. If response has fallback=true, switch to message-taking mode instead.',
+        description: 'Book an appointment for a caller only after verbally confirming the exact day/time and receiving a clear yes. IMPORTANT: pass time exactly as the displayTime value returned by checkCalendarAvailability (e.g. "9:00 AM", "2:30 PM") — do not reformat it. Always include callerPhone from CALLER PHONE in callerContext. If response has booked=false and nextAvailable, offer that slot. If response has fallback=true, switch to message-taking mode instead.',
         dynamicParameters: [
           { name: 'date',        location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Date in YYYY-MM-DD format' }, required: true },
           { name: 'time',        location: 'PARAMETER_LOCATION_BODY', schema: { type: 'string', description: 'Exact displayTime from checkCalendarAvailability e.g. "9:00 AM". Do not reformat.' }, required: true },

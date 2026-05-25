@@ -119,3 +119,24 @@ describe('requestedTimeMatchesSlot', () => {
     assert.equal(requestedTimeMatchesSlot('3:00 PM', undefined), false)
   })
 })
+
+it('matches 24-hour requested time against full displayTime strings', () => {
+  assert.equal(requestedTimeMatchesSlot('17:00', {
+    displayTime: 'Tuesday May 26 at 5:00 PM',
+    start: '2026-05-26T23:00:00.000Z',
+  }), true)
+})
+
+it('matches natural requested time against full displayTime strings', () => {
+  assert.equal(requestedTimeMatchesSlot('5:00 PM', {
+    displayTime: 'Tuesday May 26 at 5:00 PM',
+    start: '2026-05-26T23:00:00.000Z',
+  }), true)
+})
+
+it('rejects different requested time from full displayTime strings', () => {
+  assert.equal(requestedTimeMatchesSlot('5:00 PM', {
+    displayTime: 'Tuesday May 26 at 4:30 PM',
+    start: '2026-05-26T22:30:00.000Z',
+  }), false)
+})

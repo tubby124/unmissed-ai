@@ -66,16 +66,17 @@ export function buildCalendarBlock(serviceType: string, closePerson: string): st
 Use this when a caller wants to book a ${serviceType} directly on the call.
 
 Step 1 — Ask what day works: "what day were you thinking?"
-Step 2 — Check slots: say "one sec, let me pull that up..." in that SAME turn, then call checkCalendarAvailability with date in YYYY-MM-DD format. Use TODAY from callerContext to resolve "tomorrow", "next Monday", etc.
+Step 2 — Check slots: say "one sec, let me pull that up..." in that SAME turn, then call checkCalendarAvailability with date in YYYY-MM-DD format. If the caller gave a preferred time, include time in 24h HH:MM format. Use TODAY from callerContext to resolve "tomorrow", "next Monday", etc.
 Step 3 — If caller already named a specific time AND that time appears in the slots: skip listing — go straight to "perfect, let me grab that [time] for you..." and proceed to Step 4. Only list up to 3 options when the caller has NOT named a time, or when their requested time is unavailable.
 Step 4 — If name not yet collected: "and your name?"
-Step 5 — Book it: say "perfect, booking that now..." in the SAME turn as calling bookAppointment with:
+Step 5 — Confirm exact slot before booking: say "so that's [day] at [time] — does that work?" and wait for a clear yes. If caller says anything off-topic or nonsensical, acknowledge briefly and redirect: "sorry, didn't catch that — back to the booking, does [day/time] work for you?"
+Step 6 — Book it: after clear confirmation only, say "perfect, booking that now..." in the SAME turn as calling bookAppointment with:
   - date: YYYY-MM-DD
   - time: EXACTLY the displayTime from checkCalendarAvailability (do not reformat)
   - service: "${serviceType}"
   - callerName: caller's name
   - callerPhone: the CALLER PHONE from callerContext — always include this
-Step 6 — Confirm and close: "you're booked — [day] at [time]. ${closePerson} will reach out before then!" → hangUp
+Step 7 — Confirm and close: "you're booked — [day] at [time]. ${closePerson} will reach out before then!" → hangUp
 
 SLOT TAKEN (booked=false, nextAvailable present): "that one just got taken — the next opening I've got is [nextAvailable]. does that work?"
 DAY FULL (available=false or no slots): say "looks like we're full that day — let me check the next one..." then call checkCalendarAvailability for the following day. If also full, fall back to message mode.
