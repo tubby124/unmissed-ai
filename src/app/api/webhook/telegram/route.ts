@@ -39,6 +39,7 @@ import {
   type PendingActionRow,
 } from '@/lib/telegram/pending-actions'
 import { updateLeadStatusForClient } from '@/lib/calls/lead-status'
+import { handleLearningLoopDecision } from '@/lib/learning-loop/approval'
 
 interface TelegramUpdate {
   update_id?: number
@@ -362,6 +363,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     const chatId = chat.id
     const code = cq.data
+
+    // ── Learning Loop approval callbacks ───────────────────────────────────
+    // Durable approve/reject buttons for client-approved low-risk agent updates.
+    if (code.startsWith('ll:approve:') || code.startsWith('ll:reject:')) {
+      const [, decisionRaw, suggestionId] = code.split(':')
+      const decision = decisionRaw === 'approve' ? 'approve' : 'reject'
+      try {
+        const result = await handleLearningLoopDecision(adminSupa, { suggestionId, chatId, decision })
+        await answerCallbackQuery(cq.id, { text: result.ok ? 'Saved.' : 'Could not apply.' })
+        await sendTelegramMessage(chatId, result.message, {
+          reply_markup: buildQuickActionsKeyboard(),
+        })
+      } catch (err) {
+        console.error(`[telegram-webhook] learning-loop callback error chatId=${chatId}: ${(err as Error).message}`)
+        await answerCallbackQuery(cq.id, { text: 'Something went wrong.' })
+        await sendTelegramMessage(chatId, "I couldn't process that suggestion. Try again later.", {
+          reply_markup: buildQuickActionsKeyboard(),
+        })
+      }
+      return new NextResponse('OK', { status: 200 })
+    }
 
     // ── Tier 3: cf:<uuid> confirm / cancel:<uuid> dispatch ─────────────────
     // cf:<uuid> redeems a pending action created by a prior cb:/mk: tap.
