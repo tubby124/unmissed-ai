@@ -103,6 +103,9 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   service_catalog:               { mutationClass: 'DB_ONLY', triggersSync: false },
   owner_name:                    { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'owner_name' },
   callback_phone:                { mutationClass: 'DB_ONLY', triggersSync: false },
+  alert_phone:                   { mutationClass: 'DB_ONLY', triggersSync: false },
+  alert_email:                   { mutationClass: 'DB_ONLY', triggersSync: false },
+  sms_alerts_enabled:            { mutationClass: 'DB_ONLY', triggersSync: false },
   city:                          { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'slot_regen' },
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
 
@@ -261,6 +264,16 @@ export const settingsBodySchema = z.object({
   // Post-provision editable
   owner_name: z.string().optional(),
   callback_phone: z.string().optional(),
+  // Multichannel owner-alert destinations
+  alert_phone: z.union([
+    z.string().regex(/^\+[1-9]\d{1,14}$/, 'alert_phone must be E.164 format (e.g. +13065550123)'),
+    z.literal(''),
+  ]).optional(),
+  alert_email: z.union([
+    z.string().email('alert_email must be a valid email address'),
+    z.literal(''),
+  ]).optional(),
+  sms_alerts_enabled: z.boolean().optional(),
   city: z.string().optional(),
   website_url: z.string().optional(),
 
@@ -382,7 +395,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     'after_hours_emergency_phone', 'transfer_conditions', 'voicemail_greeting_text',
     'voicemail_greeting_audio_url', 'ivr_prompt', 'owner_name', 'callback_phone',
     'city', 'website_url', 'context_data', 'context_data_label',
-    'display_name',
+    'display_name', 'alert_phone', 'alert_email',
   ]
 
   // String fields that get trimmed + nullable, but require non-empty
@@ -399,6 +412,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   const boolFields: (keyof SettingsBody)[] = [
     'sms_enabled', 'booking_enabled', 'setup_complete', 'weekly_digest_enabled',
     'telegram_notifications_enabled', 'email_notifications_enabled', 'ivr_enabled',
+    'sms_alerts_enabled',
   ]
 
   // Enum/string fields — direct copy

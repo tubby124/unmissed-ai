@@ -23,6 +23,12 @@ import {
   type Classification,
   type NotificationContext,
 } from '../completed-notifications.js'
+import {
+  FIELD_REGISTRY,
+  settingsBodySchema,
+  buildUpdates,
+  SYNC_TRIGGER_FIELDS,
+} from '../settings-schema.js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // ── Mock Supabase for idempotency check ──────────────────────────────────────
@@ -241,5 +247,77 @@ describe('S8d: NotificationContext required fields', () => {
     assert.ok(ctx.slug, 'slug is required')
     assert.ok(ctx.classification.status, 'classification.status is required')
     assert.ok(Array.isArray(ctx.transcript), 'transcript is an array')
+  })
+})
+
+// ── Task 2: alert_phone / alert_email / sms_alerts_enabled registry ──────────
+
+describe('multichannel notifications: settings registry', () => {
+  test('FIELD_REGISTRY has alert_phone as DB_ONLY without sync', () => {
+    assert.equal(FIELD_REGISTRY.alert_phone?.mutationClass, 'DB_ONLY')
+    assert.equal(FIELD_REGISTRY.alert_phone?.triggersSync, false)
+  })
+
+  test('FIELD_REGISTRY has alert_email as DB_ONLY without sync', () => {
+    assert.equal(FIELD_REGISTRY.alert_email?.mutationClass, 'DB_ONLY')
+    assert.equal(FIELD_REGISTRY.alert_email?.triggersSync, false)
+  })
+
+  test('FIELD_REGISTRY has sms_alerts_enabled as DB_ONLY without sync', () => {
+    assert.equal(FIELD_REGISTRY.sms_alerts_enabled?.mutationClass, 'DB_ONLY')
+    assert.equal(FIELD_REGISTRY.sms_alerts_enabled?.triggersSync, false)
+  })
+
+  test('Zod schema accepts alert_phone in E.164 form', () => {
+    const parsed = settingsBodySchema.safeParse({ alert_phone: '+13065550123' })
+    assert.equal(parsed.success, true)
+  })
+
+  test('Zod schema rejects alert_phone with letters', () => {
+    const parsed = settingsBodySchema.safeParse({ alert_phone: 'not-a-phone' })
+    assert.equal(parsed.success, false)
+  })
+
+  test('Zod schema rejects alert_phone without leading +', () => {
+    const parsed = settingsBodySchema.safeParse({ alert_phone: '13065550123' })
+    assert.equal(parsed.success, false)
+  })
+
+  test('Zod schema accepts alert_email in valid form', () => {
+    const parsed = settingsBodySchema.safeParse({ alert_email: 'info@vellyremodeling.com' })
+    assert.equal(parsed.success, true)
+  })
+
+  test('Zod schema rejects alert_email with no @', () => {
+    const parsed = settingsBodySchema.safeParse({ alert_email: 'notanemail' })
+    assert.equal(parsed.success, false)
+  })
+
+  test('buildUpdates passes alert_phone through (trim + null on empty)', () => {
+    const updates = buildUpdates({ alert_phone: '+13065550123' }, 'owner')
+    assert.equal(updates.alert_phone, '+13065550123')
+    const cleared = buildUpdates({ alert_phone: '' }, 'owner')
+    assert.equal(cleared.alert_phone, null)
+  })
+
+  test('buildUpdates passes alert_email through (trim + null on empty)', () => {
+    const updates = buildUpdates({ alert_email: 'kausar@example.com' }, 'owner')
+    assert.equal(updates.alert_email, 'kausar@example.com')
+    const cleared = buildUpdates({ alert_email: '' }, 'owner')
+    assert.equal(cleared.alert_email, null)
+  })
+
+  test('buildUpdates passes sms_alerts_enabled through as boolean', () => {
+    const on = buildUpdates({ sms_alerts_enabled: true }, 'owner')
+    assert.equal(on.sms_alerts_enabled, true)
+    const off = buildUpdates({ sms_alerts_enabled: false }, 'owner')
+    assert.equal(off.sms_alerts_enabled, false)
+  })
+
+  test('SYNC_TRIGGER_FIELDS does NOT include the 3 new alert fields', () => {
+    // Critical: changing alert_* must never call updateAgent() (per no-redeploy rule)
+    assert.ok(!SYNC_TRIGGER_FIELDS.includes('alert_phone'))
+    assert.ok(!SYNC_TRIGGER_FIELDS.includes('alert_email'))
+    assert.ok(!SYNC_TRIGGER_FIELDS.includes('sms_alerts_enabled'))
   })
 })
