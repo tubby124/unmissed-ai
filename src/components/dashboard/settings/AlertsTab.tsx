@@ -21,6 +21,15 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
   const [telegramEnabled, setTelegramEnabled] = useState(client.telegram_notifications_enabled !== false)
   const [emailEnabled, setEmailEnabled] = useState(client.email_notifications_enabled !== false)
 
+  // Multichannel owner-alert state (added 2026-05-25)
+  const [smsAlertsEnabled, setSmsAlertsEnabled] = useState(client.sms_alerts_enabled === true)
+  const [alertPhone, setAlertPhone] = useState(client.alert_phone ?? '')
+  const [alertEmail, setAlertEmail] = useState(client.alert_email ?? '')
+  const [alertPhoneDirty, setAlertPhoneDirty] = useState(false)
+  const [alertEmailDirty, setAlertEmailDirty] = useState(false)
+  const [testingChannel, setTestingChannel] = useState<'sms' | 'email' | 'telegram' | null>(null)
+  const [testResult, setTestResult] = useState<{ channel: string; ok: boolean; error?: string } | null>(null)
+
   // Telegram connect flow
   const [tgLinkLoading, setTgLinkLoading] = useState(false)
   const [tgDeepLink, setTgDeepLink] = useState<string | null>(
@@ -92,6 +101,46 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
     setEmailEnabled(newVal)
     const res = await patch({ email_notifications_enabled: newVal })
     if (!res?.ok) setEmailEnabled(!newVal)
+  }
+
+  async function toggleSmsAlerts() {
+    const newVal = !smsAlertsEnabled
+    setSmsAlertsEnabled(newVal)
+    const res = await patch({ sms_alerts_enabled: newVal })
+    if (!res?.ok) setSmsAlertsEnabled(!newVal)
+  }
+
+  async function saveAlertPhone() {
+    const trimmed = alertPhone.trim()
+    if (trimmed && !/^\+[1-9]\d{1,14}$/.test(trimmed)) {
+      // toast handled by patch error path if Zod rejects
+    }
+    const res = await patch({ alert_phone: trimmed })
+    if (res?.ok) setAlertPhoneDirty(false)
+  }
+
+  async function saveAlertEmail() {
+    const trimmed = alertEmail.trim()
+    const res = await patch({ alert_email: trimmed })
+    if (res?.ok) setAlertEmailDirty(false)
+  }
+
+  async function sendTestAlert(channel: 'sms' | 'email' | 'telegram') {
+    setTestingChannel(channel)
+    setTestResult(null)
+    try {
+      const res = await fetch('/api/dashboard/notifications/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ channel, clientId: client.id }),
+      })
+      const data = await res.json() as { ok: boolean; error?: string }
+      setTestResult({ channel, ok: data.ok, error: data.error })
+    } catch (e) {
+      setTestResult({ channel, ok: false, error: e instanceof Error ? e.message : 'unknown error' })
+    } finally {
+      setTestingChannel(null)
+    }
   }
 
   return (
@@ -250,13 +299,13 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
       </div>
     )}
 
-    {/* Notification channel toggles */}
+    {/* Multichannel owner-alert cards (SMS / Email / Telegram) */}
     <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
       <div className="p-5 border-b b-theme">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Notification Preferences</p>
-            <p className="text-[11px] t3">Enable or disable post-call notifications per channel.</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Alert Channels</p>
+            <p className="text-[11px] t3">Pick where call alerts get sent. Mix and match — all enabled channels fire on every call.</p>
           </div>
           {saving && (
             <span className="text-[10px] t3 animate-pulse flex items-center gap-1.5">
@@ -267,47 +316,157 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
         </div>
       </div>
       <div className="p-5 space-y-4">
-        {/* Telegram toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold t1">Telegram</p>
-            <p className="text-[10px] t3 mt-0.5">
-              {client.telegram_bot_token && client.telegram_chat_id
-                ? 'Receive call summaries in your Telegram chat.'
-                : 'Connect Telegram to enable this channel.'}
-            </p>
+        {/* SMS card */}
+        <div className="p-4 rounded-xl border b-theme bg-page">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-semibold t1">SMS to your phone</p>
+              <p className="text-[10px] t3 mt-0.5">
+                {client.twilio_number
+                  ? `Sent from your business number (${client.twilio_number}).`
+                  : 'Requires a provisioned business phone number.'}
+              </p>
+            </div>
+            <PremiumToggle
+              checked={smsAlertsEnabled && !!client.twilio_number}
+              onChange={() => {
+                if (!client.twilio_number) return
+                if (!previewMode) toggleSmsAlerts()
+              }}
+              disabled={saving || previewMode || !client.twilio_number}
+            />
           </div>
-          <PremiumToggle
-            checked={telegramEnabled && !!(client.telegram_bot_token && client.telegram_chat_id)}
-            onChange={() => {
-              if (!client.telegram_bot_token || !client.telegram_chat_id) return
-              if (!previewMode) toggleTelegramNotifications()
-            }}
-            disabled={saving || previewMode || !(client.telegram_bot_token && client.telegram_chat_id)}
-          />
+          {smsAlertsEnabled && client.twilio_number && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="tel"
+                  value={alertPhone}
+                  onChange={(e) => { setAlertPhone(e.target.value); setAlertPhoneDirty(true) }}
+                  placeholder={client.callback_phone || '+13065550123'}
+                  className="flex-1 text-[11px] px-3 py-2 rounded-lg border b-theme bg-surface t1 font-mono"
+                  disabled={previewMode}
+                />
+                <button
+                  onClick={saveAlertPhone}
+                  disabled={!alertPhoneDirty || saving || previewMode}
+                  className="text-[11px] font-semibold px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Save
+                </button>
+              </div>
+              {!alertPhone.trim() && !client.callback_phone && (
+                <p className="text-[10px] text-amber-400">⚠ No destination — texts will be skipped until you set one.</p>
+              )}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => sendTestAlert('sms')}
+                  disabled={(!alertPhone.trim() && !client.callback_phone) || testingChannel === 'sms'}
+                  className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border b-theme bg-surface hover:bg-hover t1 disabled:opacity-40"
+                >
+                  {testingChannel === 'sms' ? 'Sending...' : 'Send test SMS'}
+                </button>
+                {testResult?.channel === 'sms' && (
+                  <span className={`text-[10px] ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+                    {testResult.ok ? '✓ Sent' : `✗ ${testResult.error?.slice(0, 60)}`}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Email toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold t1">Email</p>
-            <p className="text-[10px] t3 mt-0.5">
-              {client.contact_email
-                ? `Notifications sent to ${client.contact_email}.`
-                : 'No contact email on file.'}
-              {!client.contact_email && (
-                <span className="ml-1 text-[8px] font-semibold px-1 py-px rounded bg-hover t3">Contact support to set up</span>
-              )}
-            </p>
+        {/* Email card */}
+        <div className="p-4 rounded-xl border b-theme bg-page">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-semibold t1">Email</p>
+              <p className="text-[10px] t3 mt-0.5">
+                Full call summary with transcript and recording link.
+              </p>
+            </div>
+            <PremiumToggle
+              checked={emailEnabled}
+              onChange={() => { if (!previewMode) toggleEmailNotifications() }}
+              disabled={saving || previewMode}
+            />
           </div>
-          <PremiumToggle
-            checked={emailEnabled && !!client.contact_email}
-            onChange={() => {
-              if (!client.contact_email) return
-              if (!previewMode) toggleEmailNotifications()
-            }}
-            disabled={saving || previewMode || !client.contact_email}
-          />
+          {emailEnabled && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="email"
+                  value={alertEmail}
+                  onChange={(e) => { setAlertEmail(e.target.value); setAlertEmailDirty(true) }}
+                  placeholder={client.contact_email || 'alerts@yourbusiness.com'}
+                  className="flex-1 text-[11px] px-3 py-2 rounded-lg border b-theme bg-surface t1"
+                  disabled={previewMode}
+                />
+                <button
+                  onClick={saveAlertEmail}
+                  disabled={!alertEmailDirty || saving || previewMode}
+                  className="text-[11px] font-semibold px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Save
+                </button>
+              </div>
+              {!alertEmail.trim() && !client.contact_email && (
+                <p className="text-[10px] text-amber-400">⚠ No destination — emails will be skipped until you set one.</p>
+              )}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => sendTestAlert('email')}
+                  disabled={(!alertEmail.trim() && !client.contact_email) || testingChannel === 'email'}
+                  className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border b-theme bg-surface hover:bg-hover t1 disabled:opacity-40"
+                >
+                  {testingChannel === 'email' ? 'Sending...' : 'Send test email'}
+                </button>
+                {testResult?.channel === 'email' && (
+                  <span className={`text-[10px] ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+                    {testResult.ok ? '✓ Sent' : `✗ ${testResult.error?.slice(0, 60)}`}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Telegram card */}
+        <div className="p-4 rounded-xl border b-theme bg-page">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs font-semibold t1">Telegram</p>
+              <p className="text-[10px] t3 mt-0.5">
+                {client.telegram_bot_token && client.telegram_chat_id
+                  ? 'Connected — see Alert Channels card above to change message style.'
+                  : 'Connect Telegram above to enable this channel.'}
+              </p>
+            </div>
+            <PremiumToggle
+              checked={telegramEnabled && !!(client.telegram_bot_token && client.telegram_chat_id)}
+              onChange={() => {
+                if (!client.telegram_bot_token || !client.telegram_chat_id) return
+                if (!previewMode) toggleTelegramNotifications()
+              }}
+              disabled={saving || previewMode || !(client.telegram_bot_token && client.telegram_chat_id)}
+            />
+          </div>
+          {telegramEnabled && client.telegram_chat_id && (
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => sendTestAlert('telegram')}
+                disabled={testingChannel === 'telegram'}
+                className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border b-theme bg-surface hover:bg-hover t1 disabled:opacity-40"
+              >
+                {testingChannel === 'telegram' ? 'Sending...' : 'Send test Telegram'}
+              </button>
+              {testResult?.channel === 'telegram' && (
+                <span className={`text-[10px] ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+                  {testResult.ok ? '✓ Sent' : `✗ ${testResult.error?.slice(0, 60)}`}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
