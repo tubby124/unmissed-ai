@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots } from '@/lib/google-calendar'
 import { parseCallState, setStateUpdate, slotInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
-import { requestedTimeMatchesSlot } from '@/lib/calendar-time'
+import { requestedTimeMatchesSlot, toPreferredTime } from '@/lib/calendar-time'
 
 export async function GET(
   req: NextRequest,
@@ -60,6 +60,7 @@ export async function GET(
       }
       return (client.booking_service_duration_minutes as number) || 60
     })()
+    const preferredTime = time ? (toPreferredTime(time) ?? time) : undefined
     const slots = await listSlots(
       accessToken,
       (client.google_calendar_id as string) || 'primary',
@@ -70,7 +71,7 @@ export async function GET(
       '09:00',
       '18:00',
       3,
-      time || undefined,
+      preferredTime,
     )
     if (slots.length === 0) {
       const newAttempts = (callState?.slotAttempts ?? 0) + 1
