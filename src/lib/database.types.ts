@@ -1068,6 +1068,8 @@ export type Database = {
           agent_mode: string
           agent_name: string | null
           agent_voice_id: string | null
+          alert_email: string | null
+          alert_phone: string | null
           available_properties: Json | null
           bonus_minutes: number
           booking_buffer_minutes: number | null
@@ -1113,6 +1115,8 @@ export type Database = {
           hand_tuned: boolean | null
           hours: string | null
           id: string
+          inbound_personality: string | null
+          inbound_personality_enabled: boolean
           injected_note: string | null
           injected_note_expires_at: string | null
           ivr_enabled: boolean | null
@@ -1130,6 +1134,10 @@ export type Database = {
           monthly_minute_limit: number | null
           niche: string | null
           niche_custom_variables: Json | null
+          outbound_allowed_days: number[] | null
+          outbound_allowed_end: string | null
+          outbound_allowed_start: string | null
+          outbound_consent_acknowledged_at: string | null
           outbound_enabled: boolean | null
           outbound_goal: string | null
           outbound_max_attempts: number | null
@@ -1155,6 +1163,7 @@ export type Database = {
           settings_revision: number
           setup_complete: boolean | null
           slug: string
+          sms_alerts_enabled: boolean | null
           sms_enabled: boolean | null
           sms_template: string | null
           sonar_content: string | null
@@ -1211,6 +1220,8 @@ export type Database = {
           agent_mode?: string
           agent_name?: string | null
           agent_voice_id?: string | null
+          alert_email?: string | null
+          alert_phone?: string | null
           available_properties?: Json | null
           bonus_minutes?: number
           booking_buffer_minutes?: number | null
@@ -1256,6 +1267,8 @@ export type Database = {
           hand_tuned?: boolean | null
           hours?: string | null
           id?: string
+          inbound_personality?: string | null
+          inbound_personality_enabled?: boolean
           injected_note?: string | null
           injected_note_expires_at?: string | null
           ivr_enabled?: boolean | null
@@ -1273,6 +1286,10 @@ export type Database = {
           monthly_minute_limit?: number | null
           niche?: string | null
           niche_custom_variables?: Json | null
+          outbound_allowed_days?: number[] | null
+          outbound_allowed_end?: string | null
+          outbound_allowed_start?: string | null
+          outbound_consent_acknowledged_at?: string | null
           outbound_enabled?: boolean | null
           outbound_goal?: string | null
           outbound_max_attempts?: number | null
@@ -1298,6 +1315,7 @@ export type Database = {
           settings_revision?: number
           setup_complete?: boolean | null
           slug: string
+          sms_alerts_enabled?: boolean | null
           sms_enabled?: boolean | null
           sms_template?: string | null
           sonar_content?: string | null
@@ -1354,6 +1372,8 @@ export type Database = {
           agent_mode?: string
           agent_name?: string | null
           agent_voice_id?: string | null
+          alert_email?: string | null
+          alert_phone?: string | null
           available_properties?: Json | null
           bonus_minutes?: number
           booking_buffer_minutes?: number | null
@@ -1399,6 +1419,8 @@ export type Database = {
           hand_tuned?: boolean | null
           hours?: string | null
           id?: string
+          inbound_personality?: string | null
+          inbound_personality_enabled?: boolean
           injected_note?: string | null
           injected_note_expires_at?: string | null
           ivr_enabled?: boolean | null
@@ -1416,6 +1438,10 @@ export type Database = {
           monthly_minute_limit?: number | null
           niche?: string | null
           niche_custom_variables?: Json | null
+          outbound_allowed_days?: number[] | null
+          outbound_allowed_end?: string | null
+          outbound_allowed_start?: string | null
+          outbound_consent_acknowledged_at?: string | null
           outbound_enabled?: boolean | null
           outbound_goal?: string | null
           outbound_max_attempts?: number | null
@@ -1441,6 +1467,7 @@ export type Database = {
           settings_revision?: number
           setup_complete?: boolean | null
           slug?: string
+          sms_alerts_enabled?: boolean | null
           sms_enabled?: boolean | null
           sms_template?: string | null
           sonar_content?: string | null
@@ -2018,6 +2045,100 @@ export type Database = {
           },
         ]
       }
+      learning_loop_suggestions: {
+        Row: {
+          applied_at: string | null
+          applied_prompt_version_id: string | null
+          category: string
+          client_id: string
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by_chat_id: string | null
+          error: string | null
+          evidence: Json
+          id: string
+          patch_type: string
+          proposed_patch: Json
+          risk_level: string
+          sent_at: string | null
+          sent_to_chat_id: string | null
+          source_call_id: string | null
+          status: string
+          summary: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_prompt_version_id?: string | null
+          category?: string
+          client_id: string
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by_chat_id?: string | null
+          error?: string | null
+          evidence?: Json
+          id?: string
+          patch_type: string
+          proposed_patch?: Json
+          risk_level?: string
+          sent_at?: string | null
+          sent_to_chat_id?: string | null
+          source_call_id?: string | null
+          status?: string
+          summary: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_prompt_version_id?: string | null
+          category?: string
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by_chat_id?: string | null
+          error?: string | null
+          evidence?: Json
+          id?: string
+          patch_type?: string
+          proposed_patch?: Json
+          risk_level?: string
+          sent_at?: string | null
+          sent_to_chat_id?: string | null
+          source_call_id?: string | null
+          status?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_loop_suggestions_applied_prompt_version_id_fkey"
+            columns: ["applied_prompt_version_id"]
+            isOneToOne: false
+            referencedRelation: "prompt_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_loop_suggestions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_loop_suggestions_source_call_id_fkey"
+            columns: ["source_call_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_requests: {
         Row: {
           call_log_id: string | null
@@ -2216,6 +2337,65 @@ export type Database = {
           vm_script?: string | null
         }
         Relationships: []
+      }
+      outbound_templates: {
+        Row: {
+          call_notes: string | null
+          client_id: string
+          created_at: string
+          description: string | null
+          goal: string
+          id: string
+          is_builtin: boolean
+          is_default: boolean
+          name: string
+          opening: string | null
+          special_instructions: string | null
+          tone: string
+          updated_at: string
+          vm_script: string | null
+        }
+        Insert: {
+          call_notes?: string | null
+          client_id: string
+          created_at?: string
+          description?: string | null
+          goal: string
+          id?: string
+          is_builtin?: boolean
+          is_default?: boolean
+          name: string
+          opening?: string | null
+          special_instructions?: string | null
+          tone?: string
+          updated_at?: string
+          vm_script?: string | null
+        }
+        Update: {
+          call_notes?: string | null
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          goal?: string
+          id?: string
+          is_builtin?: boolean
+          is_default?: boolean
+          name?: string
+          opening?: string | null
+          special_instructions?: string | null
+          tone?: string
+          updated_at?: string
+          vm_script?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbound_templates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pattern_application_log: {
         Row: {
