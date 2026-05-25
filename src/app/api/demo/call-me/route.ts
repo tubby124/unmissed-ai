@@ -312,7 +312,9 @@ Rules:
         caller_phone: phone || null,
         caller_email: callerEmail || null,
         ultravox_call_id: uvCall.callId,
-        source: 'call-me-widget',
+        // demo_calls.source is constrained to browser|phone in production.
+        // This route creates an outbound phone callback, so log it as phone.
+        source: 'phone',
         ip_hash: ipHash,
       })
       if (error) console.error(`[call-me] Failed to log demo call: ${error.message}`)

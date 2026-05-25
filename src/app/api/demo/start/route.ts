@@ -124,7 +124,9 @@ HANG-UP RULES (mandatory — follow exactly):
           caller_phone: callerPhone || null,
           caller_email: callerEmail || null,
           ultravox_call_id: call.callId,
-          source: 'onboard-preview',
+          // demo_calls.source is constrained to browser|phone in production.
+          // Onboard preview is still a browser/WebRTC demo path.
+          source: 'browser',
           ip_hash: ipHash,
         })
         if (error) console.error(`[demo] Failed to log preview call: ${error.message}`)
