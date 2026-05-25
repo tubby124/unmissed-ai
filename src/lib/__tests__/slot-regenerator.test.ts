@@ -449,6 +449,25 @@ describe('D302: niche intake fields survive round-trip via niche_custom_variable
     )
   })
 
+  test('generic other niche keeps generic defaults instead of auto-glass fallback', () => {
+    const intake: Record<string, unknown> = {
+      niche: 'other',
+      business_name: 'EndVoicemail.ai Demo',
+      agent_name: 'Zara',
+      call_handling_mode: 'lead_capture',
+      business_facts: [
+        'End Voicemail provides AI receptionist services for Canadian service businesses.',
+        'Pricing: AI Receptionist is $119/month CAD for 250 minutes.',
+      ],
+    }
+
+    const ctx = buildSlotContext(intake)
+    const prompt = buildPromptFromSlots(ctx)
+
+    assert.match(prompt, /You work at a business\./)
+    assert.doesNotMatch(prompt, /auto glass|windshield|ADAS|lane assist/i)
+  })
+
   test('property_management niche_propertyType + niche_hasEmergencyLine survive', () => {
     const intake: Record<string, unknown> = {
       niche: 'property_management',

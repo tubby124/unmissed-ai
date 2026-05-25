@@ -702,7 +702,7 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
   const niche = (intake.niche as string) || 'other'
   // Use niche-specific defaults if they exist (restaurant, dental, salon, legal, real_estate, etc.)
   // Fall back to production template mapping only for unknown/other niches
-  let nicheDefaults = (niche !== 'other' && niche in NICHE_DEFAULTS)
+  let nicheDefaults = (niche in NICHE_DEFAULTS)
     ? NICHE_DEFAULTS[niche as keyof typeof NICHE_DEFAULTS]
     : (NICHE_DEFAULTS[resolveProductionNiche(niche)] ?? NICHE_DEFAULTS.other)
 
