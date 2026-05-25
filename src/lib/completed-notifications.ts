@@ -33,6 +33,10 @@ export interface CompletedClient {
   contact_email: string | null
   telegram_notifications_enabled: boolean | null
   email_notifications_enabled: boolean | null
+  alert_phone: string | null
+  alert_email: string | null
+  sms_alerts_enabled: boolean | null
+  callback_phone: string | null
   call_handling_mode?: string | null
 }
 
@@ -574,7 +578,8 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
   const { supabase, client, slug, callId, callLogId, callerPhone, classification,
     durationSeconds, transcript, recordingUrl } = ctx
 
-  if (!client.contact_email || classification.status === 'JUNK') return
+  const emailDestination = client.alert_email || client.contact_email
+  if (!emailDestination || classification.status === 'JUNK') return
 
   // Voicemail replacement always sends per-call email by default, even when the
   // business niche is HVAC/plumbing/etc. Telegram remains optional.
@@ -596,7 +601,7 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
         call_id: callLogId,
         client_id: client.id,
         channel: 'email',
-        recipient: client.contact_email,
+        recipient: emailDestination,
         content: 'voicemail email failed before send: RESEND_API_KEY missing',
         status: 'failed',
         error: 'RESEND_API_KEY missing',
@@ -637,7 +642,7 @@ ${recordingUrl ? `<p><strong>Recording:</strong> <a href="${escHtml(recordingUrl
 <pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;background:#f9f9f9;padding:16px;border-radius:8px">${escHtml(transcriptText)}</pre>`
 
     const emailResult = await sendBrandedEmail({
-      to: client.contact_email,
+      to: emailDestination,
       clientId: client.id,
       clientSlug: slug,
       purpose: 'system',
@@ -647,14 +652,14 @@ ${recordingUrl ? `<p><strong>Recording:</strong> <a href="${escHtml(recordingUrl
       html: emailHtml,
     })
     if (!emailResult.ok) throw new Error(emailResult.error)
-    console.log(`[completed] Voicemail email sent to ${client.contact_email} for callId=${callId} (id=${emailResult.id})`)
+    console.log(`[completed] Owner email sent to ${emailDestination} for callId=${callId} (id=${emailResult.id})`)
 
     // Log to notification_logs
     const { error: nlErr } = await supabase.from('notification_logs').insert({
       call_id: callLogId,
       client_id: client.id,
       channel: 'email',
-      recipient: client.contact_email,
+      recipient: emailDestination,
       content: `Subject: ${emailSubject}
 
 Urgency: ${ownerAlert.urgencyLabel}
@@ -676,7 +681,7 @@ ${transcriptText.slice(0, 8500)}`,
       call_id: callLogId,
       client_id: client.id,
       channel: 'email',
-      recipient: client.contact_email || 'unknown',
+      recipient: emailDestination || 'unknown',
       content: 'voicemail email (failed before send)',
       status: 'failed',
       error: String(emailErr).slice(0, 1000),

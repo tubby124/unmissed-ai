@@ -321,3 +321,31 @@ describe('multichannel notifications: settings registry', () => {
     assert.ok(!SYNC_TRIGGER_FIELDS.includes('sms_alerts_enabled'))
   })
 })
+
+// ── Task 3: email destination resolution ─────────────────────────────────────
+
+describe('multichannel notifications: email destination resolution', () => {
+  function resolveEmailDestination(client: Pick<CompletedClient, 'alert_email' | 'contact_email'>): string | null {
+    return client.alert_email || client.contact_email || null
+  }
+
+  test('uses alert_email when set', () => {
+    const dest = resolveEmailDestination({ alert_email: 'info@velly.com', contact_email: 'kausar@example.com' })
+    assert.equal(dest, 'info@velly.com')
+  })
+
+  test('falls back to contact_email when alert_email is null', () => {
+    const dest = resolveEmailDestination({ alert_email: null, contact_email: 'kausar@example.com' })
+    assert.equal(dest, 'kausar@example.com')
+  })
+
+  test('returns null when both are null', () => {
+    const dest = resolveEmailDestination({ alert_email: null, contact_email: null })
+    assert.equal(dest, null)
+  })
+
+  test('treats empty alert_email as falsy → falls back', () => {
+    const dest = resolveEmailDestination({ alert_email: '', contact_email: 'fallback@x.com' })
+    assert.equal(dest, 'fallback@x.com')
+  })
+})
