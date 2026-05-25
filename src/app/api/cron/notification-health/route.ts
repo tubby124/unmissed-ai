@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendAlert } from '@/lib/telegram'
+import { summarizeNotificationReliability, type NotificationReliabilityInput } from '@/lib/notification-reliability'
 
 export async function GET(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET
@@ -161,10 +162,81 @@ export async function GET(req: NextRequest) {
     )
   }
 
+  // ── P0/P1 reliability audit: actionable calls that silently missed owner alerts ──
+  const actionableSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentCalls, error: recentCallsErr } = await supabase
+    .from('call_logs')
+    .select('id, client_id, call_status, ai_summary, created_at, billed_duration_seconds, end_reason')
+    .in('call_status', ['HOT', 'WARM', 'COLD', 'UNKNOWN', 'LEAD', 'completed'])
+    .gte('created_at', actionableSince)
+    .limit(100)
+
+  let reliabilityInputs: NotificationReliabilityInput[] = []
+  let reliabilitySummary = summarizeNotificationReliability([])
+
+  if (recentCallsErr) {
+    console.error('[notification-health] Recent actionable calls query failed:', recentCallsErr.message)
+  } else if (recentCalls?.length) {
+    const callIds = recentCalls.map((call) => call.id)
+    const { data: recentNotifications, error: recentNotifErr } = await supabase
+      .from('notification_logs')
+      .select('call_id, channel, status')
+      .in('call_id', callIds)
+      .limit(500)
+
+    if (recentNotifErr) {
+      console.error('[notification-health] Recent notifications query failed:', recentNotifErr.message)
+    } else {
+      reliabilityInputs = recentCalls.map((call) => {
+        const rows = (recentNotifications || []).filter((row) => row.call_id === call.id)
+        const ownerAlertSent = rows.some((row) => row.status === 'sent' && ['telegram', 'email'].includes(row.channel))
+        const notificationFailures = rows.filter((row) => row.status === 'failed').length
+        const billableMissing = ['completed', 'LEAD', 'WARM', 'HOT', 'JUNK'].includes(call.call_status || '')
+          && call.end_reason !== 'unjoined'
+          && !call.billed_duration_seconds
+
+        return {
+          callId: call.id,
+          clientId: call.client_id,
+          callCompleted: true,
+          ownerAlertSent,
+          summaryGenerated: Boolean(call.ai_summary && call.ai_summary.trim().length > 0),
+          classification: call.call_status,
+          notificationFailures,
+          billedDurationMissing: billableMissing,
+          createdAt: call.created_at,
+        }
+      })
+      reliabilitySummary = summarizeNotificationReliability(reliabilityInputs)
+
+      if (!reliabilitySummary.ok) {
+        unhealthy = true
+        const p0 = reliabilitySummary.findings.filter((f) => f.severity === 'P0')
+        const p1 = reliabilitySummary.findings.filter((f) => f.severity === 'P1')
+        alerts.push(
+          ``,
+          `🔴 <b>Notification Reliability Gaps (last 24h)</b>`,
+          `P0: ${p0.length} | P1: ${p1.length}`,
+          ...reliabilitySummary.findings.slice(0, 8).map((f) =>
+            `• ${f.severity} ${f.kind}: call=${f.callId.slice(0, 8)} client=${f.clientId?.slice(0, 8) || 'unknown'} — ${f.message}`
+          ),
+          ...(reliabilitySummary.findings.length > 8 ? [`... and ${reliabilitySummary.findings.length - 8} more`] : []),
+        )
+      }
+    }
+  }
+
   // ── Send alert if anything is unhealthy ─────────────────────────────────────
   if (!unhealthy) {
-    console.log('[notification-health] All healthy — no failures, no stuck rows, no orphans, no unbilled')
-    return NextResponse.json({ status: 'healthy', failures: 0, stuck_processing: 0, orphaned: 0, unbilled: 0 })
+    console.log('[notification-health] All healthy — no failures, no stuck rows, no orphans, no unbilled, no reliability gaps')
+    return NextResponse.json({
+      status: 'healthy',
+      failures: 0,
+      stuck_processing: 0,
+      orphaned: 0,
+      unbilled: 0,
+      reliability: reliabilitySummary,
+    })
   }
 
   const operatorToken = process.env.TELEGRAM_OPERATOR_BOT_TOKEN ?? process.env.TELEGRAM_BOT_TOKEN
@@ -184,6 +256,7 @@ export async function GET(req: NextRequest) {
     stuck_processing: stuckRows?.length || 0,
     orphaned: orphanRows?.length || 0,
     unbilled: unbilledCount || 0,
+    reliability: reliabilitySummary,
   }
   console.log(`[notification-health] Unhealthy:`, result)
   return NextResponse.json(result)
