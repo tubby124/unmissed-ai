@@ -117,16 +117,32 @@ export async function classifyCall(
     quality_score: 0,
   }
 
-  // UNKNOWN only for operational errors (API key missing, etc.)
-  const unknownFallback: CallClassification = {
-    status: 'UNKNOWN',
-    summary: 'Classification failed — check OpenRouter API key.',
-    serviceType: 'other',
-    confidence: 0,
-    sentiment: 'neutral',
-    key_topics: [],
-    next_steps: 'Check OPENROUTER_API_KEY in Railway env vars.',
-    quality_score: 0,
+  // UNKNOWN only for operational errors. Still preserve owner value: a useful
+  // deterministic transcript summary beats "check API key" in the dashboard.
+  const unknownFallback = (reason: string): CallClassification => {
+    const meaningfulLines = transcriptText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .filter(line => !/^Agent:\s*(hi|hello|hey)[\s,.!]/i.test(line))
+      .slice(0, 4)
+
+    const deterministicSummary = meaningfulLines.length
+      ? `Classification failed (${reason}). Transcript preview: ${meaningfulLines.join(' / ').slice(0, 500)}`
+      : `Classification failed (${reason}). Transcript was present but no useful preview could be generated.`
+
+    return {
+      status: 'UNKNOWN',
+      summary: deterministicSummary,
+      serviceType: 'other',
+      confidence: 0,
+      sentiment: 'neutral',
+      key_topics: [],
+      next_steps: reason === 'missing OPENROUTER_API_KEY'
+        ? 'Check OPENROUTER_API_KEY in Railway env vars.'
+        : 'Review call manually and check classifier logs.',
+      quality_score: 0,
+    }
   }
 
   if (!transcriptText.trim()) {
@@ -142,7 +158,7 @@ export async function classifyCall(
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
     console.error('[openrouter] OPENROUTER_API_KEY not set — returning UNKNOWN. Add to Railway env vars.')
-    return unknownFallback
+    return unknownFallback('missing OPENROUTER_API_KEY')
   }
 
   console.log(`[openrouter] classifyCall: starting — ${transcript.length} messages, context="${businessContext || 'none'}"`)
@@ -179,7 +195,7 @@ export async function classifyCall(
     if (!res.ok) {
       const body = await res.text().catch(() => '(unreadable)')
       console.error(`[openrouter] classifyCall: HTTP ${res.status} — ${body}`)
-      return unknownFallback
+      return unknownFallback(`OpenRouter HTTP ${res.status}`)
     }
 
     const data = await res.json()
@@ -187,7 +203,7 @@ export async function classifyCall(
 
     if (!content) {
       console.error('[openrouter] classifyCall: empty content in response — data:', JSON.stringify(data).slice(0, 300))
-      return unknownFallback
+      return unknownFallback('empty classifier response')
     }
 
     // Robust JSON extraction — Anthropic models on OpenRouter ignore response_format
@@ -208,7 +224,7 @@ export async function classifyCall(
       parsed = JSON.parse(cleaned)
     } catch (parseErr) {
       console.error('[openrouter] classifyCall: JSON.parse failed — raw content:', content.slice(0, 300), 'error:', parseErr)
-      return unknownFallback
+      return unknownFallback('invalid classifier JSON')
     }
 
     // UNKNOWN guard — if status is not a recognised value, flag for manual review
@@ -251,7 +267,7 @@ export async function classifyCall(
 
     const result: CallClassification = {
       status: validatedStatus,
-      summary: typeof parsed.summary === 'string' ? parsed.summary : unknownFallback.summary,
+      summary: typeof parsed.summary === 'string' ? parsed.summary : unknownFallback('missing classifier summary').summary,
       serviceType: (VALID_SERVICE_TYPES as readonly string[]).includes(parsed.serviceType as string)
         ? parsed.serviceType as ServiceType
         : 'other',
@@ -270,6 +286,6 @@ export async function classifyCall(
     return result
   } catch (err) {
     console.error('[openrouter] classifyCall: unexpected error —', err)
-    return unknownFallback
+    return unknownFallback('unexpected classifier error')
   }
 }
