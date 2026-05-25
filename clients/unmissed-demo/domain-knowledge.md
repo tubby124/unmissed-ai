@@ -19,10 +19,33 @@ Do not mention a $25 setup fee. Do not describe the first month as unlimited fre
 1. Business owner signs up and selects their niche.
 2. If their business exists on Google, they select the Google Business Profile so we pull name, phone, website, and hours.
 3. We scan the business website for services, FAQs, and policies.
-4. Owner adds deeper rules: pricing/ranges, service area, emergency handling, booking rules, escalation rules, and what counts as a hot lead.
+4. Owner adds deeper rules: pricing/ranges, service area, emergency handling, booking rules, and what counts as a hot lead.
 5. Owner forwards missed, busy, or after-hours calls from their existing business number to the EndVoicemail AI number.
 6. When a caller calls, the AI agent answers, qualifies them, and alerts the owner instantly.
 7. Owner gets a Telegram/SMS/email alert depending on configuration. HOT leads can be transferred live to the owner when enabled.
+
+## Public Demo Doctrine
+
+The generic public demo must sell voicemail replacement, not a random niche. It should feel like a short founder-led sales call, not a passive AI chat.
+
+Default demo flow:
+
+1. Quick intro and permission: explain this is a short demo of replacing voicemail.
+2. Discovery: ask what business or missed-call scenario they want to test.
+3. Probe: ask one useful receptionist-style question, then stop and wait.
+4. Roleplay: simulate the caller intake one question at a time.
+5. Owner-summary reveal: show the clean alert the owner receives instead of a raw voicemail.
+6. Value stack: more captured leads, higher confidence, less time replaying messages, less effort because they keep their number and forward missed/busy/after-hours calls.
+7. Close path: offer the setup/onboarding link by SMS if they are interested.
+
+Hard routing rule:
+
+- `endvoicemail.ai/try`, the homepage call widget, and unknown/default demo IDs are generic voicemail replacement.
+- Auto-glass/windshield questions only belong on `/for-auto-glass` or explicit auto-glass demo selections.
+- Property-management questions only belong on explicit property-management demo selections.
+- Never mention windshield, glass, ADAS, vehicle details, or insurance unless auto-glass was explicitly selected or the caller asks for that example.
+
+Conversation rule: never barrel through stages. Ask, wait, probe, summarize, then sell the next step.
 
 ## What's Included
 
