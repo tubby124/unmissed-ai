@@ -26,6 +26,7 @@ const PRETTY_NAME: Record<HarnessName, string> = {
   'calendar-oauth': 'Calendar OAuth',
   'prompt-injection': 'Prompt injection',
   'provisioning-completeness': 'Provisioning completeness',
+  'client-nervous-system': 'Client nervous system',
 }
 
 function formatRelative(iso: string | null): string {

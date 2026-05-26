@@ -826,6 +826,119 @@ export type Database = {
           },
         ]
       }
+      client_events: {
+        Row: {
+          actor_type: string
+          actor_user_id: string | null
+          after: Json
+          before: Json
+          call_log_id: string | null
+          client_id: string | null
+          client_slug: string | null
+          correlation_id: string | null
+          created_at: string
+          dedupe_key: string | null
+          details: Json
+          event_group: string
+          event_type: string
+          event_version: number
+          harness_finding_id: string | null
+          id: string
+          prompt_version_id: string | null
+          run_id: string | null
+          severity: string
+          source: string
+          source_route: string | null
+          status: string
+          summary: string
+          ultravox_call_id: string | null
+          visibility: string
+        }
+        Insert: {
+          actor_type: string
+          actor_user_id?: string | null
+          after?: Json
+          before?: Json
+          call_log_id?: string | null
+          client_id?: string | null
+          client_slug?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          details?: Json
+          event_group: string
+          event_type: string
+          event_version?: number
+          harness_finding_id?: string | null
+          id?: string
+          prompt_version_id?: string | null
+          run_id?: string | null
+          severity?: string
+          source: string
+          source_route?: string | null
+          status: string
+          summary: string
+          ultravox_call_id?: string | null
+          visibility?: string
+        }
+        Update: {
+          actor_type?: string
+          actor_user_id?: string | null
+          after?: Json
+          before?: Json
+          call_log_id?: string | null
+          client_id?: string | null
+          client_slug?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          dedupe_key?: string | null
+          details?: Json
+          event_group?: string
+          event_type?: string
+          event_version?: number
+          harness_finding_id?: string | null
+          id?: string
+          prompt_version_id?: string | null
+          run_id?: string | null
+          severity?: string
+          source?: string
+          source_route?: string | null
+          status?: string
+          summary?: string
+          ultravox_call_id?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_events_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_events_harness_finding_id_fkey"
+            columns: ["harness_finding_id"]
+            isOneToOne: false
+            referencedRelation: "harness_findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_events_prompt_version_id_fkey"
+            columns: ["prompt_version_id"]
+            isOneToOne: false
+            referencedRelation: "prompt_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_knowledge_docs: {
         Row: {
           char_count: number

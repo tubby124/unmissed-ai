@@ -37,6 +37,7 @@ export type HarnessName =
   | 'schemathesis'
   | 'promptfoo'
   | 'provisioning-completeness'
+  | 'client-nervous-system'
 
 export interface Finding {
   /** Sub-check identifier within the harness. Stable, kebab-case. */

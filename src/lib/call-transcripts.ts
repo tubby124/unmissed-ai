@@ -143,7 +143,7 @@ export async function persistTranscript(
       agent_chars,
       caller_chars,
       fetched_at: new Date().toISOString(),
-      source: 'ultravox',
+      source: 'completed_webhook',
     }
     if (callId) row.call_id = callId
 

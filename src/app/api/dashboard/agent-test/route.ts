@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { callViaAgent, signCallbackUrl } from '@/lib/ultravox'
-import { buildAgentContext, type ClientRow, type PriorCall, type ContactProfile } from '@/lib/agent-context'
+import { buildAgentContext, type ClientRow, type PriorCall } from '@/lib/agent-context'
 import { APP_URL } from '@/lib/app-url'
 import {
   resolveAdminScope,
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
   const { data: client, error: clientErr } = await svc
     .from('clients')
-    .select('id, slug, niche, business_name, agent_name, status, ultravox_agent_id, tools, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note, service_areas')
+    .select('id, slug, niche, business_name, agent_name, status, ultravox_agent_id, tools, agent_voice_id, context_data, context_data_label, business_facts, extra_qa, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, injected_note, injected_note_expires_at, service_areas')
     .eq('id', targetClientId)
     .single()
 
@@ -83,6 +83,8 @@ export async function POST(req: NextRequest) {
     context_data_label: (client.context_data_label as string | null) ?? undefined,
     knowledge_backend: (client.knowledge_backend as string | null) ?? undefined,
     injected_note: (client.injected_note as string | null) ?? undefined,
+    injected_note_expires_at: (client.injected_note_expires_at as string | null) ?? undefined,
+    service_areas: (client.service_areas as string[] | null) ?? undefined,
   }
   const knowledgeBackend = client.knowledge_backend as string | null
   const corpusAvailable = knowledgeBackend === 'pgvector'
@@ -143,7 +145,7 @@ export async function POST(req: NextRequest) {
       await svc.from('call_logs').insert({
         ultravox_call_id: callId,
         client_id: client.id,
-        call_status: 'live',
+        call_status: 'test',
         caller_phone: 'webrtc-test',
         started_at: new Date().toISOString(),
       })

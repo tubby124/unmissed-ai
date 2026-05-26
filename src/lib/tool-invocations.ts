@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { recordClientEvent } from '@/lib/client-events'
 
 // D-NEW-tool-invocation-log — single fire-and-forget insert into public.tool_invocations.
 // Why: Phase 9 D270 (frequent KB query → auto-suggest FAQ) needs structured per-fire data
@@ -47,6 +48,25 @@ export async function recordToolInvocation(entry: ToolInvocationEntry): Promise<
       chunk_ids_hit: entry.chunkIdsHit ?? null,
       success: entry.success ?? true,
       latency_ms: entry.latencyMs ?? null,
+    })
+    void recordClientEvent(svc, {
+      clientId: entry.clientId,
+      eventType: 'tool.invoked',
+      eventGroup: 'runtime',
+      actorType: 'webhook',
+      source: 'tool-invocations',
+      callLogId: entry.callLogId ?? null,
+      status: entry.success === false ? 'error' : 'success',
+      severity: entry.success === false ? 'warning' : 'info',
+      visibility: 'admin_only',
+      summary: `Tool invoked: ${entry.toolName}`,
+      details: {
+        tool_name: entry.toolName,
+        success: entry.success ?? true,
+        latency_ms: entry.latencyMs ?? null,
+        query_text_length: entry.queryText?.length ?? 0,
+        chunk_count: entry.chunkIdsHit?.length ?? 0,
+      },
     })
   } catch {
     // intentionally swallowed — invocation logging must never break the tool response

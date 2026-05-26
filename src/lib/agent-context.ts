@@ -41,6 +41,7 @@ export type ClientRow = {
   context_data_label?: string | null
   knowledge_backend?: string | null
   injected_note?: string | null
+  injected_note_expires_at?: string | null
   staff_roster?: unknown | null
   service_areas?: string[] | null
 }
@@ -399,7 +400,7 @@ export function buildAgentContext(
 
   // Today's Update — time-sensitive temporary override from dashboard
   const injectedNoteRaw = (client.injected_note as string | null)?.trim()
-  const injectedNoteExpiry = (client as { injected_note_expires_at?: string | null }).injected_note_expires_at ?? null
+  const injectedNoteExpiry = client.injected_note_expires_at ?? null
   const injectedNoteExpired = injectedNoteExpiry ? new Date(injectedNoteExpiry) < new Date() : false
   if (injectedNoteRaw && !injectedNoteExpired) {
     callerContextStr += `\nRIGHT NOW: ${injectedNoteRaw}`

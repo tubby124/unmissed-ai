@@ -7,6 +7,7 @@
  * prev_char_count) are always populated.
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { recordClientEvent } from '@/lib/client-events'
 
 export interface InsertPromptVersionParams {
   clientId: string
@@ -86,5 +87,28 @@ export async function insertPromptVersion(
     .select('id')
     .single()
 
-  return row ? { id: row.id, version: version! } : null
+  if (!row) return null
+
+  void recordClientEvent(svc, {
+    clientId,
+    eventType: 'prompt.version_inserted',
+    eventGroup: 'prompt',
+    actorType: triggeredByRole === 'admin' || triggeredByRole === 'owner' ? triggeredByRole : 'system',
+    actorUserId: triggeredByUserId,
+    source: 'prompt-version-utils',
+    promptVersionId: row.id,
+    status: 'success',
+    severity: 'notice',
+    visibility: 'admin_only',
+    summary: `Prompt version ${version} inserted`,
+    details: {
+      version,
+      char_count: content.length,
+      prev_char_count: prevCharCount,
+      change_description: changeDescription,
+      force_overrode_hand_tuned: forceOverrodeHandTuned ?? false,
+    },
+  })
+
+  return { id: row.id, version: version! }
 }

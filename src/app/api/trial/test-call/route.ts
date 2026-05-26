@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
   const supa = createServiceClient()
   const { data: client, error: clientErr } = await supa
     .from('clients')
-    .select('id, slug, system_prompt, agent_voice_id, agent_name, status, niche, business_name, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, business_facts, extra_qa, context_data, context_data_label, knowledge_backend, injected_note, ultravox_agent_id, tools')
+    .select('id, slug, system_prompt, agent_voice_id, agent_name, status, niche, business_name, timezone, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, business_facts, extra_qa, context_data, context_data_label, knowledge_backend, injected_note, injected_note_expires_at, service_areas, ultravox_agent_id, tools')
     .eq('id', clientId)
     .limit(1)
     .maybeSingle()
@@ -83,6 +83,8 @@ export async function POST(req: NextRequest) {
     context_data_label: (client.context_data_label as string | null) ?? undefined,
     knowledge_backend: (client.knowledge_backend as string | null) ?? undefined,
     injected_note: (client.injected_note as string | null) ?? undefined,
+    injected_note_expires_at: (client.injected_note_expires_at as string | null) ?? undefined,
+    service_areas: (client.service_areas as string[] | null) ?? undefined,
   }
   const knowledgeBackend = (client.knowledge_backend as string | null)
   const corpusAvailable = knowledgeBackend === 'pgvector'
