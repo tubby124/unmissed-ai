@@ -65,8 +65,9 @@ ${schemaLine}
 RULES:
 • HOT (confidence 80-100): Booking/buying NOW, urgency, emergency, immediate need
 • WARM (50-79): Interested, callback wanted, price check, intent but no urgency
-• COLD (20-49): Info-only, no timeline, no commitment signals
-• JUNK (85-100): Silence, robocall, wrong number, spam, recorded message, sales pitch
+• COLD (20-49): Info-only, no timeline, no commitment signals, OR personal/off-topic calls (still capture what they said)
+• JUNK (85-100): Silence, robocall, recorded message, sales pitch. NOT for personal/off-topic — those are COLD.
+• ALWAYS surface what the caller actually said in the summary. Never write "not a {business} request" or strip content. If a friend called the owner personally, write "Caller (friend named X) asked about Y." If it's a wrong number, write what they were looking for. The owner wants to see every call's content — they decide what matters.
 SENTIMENT: positive=eager|neutral=matter-of-fact|negative=unhappy|frustrated=complaining|indifferent=flat/disconnected
 QUALITY: 60 base +20 if call >90s +10 if intent is clear +10 if name/address/issue captured. JUNK=0-10.
 NEXT STEPS: always a specific imperative — "Call back within 2 hours", "Block this number", "Send quote via SMS"
@@ -105,17 +106,26 @@ export async function classifyCall(
     .map(m => `${m.role === 'agent' ? 'Agent' : 'Caller'}: ${m.text}`)
     .join('\n')
 
-  // Short/empty transcripts = junk (robocalls, hang-ups, accidental dials)
-  const shortCallFallback: CallClassification = {
+  // Short/empty transcripts. Preserve any actual caller content — the owner
+  // wants to see what was said even on hangups, off-topic calls, personal
+  // calls, etc. Empty summary lets the notification layer apply its own
+  // duration-aware fallback ("Caller hung up after Ns...").
+  const callerLines = transcript
+    .filter(m => m.role !== 'agent')
+    .map(m => (m.text || '').trim())
+    .filter(Boolean)
+  const buildShortCallFallback = (): CallClassification => ({
     status: 'JUNK',
-    summary: 'Ultra-short call — no conversation (likely robocall or hang-up).',
-    serviceType: 'spam',
-    confidence: 90,
+    summary: callerLines.length
+      ? `Caller said: "${callerLines.join(' ').slice(0, 300)}"`
+      : '', // empty → notification layer renders duration-aware fallback
+    serviceType: callerLines.length ? 'other' : 'spam',
+    confidence: 80,
     sentiment: 'neutral',
     key_topics: [],
-    next_steps: '',
-    quality_score: 0,
-  }
+    next_steps: callerLines.length ? 'Review what the caller said and decide if a callback is warranted.' : '',
+    quality_score: callerLines.length ? 25 : 0,
+  })
 
   // UNKNOWN only for operational errors. Still preserve owner value: a useful
   // deterministic transcript summary beats "check API key" in the dashboard.
@@ -147,12 +157,17 @@ export async function classifyCall(
 
   if (!transcriptText.trim()) {
     console.warn('[openrouter] classifyCall: empty transcript — returning JUNK')
-    return shortCallFallback
+    return buildShortCallFallback()
   }
 
-  if (transcript.length < 2) {
-    console.warn('[openrouter] classifyCall: transcript too short (< 2 messages) — returning JUNK without API call')
-    return shortCallFallback
+  // Only short-circuit when there are literally zero caller messages.
+  // If the caller said anything at all — even one sentence — run the LLM so
+  // the summary captures their actual intent (personal calls, off-topic asks,
+  // wrong-number questions, etc. — owner wants to see what was said, not a
+  // canned "not a {niche} request" stripout).
+  if (callerLines.length === 0) {
+    console.warn('[openrouter] classifyCall: no caller content — returning JUNK without API call')
+    return buildShortCallFallback()
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY
