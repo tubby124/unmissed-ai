@@ -41,7 +41,7 @@ function createReportSupabase(plan: QueryPlan) {
         return run(table)
       },
       then(resolve: (value: QueryResult) => unknown, reject?: (reason: unknown) => unknown) {
-        return run(table).then(resolve, reject)
+        return Reflect.apply(Promise.prototype.then, run(table), [resolve, reject])
       },
     }
     return query
