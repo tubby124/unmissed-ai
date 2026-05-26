@@ -55,17 +55,18 @@ describe('sendOwnerSmsAlert: body builder', () => {
     }
   }
 
-  test('formats HOT lead with caller name + phone + reason', () => {
+  test('formats HOT lead with emoji + caller name + phone + summary + tail', () => {
     const body = buildOwnerSmsBody({
       classification: makeClassification(),
       callerPhone: '+13065550123',
       businessName: 'Prairie Plumbing',
       testMode: false,
     })
-    assert.match(body, /Urgent callback/)
+    assert.match(body, /🔥/, 'expected HOT emoji 🔥')
     assert.match(body, /Maya/)
-    assert.match(body, /Burst pipe/)
     assert.match(body, /306.*555.*0123/)
+    assert.match(body, /burst pipe/i, 'summary or reason should reference the issue')
+    assert.match(body, /Full details in your email/, 'expected tail directing owner to email')
   })
 
   test('prepends TEST — prefix when testMode is true', () => {

@@ -94,6 +94,30 @@ export interface OwnerAlertDetails {
   callbackOpener: string
 }
 
+function urgencyEmoji(status: string | undefined): string {
+  switch (status) {
+    case 'HOT': return '🔥'
+    case 'WARM': return '👋'
+    case 'COLD': return '📩'
+    case 'JUNK': return '🚫'
+    default: return '📞'
+  }
+}
+
+function formatLocalDateTime(iso: string | null | undefined, tz: string): string {
+  if (!iso) return ''
+  try {
+    const fmt = new Intl.DateTimeFormat('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true,
+      timeZone: tz || 'America/Regina',
+    })
+    return fmt.format(new Date(iso))
+  } catch {
+    return ''
+  }
+}
+
 function formatOwnerPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
   if (digits.length === 11 && digits[0] === '1') return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`
@@ -576,7 +600,7 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
 
 export async function sendEmailNotification(ctx: NotificationContext): Promise<void> {
   const { supabase, client, slug, callId, callLogId, callerPhone, classification,
-    durationSeconds, transcript, recordingUrl } = ctx
+    durationSeconds, transcript, recordingUrl, endedAt } = ctx
 
   const emailDestination = client.alert_email || client.contact_email
   if (!emailDestination || classification.status === 'JUNK') return
@@ -617,29 +641,49 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
     const ownerAlert = buildOwnerAlertDetails(classification, callerPhone, client.business_name)
     const mins = Math.floor(durationSeconds / 60)
     const secs = durationSeconds % 60
+    const durationLabel = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
 
     const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-    const emailSubject = `${ownerAlert.urgencyLabel}: ${ownerAlert.callerName} — ${client.business_name || slug}`
-    const rows = [
-      ['Urgency', ownerAlert.urgencyLabel],
-      ['Caller', `${ownerAlert.callerName} (${ownerAlert.formattedPhone})`],
-      ['Lead quality', ownerAlert.leadQuality],
-      ['Reason for call', ownerAlert.reasonForCall],
-      ['Required next step', ownerAlert.requiredNextStep],
-      ['Suggested callback opener', ownerAlert.callbackOpener],
-    ]
-    const emailHtml = `<h2 style="margin:0 0 8px">New captured call</h2>
-<p style="margin:0 0 16px;color:#555">Your AI answered a missed call and captured the callback details.</p>
-<table style="width:100%;border-collapse:collapse;margin:0 0 16px">
-${rows.map(([label, value]) => `<tr><td style="padding:8px 10px;border:1px solid #eee;background:#fafafa;width:34%;font-weight:600">${escHtml(label)}</td><td style="padding:8px 10px;border:1px solid #eee">${escHtml(value)}</td></tr>`).join('')}
-</table>
-<p><strong>Duration:</strong> ${mins}m ${secs}s</p>
-${recordingUrl ? `<p><strong>Recording:</strong> <a href="${escHtml(recordingUrl)}">Listen to the call</a></p>` : ''}
-<p><strong>Summary:</strong> ${escHtml(classification.summary || 'No summary available.')}</p>
-<hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-<h3 style="margin:0 0 8px">Transcript</h3>
-<pre style="white-space:pre-wrap;font-size:14px;line-height:1.5;background:#f9f9f9;padding:16px;border-radius:8px">${escHtml(transcriptText)}</pre>`
+    const emoji = urgencyEmoji(classification.status)
+    const whenLocal = formatLocalDateTime(endedAt, client.timezone || 'America/Regina')
+    const telHref = callerPhone && callerPhone !== 'unknown' ? `tel:${callerPhone.replace(/[^\d+]/g, '')}` : null
+    const summaryText = (classification.summary || '').trim() || 'No summary available.'
+
+    const emailSubject = whenLocal
+      ? `${emoji} ${ownerAlert.callerName} · ${ownerAlert.formattedPhone} · ${whenLocal}`
+      : `${emoji} ${ownerAlert.callerName} · ${ownerAlert.formattedPhone}`
+
+    // Transcript HTML — speaker-prefixed lines with subtle role styling
+    const transcriptHtml = transcript.length
+      ? transcript.map((m) => {
+          const who = m.role === 'agent' ? 'Agent' : 'Caller'
+          const whoColor = m.role === 'agent' ? '#0f766e' : '#1f2937'
+          return `<div style="margin:0 0 10px"><span style="display:inline-block;min-width:56px;color:${whoColor};font-weight:600;font-size:13px">${who}</span><span style="color:#374151">${escHtml(m.text)}</span></div>`
+        }).join('')
+      : '<div style="color:#9ca3af;font-style:italic">Transcript unavailable.</div>'
+
+    const emailHtml = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;color:#111827;background:#ffffff">
+  <div style="padding:24px 24px 8px">
+    <div style="font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin:0 0 6px">${emoji} New ${escHtml(classification.status || 'CALL')} lead</div>
+    <h1 style="margin:0 0 4px;font-size:28px;line-height:1.2;font-weight:700">${escHtml(ownerAlert.callerName)}</h1>
+    ${telHref
+      ? `<a href="${telHref}" style="display:inline-block;font-size:18px;color:#2563eb;text-decoration:none;margin:0 0 6px">${escHtml(ownerAlert.formattedPhone)}</a>`
+      : `<div style="font-size:18px;color:#374151;margin:0 0 6px">${escHtml(ownerAlert.formattedPhone)}</div>`}
+    <div style="font-size:14px;color:#6b7280;margin:0 0 20px">${whenLocal ? escHtml(whenLocal) + ' · ' : ''}${durationLabel}</div>
+    ${recordingUrl
+      ? `<a href="${escHtml(recordingUrl)}" style="display:inline-block;background:#111827;color:#ffffff;padding:12px 20px;border-radius:8px;font-weight:600;font-size:14px;text-decoration:none;margin:0 0 24px">▶ Listen to the call</a>`
+      : ''}
+  </div>
+  <div style="padding:0 24px 16px">
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;margin:0 0 20px">
+      <div style="font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin:0 0 6px">Summary</div>
+      <div style="font-size:15px;line-height:1.55;color:#111827">${escHtml(summaryText)}</div>
+    </div>
+    <div style="font-size:12px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin:0 0 10px">Transcript</div>
+    <div style="font-size:14px;line-height:1.55;background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px">${transcriptHtml}</div>
+  </div>
+</div>`
 
     const emailResult = await sendBrandedEmail({
       to: emailDestination,
@@ -662,12 +706,12 @@ ${recordingUrl ? `<p><strong>Recording:</strong> <a href="${escHtml(recordingUrl
       recipient: emailDestination,
       content: `Subject: ${emailSubject}
 
-Urgency: ${ownerAlert.urgencyLabel}
 Caller: ${ownerAlert.callerName} (${ownerAlert.formattedPhone})
-Lead quality: ${ownerAlert.leadQuality}
-Reason for call: ${ownerAlert.reasonForCall}
-Required next step: ${ownerAlert.requiredNextStep}
-Suggested opener: ${ownerAlert.callbackOpener}
+When: ${whenLocal || 'unknown'} · ${durationLabel}
+Status: ${classification.status || 'UNKNOWN'}
+
+Summary:
+${summaryText}
 
 Transcript:
 ${transcriptText.slice(0, 8500)}`,
@@ -714,12 +758,16 @@ export function buildOwnerSmsBody(params: {
 
   const ownerAlert = buildOwnerAlertDetails(classification, callerPhone, businessName)
   const prefix = testMode ? 'TEST — ' : ''
+  const emoji = urgencyEmoji(classification.status)
+
+  // Use the classification's narrative summary (first sentence, ~220 chars).
+  // Full details + transcript live in the email — SMS is the heads-up.
+  const oneLine = firstSentence(classification.summary || '') || ownerAlert.reasonForCall
 
   const lines: string[] = [
-    `${prefix}${ownerAlert.urgencyLabel}: ${ownerAlert.callerName}`,
-    `${ownerAlert.formattedPhone}`,
-    `Re: ${ownerAlert.reasonForCall}`,
-    `→ ${ownerAlert.requiredNextStep}`,
+    `${prefix}${emoji} ${ownerAlert.callerName} · ${ownerAlert.formattedPhone}`,
+    oneLine,
+    `— Full details in your email.`,
   ]
 
   // Truncate to 1600 chars (Twilio 10-segment cap for SMS — defensive).
