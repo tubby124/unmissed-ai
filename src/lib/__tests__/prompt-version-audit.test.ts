@@ -99,9 +99,15 @@ function getInsertCall(supa: any): Record<string, unknown> | null {
   return insertCall ? (insertCall.args[0] as Record<string, unknown>) : null
 }
 
-function getUpdateCalls(supa: any): MockCall[] {
+function getUpdateCalls(supa: any, table = 'prompt_versions'): MockCall[] {
   return supa._calls.filter(
-    (c: MockCall) => c.table === 'prompt_versions' && c.method === 'update'
+    (c: MockCall) => c.table === table && c.method === 'update'
+  )
+}
+
+function getUpdateEqCalls(supa: any, table = 'prompt_versions'): MockCall[] {
+  return supa._calls.filter(
+    (c: MockCall) => c.table === table && c.method === 'update.eq'
   )
 }
 
@@ -192,6 +198,29 @@ describe('S8b: insertPromptVersion audit trail contract', () => {
     assert.ok(updateCalls.length > 0, 'must deactivate existing versions')
     const updatePayload = updateCalls[0].args[0] as Record<string, unknown>
     assert.deepEqual(updatePayload, { is_active: false }, 'update payload must set is_active=false')
+  })
+
+  test('updates clients.active_prompt_version_id to inserted active version', async () => {
+    const supa = createMockSupabase({ latestVersion: 5 })
+    await insertPromptVersion(supa, {
+      clientId: 'client-123',
+      content: 'new prompt',
+      changeDescription: 'pointer update test',
+      triggeredByUserId: 'u1',
+      triggeredByRole: 'admin',
+      prevCharCount: 100,
+    })
+
+    const updateCalls = getUpdateCalls(supa, 'clients')
+    assert.equal(updateCalls.length, 1, 'must update the client prompt pointer')
+    assert.deepEqual(
+      updateCalls[0].args[0],
+      { active_prompt_version_id: 'mock-version-id' },
+      'client pointer must reference inserted prompt version'
+    )
+
+    const eqCalls = getUpdateEqCalls(supa, 'clients')
+    assert.deepEqual(eqCalls[0].args, ['id', 'client-123'], 'client pointer update must target the same client')
   })
 
   test('system-triggered action: triggeredByUserId=null + role=system', async () => {

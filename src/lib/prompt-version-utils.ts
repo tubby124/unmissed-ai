@@ -89,6 +89,19 @@ export async function insertPromptVersion(
 
   if (!row) return null
 
+  const { error: pointerError } = await svc
+    .from('clients')
+    .update({ active_prompt_version_id: row.id })
+    .eq('id', clientId)
+
+  if (pointerError) {
+    console.warn('[insertPromptVersion] failed to update active_prompt_version_id', {
+      clientId,
+      promptVersionId: row.id,
+      error: pointerError.message,
+    })
+  }
+
   void recordClientEvent(svc, {
     clientId,
     eventType: 'prompt.version_inserted',
