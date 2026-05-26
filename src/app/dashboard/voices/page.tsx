@@ -184,7 +184,7 @@ function VoiceCard({
         {/* Name + badges */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-white truncate">{voice.name}</span>
+            <span className="text-sm font-semibold t1 truncate">{voice.name}</span>
             {(assignedClients.length > 0 || isMyActiveVoice) && (
               <span className="text-[9px] font-medium text-green-400 bg-green-500/15 border border-green-500/20 rounded-full px-1.5 py-0.5 leading-none shrink-0">
                 {isMyActiveVoice ? 'Assigned' : 'Active'}
@@ -197,8 +197,8 @@ function VoiceCard({
             )}
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs text-zinc-500">{voice.languageLabel}</span>
-            <span className="text-zinc-700">·</span>
+            <span className="text-xs t2">{voice.languageLabel}</span>
+            <span className="t3">·</span>
             <span className={`text-[10px] font-medium border rounded-full px-1.5 py-0.5 leading-none ${PROVIDER_COLORS[voice.provider] || 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>
               {voice.provider}
             </span>
@@ -219,7 +219,7 @@ function VoiceCard({
               <button
                 onClick={handleUseVoice}
                 disabled={useVoiceState === 'loading'}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 hover:text-blue-200 transition-colors border border-blue-500/20 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200 transition-colors border border-blue-500/20 disabled:opacity-50"
               >
                 {useVoiceState === 'loading' ? (
                   <div className="w-3 h-3 rounded-full border border-blue-400/40 border-t-blue-300 animate-spin" />
@@ -273,11 +273,11 @@ function VoiceCard({
 
       {/* Description */}
       {voice.description ? (
-        <p className="mt-3 text-xs text-zinc-500 leading-relaxed line-clamp-2">
+        <p className="mt-3 text-xs t2 leading-relaxed line-clamp-2">
           {voice.description}
         </p>
       ) : (
-        <p className="mt-3 text-xs text-zinc-600 leading-relaxed italic">
+        <p className="mt-3 text-xs t3 leading-relaxed italic">
           No description available
         </p>
       )}
@@ -427,8 +427,8 @@ export default function VoicesPage() {
     <div className="p-6 lg:p-8 max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">Voice Library</h1>
-        <p className="text-zinc-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold t1">Voice Library</h1>
+        <p className="t2 text-sm mt-1">
           {loading ? 'Loading...' : isAdmin
             ? `${voices.length} English voices from Ultravox — click to preview, assign to any agent`
             : `${voices.length} English voices — preview any voice, then click "Use This Voice" to activate it`
@@ -465,12 +465,12 @@ export default function VoicesPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                 provider === p
                   ? 'bg-[var(--color-border)] t1 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-300'
+                  : 't2 hover:t1'
               }`}
             >
               {p}
               {!loading && (
-                <span className={`ml-1.5 text-[10px] ${provider === p ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                <span className={`ml-1.5 text-[10px] ${provider === p ? 't2' : 't3'}`}>
                   {providerCounts[p]}
                 </span>
               )}
@@ -487,12 +487,12 @@ export default function VoicesPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                 gender === g
                   ? 'bg-[var(--color-border)] t1 shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-300'
+                  : 't2 hover:t1'
               }`}
             >
               {g}
               {!loading && (
-                <span className={`ml-1.5 text-[10px] ${gender === g ? 'text-zinc-400' : 'text-zinc-600'}`}>
+                <span className={`ml-1.5 text-[10px] ${gender === g ? 't2' : 't3'}`}>
                   {genderCounts[g]}
                 </span>
               )}
@@ -503,7 +503,7 @@ export default function VoicesPage() {
 
       {/* Results count */}
       {!loading && search && (
-        <p className="text-xs text-zinc-600 mb-4">
+        <p className="text-xs t3 mb-4">
           {filtered.length} result{filtered.length !== 1 ? 's' : ''} for &quot;{search}&quot;
         </p>
       )}
@@ -516,12 +516,12 @@ export default function VoicesPage() {
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="w-12 h-12 rounded-2xl bg-hover border b-theme flex items-center justify-center mb-4">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-zinc-600">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="t3">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" strokeWidth="1.5"/>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </div>
-          <p className="text-zinc-500 text-sm">No voices match your filters</p>
+          <p className="t2 text-sm">No voices match your filters</p>
           <button
             onClick={() => { setSearch(''); setProvider('All'); setGender('All') }}
             className="mt-3 text-xs text-blue-400 hover:text-blue-300 transition-colors"
