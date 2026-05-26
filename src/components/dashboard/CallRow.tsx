@@ -114,7 +114,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
   return (
     <div
-      className={`border-b b-theme transition-colors${call.call_status === 'JUNK' ? ' opacity-[0.55]' : ''}`}
+      className="border-b b-theme transition-colors"
       style={{ borderLeft: `3px solid ${stripeColor}` }}
     >
       {/* Main row — div instead of button to allow nested interactive elements */}
@@ -184,7 +184,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
           )}
 
           {call.service_type && call.service_type !== 'other' && (
-            <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:block" style={{ color: "var(--color-text-3)" }}>
+            <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:block" style={{ color: "var(--color-text-2)" }}>
               {call.service_type.replace(/_/g, ' ')}
             </span>
           )}
@@ -198,7 +198,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             className="hidden sm:inline-flex text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0"
             style={call.call_direction === 'outbound'
               ? { backgroundColor: 'rgba(245,158,11,0.1)', color: '#f59e0b', borderColor: 'rgba(245,158,11,0.25)' }
-              : { backgroundColor: 'rgba(96,165,250,0.1)', color: '#60a5fa', borderColor: 'rgba(96,165,250,0.25)' }
+              : { backgroundColor: 'var(--color-info-tint)', color: 'var(--color-info)', borderColor: 'color-mix(in srgb, var(--color-info) 28%, transparent)' }
             }
           >
             {call.call_direction === 'outbound' ? 'Outbound' : 'Inbound'}
@@ -208,9 +208,9 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
             {call.call_status === 'live' ? (
               <LiveDuration startedAt={call.started_at} className="text-[11px] font-mono text-green-400" />
             ) : dur ? (
-              <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>{dur}</span>
+              <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-2)" }}>{dur}</span>
             ) : null}
-            <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-3)" }}>{timeAgo(call.started_at)}</span>
+            <span className="text-[11px] font-mono tabular-nums" style={{ color: "var(--color-text-2)" }}>{timeAgo(call.started_at)}</span>
             {call.call_status === 'live' ? (
               <Link
                 href={`/dashboard/calls/${call.ultravox_call_id}`}
@@ -225,7 +225,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
                 animate={{ rotate: expanded ? 90 : 0 }}
                 transition={{ duration: 0.18 }}
                 className="transition-colors shrink-0"
-                style={{ color: "var(--color-text-3)" }}
+                style={{ color: "var(--color-text-2)" }}
               >
                 <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </motion.svg>
@@ -236,7 +236,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
         {/* Line 2: summary */}
         <p
           className="text-xs italic truncate leading-snug mb-1.5 pr-4"
-          style={{ color: "var(--color-text-3)" }}
+          style={{ color: "var(--color-text-2)" }}
         >
           {call.call_status === 'processing'
             ? 'Analyzing call…'
@@ -247,7 +247,7 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
 
         {/* HOT: inline recommended action */}
         {call.call_status === 'HOT' && nextSteps && !isProcessingOrLive && (
-          <p className="text-[11px] font-medium truncate mb-1 pr-4" style={{ color: 'rgba(251,191,36,0.85)' }}>
+          <p className="text-[11px] font-medium truncate mb-1 pr-4" style={{ color: 'var(--color-warning)' }}>
             → {nextSteps.slice(0, 80)}{nextSteps.length > 80 ? '…' : ''}
           </p>
         )}
@@ -265,15 +265,15 @@ export default function CallRow({ call, showBusiness, onCallBack }: {
               </span>
             ))}
             {extraTopics > 0 && (
-              <span className="text-[10px] font-mono" style={{ color: "var(--color-text-3)" }}>+{extraTopics}</span>
+              <span className="text-[10px] font-mono" style={{ color: "var(--color-text-2)" }}>+{extraTopics}</span>
             )}
             {sentiment && sentiment !== 'neutral' && (
               <span
                 className="ml-auto text-[10px] font-mono capitalize shrink-0"
                 style={{
-                  color: sentiment === 'positive' ? 'rgba(74,222,128,0.6)' :
-                    sentiment === 'negative' || sentiment === 'frustrated' ? 'rgba(248,113,113,0.6)' :
-                    "var(--color-text-3)"
+                  color: sentiment === 'positive' ? 'var(--color-success)' :
+                    sentiment === 'negative' || sentiment === 'frustrated' ? 'var(--color-error)' :
+                    "var(--color-text-2)"
                 }}
               >
                 {sentiment}

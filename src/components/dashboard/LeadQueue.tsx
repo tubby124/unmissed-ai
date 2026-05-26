@@ -563,7 +563,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold" style={{ color: 'var(--color-text-1)' }}>Outbound Queue</h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-2)' }}>
             {counts.queued} to call · {counts.called} called · {counts.dnc} DNC
           </p>
         </div>
@@ -581,7 +581,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
               key={t}
               onClick={() => { setTab(t); setSelected(new Set()); if (t !== 'queued') setShowScheduledOnly(false) }}
               className="relative flex-1 px-4 py-3 text-xs font-medium transition-colors"
-              style={tab !== t ? { color: 'var(--color-text-3)' } : undefined}
+              style={tab !== t ? { color: 'var(--color-text-2)' } : undefined}
             >
               {tab === t && (
                 <motion.div
@@ -592,7 +592,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
               )}
               <span className={tab === t ? 'text-blue-400' : ''}>
                 {STATUS_LABEL[t]}
-                <span className="ml-1.5 font-mono tabular-nums" style={{ color: 'var(--color-text-3)' }}>
+                <span className="ml-1.5 font-mono tabular-nums" style={{ color: 'var(--color-text-2)' }}>
                   {counts[t]}
                 </span>
               </span>
@@ -605,7 +605,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
             <button
               onClick={() => setShowScheduledOnly(v => !v)}
               className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${showScheduledOnly ? 'bg-amber-500/15 text-amber-400 border border-amber-500/25' : 'border border-transparent hover:text-[var(--color-text-2)]'}`}
-              style={showScheduledOnly ? undefined : { color: 'var(--color-text-3)' }}
+              style={showScheduledOnly ? undefined : { color: 'var(--color-text-2)' }}
             >
               <Clock className="h-3 w-3" />
               Scheduled
@@ -614,7 +614,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
               </span>
             </button>
             {showScheduledOnly && (
-              <span style={{ color: 'var(--color-text-3)' }}>sorted by time</span>
+              <span style={{ color: 'var(--color-text-2)' }}>sorted by time</span>
             )}
           </div>
         )}
@@ -666,7 +666,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
             <button
               onClick={() => setSelected(new Set())}
               className="ml-auto font-medium transition-colors"
-              style={{ color: 'var(--color-text-3)' }}
+              style={{ color: 'var(--color-text-2)' }}
             >
               Clear
             </button>
@@ -675,7 +675,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
 
         {/* Empty state */}
         {filtered.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3" style={{ color: 'var(--color-text-3)' }}>
+          <div className="py-16 flex flex-col items-center gap-3" style={{ color: 'var(--color-text-2)' }}>
             <CalendarCheck className="h-8 w-8 opacity-20" />
             <p className="text-sm font-medium" style={{ color: 'var(--color-text-2)' }}>
               No {STATUS_LABEL[tab].toLowerCase()} contacts
@@ -729,7 +729,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
                         <TableCell>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="font-medium text-sm" style={{ color: 'var(--color-text-1)' }}>
-                              {lead.name ?? <span style={{ color: 'var(--color-text-3)' }}>—</span>}
+                              {lead.name ?? <span style={{ color: 'var(--color-text-2)' }}>—</span>}
                             </span>
                             {/* D93: relative time badge for scheduled leads */}
                             {cbRel && (
@@ -745,7 +745,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
                           {lead.notes && (
                             <p
                               className="text-[11px] mt-0.5 truncate max-w-[180px]"
-                              style={{ color: 'var(--color-text-3)' }}
+                              style={{ color: 'var(--color-text-2)' }}
                             >
                               {lead.notes}
                             </p>
@@ -758,19 +758,19 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
                         </TableCell>
                         {clients.length > 1 && (
                           <TableCell>
-                            <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                            <span className="text-xs" style={{ color: 'var(--color-text-2)' }}>
                               {lead.clients?.business_name ?? '—'}
                             </span>
                           </TableCell>
                         )}
                         <TableCell>
-                          <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                          <span className="text-xs" style={{ color: 'var(--color-text-2)' }}>
                             {timeAgo(lead.added_at)}
                           </span>
                         </TableCell>
                         {tab === 'called' && (
                           <TableCell>
-                            <span className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+                            <span className="text-xs" style={{ color: 'var(--color-text-2)' }}>
                               {timeAgo(lead.last_called_at)}
                               {lead.call_count && lead.call_count > 1
                                 ? <span className="ml-1 opacity-60">×{lead.call_count}</span>
@@ -787,7 +787,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
                                 {disp.label}
                               </span>
                             ) : (
-                              <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                              <span style={{ color: 'var(--color-text-2)' }}>—</span>
                             )}
                           </TableCell>
                         )}
@@ -798,7 +798,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
                                 {new Date(lead.scheduled_callback_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                               </span>
                             ) : (
-                              <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                              <span style={{ color: 'var(--color-text-2)' }}>—</span>
                             )}
                           </TableCell>
                         )}
@@ -808,7 +808,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
                               {tag.label}
                             </span>
                           ) : (
-                            <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                            <span style={{ color: 'var(--color-text-2)' }}>—</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -844,7 +844,7 @@ export default function LeadQueue({ initialLeads, clients, hasPhoneNumber = true
                                 setEditCallback(toDatetimeLocal(lead.scheduled_callback_at))
                               }}
                               className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-hover)]"
-                              style={{ color: 'var(--color-text-3)' }}
+                              style={{ color: 'var(--color-text-2)' }}
                               title="View / edit"
                             >
                               <ExternalLink className="h-3.5 w-3.5" />

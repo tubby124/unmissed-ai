@@ -301,13 +301,13 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold" style={{ color: 'var(--color-text-1)' }}>Leads</h1>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-3)' }}>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-2)' }}>
             Inbound calls that need follow-up
           </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-mono px-2 py-0.5 rounded-full border"
-            style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+            style={{ color: 'var(--color-text-2)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
             {filtered.length}
           </span>
           {filtered.length > 0 && (
@@ -344,7 +344,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                 />
               )}
               <span className={`relative flex items-center justify-center gap-1.5 ${filter === f.value ? 'text-blue-400' : ''}`}
-                style={filter === f.value ? undefined : { color: 'var(--color-text-3)' }}>
+                style={filter === f.value ? undefined : { color: 'var(--color-text-2)' }}>
                 {f.label}
                 {counts[f.value] > 0 && (
                   <span className={`text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded-full leading-none ${
@@ -376,7 +376,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
             <button
               onClick={() => setSelected(new Set())}
               className="ml-auto font-medium transition-colors"
-              style={{ color: 'var(--color-text-3)' }}
+              style={{ color: 'var(--color-text-2)' }}
             >
               Clear
             </button>
@@ -385,12 +385,12 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
 
         {/* Empty state */}
         {filtered.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3" style={{ color: 'var(--color-text-3)' }}>
+          <div className="py-16 flex flex-col items-center gap-3" style={{ color: 'var(--color-text-2)' }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" className="opacity-30">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <p className="text-sm font-medium" style={{ color: 'var(--color-text-2)' }}>No leads yet</p>
-            <p className="text-xs text-center max-w-[220px]" style={{ color: 'var(--color-text-3)' }}>
+            <p className="text-xs text-center max-w-[220px]" style={{ color: 'var(--color-text-2)' }}>
               Hot and warm calls will appear here automatically.
             </p>
           </div>
@@ -443,11 +443,11 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                           <span className="font-mono text-[13px] font-medium" style={{ color: 'var(--color-text-1)' }}>
                             {call.caller_phone ?? 'Unknown'}
                           </span>
-                          <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-3)' }}>{timeAgo(ts)}</p>
+                          <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-2)' }}>{timeAgo(ts)}</p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-[12px] italic truncate max-w-[200px]" style={{ color: 'var(--color-text-3)' }}>
+                        <p className="text-[12px] italic truncate max-w-[200px]" style={{ color: 'var(--color-text-2)' }}>
                           {call.ai_summary ? call.ai_summary.slice(0, 80) + (call.ai_summary.length > 80 ? '…' : '') : '—'}
                         </p>
                       </TableCell>
@@ -455,12 +455,12 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                         <div className="flex gap-1 flex-wrap">
                           {topics.slice(0, 2).map(t => (
                             <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full border"
-                              style={{ color: 'var(--color-text-3)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+                              style={{ color: 'var(--color-text-2)', borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
                               {t}
                             </span>
                           ))}
                           {topics.length > 2 && (
-                            <span className="text-[10px]" style={{ color: 'var(--color-text-3)' }}>+{topics.length - 2}</span>
+                            <span className="text-[10px]" style={{ color: 'var(--color-text-2)' }}>+{topics.length - 2}</span>
                           )}
                         </div>
                       </TableCell>
@@ -470,7 +470,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                             {sla.label}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--color-text-3)' }}>—</span>
+                          <span style={{ color: 'var(--color-text-2)' }}>—</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -479,7 +479,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                             {followUp.label}
                           </span>
                         ) : (
-                          <span className="text-[10px]" style={{ color: 'var(--color-text-3)' }}>—</span>
+                          <span className="text-[10px]" style={{ color: 'var(--color-text-2)' }}>—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-right pr-4">
@@ -501,7 +501,7 @@ export default function LeadsView({ initialCalls, clientId }: LeadsViewProps) {
                           <button
                             onClick={() => setDetailCall(call)}
                             className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-hover)]"
-                            style={{ color: 'var(--color-text-3)' }}
+                            style={{ color: 'var(--color-text-2)' }}
                             title="View details"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />

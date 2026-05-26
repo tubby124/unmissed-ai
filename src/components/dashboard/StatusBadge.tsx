@@ -37,9 +37,9 @@ const STATUS_STYLES: Record<string, {
   },
   JUNK: {
     style: {
-      backgroundColor: 'color-mix(in srgb, var(--color-text-3) 12%, transparent)',
-      color: 'var(--color-text-3)',
-      borderColor: 'var(--color-text-3)',
+      backgroundColor: 'color-mix(in srgb, var(--color-text-2) 12%, transparent)',
+      color: 'var(--color-text-2)',
+      borderColor: 'var(--color-text-2)',
     },
     label: 'JUNK',
   },
@@ -77,9 +77,9 @@ const STATUS_STYLES: Record<string, {
   },
   UNKNOWN: {
     style: {
-      backgroundColor: 'color-mix(in srgb, var(--color-text-3) 12%, transparent)',
-      color: 'var(--color-text-3)',
-      borderColor: 'var(--color-text-3)',
+      backgroundColor: 'color-mix(in srgb, var(--color-text-2) 12%, transparent)',
+      color: 'var(--color-text-2)',
+      borderColor: 'var(--color-text-2)',
     },
     label: 'Unclassified',
   },
@@ -127,9 +127,9 @@ const STATUS_STYLES: Record<string, {
 
 const DEFAULT_STYLE = {
   style: {
-    backgroundColor: 'color-mix(in srgb, var(--color-text-3) 12%, transparent)',
-    color: 'var(--color-text-3)',
-    borderColor: 'var(--color-text-3)',
+    backgroundColor: 'color-mix(in srgb, var(--color-text-2) 12%, transparent)',
+    color: 'var(--color-text-2)',
+    borderColor: 'var(--color-text-2)',
   } as React.CSSProperties,
   label: '—',
 }

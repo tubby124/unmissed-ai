@@ -464,11 +464,11 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
           {/* Header */}
           <div className="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
             <div className="flex items-center gap-2 flex-1 flex-wrap">
-              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3">
+              <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t2">
                 Call Log
               </p>
               <ScopedClientLabel />
-              <span className="text-[11px] font-mono" style={{ color: 'var(--color-text-3)' }}>{filtered.length}</span>
+              <span className="text-[11px] font-mono" style={{ color: 'var(--color-text-2)' }}>{filtered.length}</span>
 
               {/* Date filter chip */}
               <AnimatePresence>
@@ -522,7 +522,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                   onClick={() => setViewMode('list')}
                   title="List view"
                   className={`flex items-center justify-center w-7 h-6 rounded-md transition-colors ${viewMode === 'list' ? 'bg-surface shadow-sm' : 'hover:bg-hover'}`}
-                  style={viewMode === 'list' ? { color: 'var(--color-text-1)' } : { color: 'var(--color-text-3)' }}
+                  style={viewMode === 'list' ? { color: 'var(--color-text-1)' } : { color: 'var(--color-text-2)' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                     <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -532,7 +532,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                   onClick={() => setViewMode('kanban')}
                   title="Kanban view"
                   className={`flex items-center justify-center w-7 h-6 rounded-md transition-colors ${viewMode === 'kanban' ? 'bg-surface shadow-sm' : 'hover:bg-hover'}`}
-                  style={viewMode === 'kanban' ? { color: 'var(--color-text-1)' } : { color: 'var(--color-text-3)' }}
+                  style={viewMode === 'kanban' ? { color: 'var(--color-text-1)' } : { color: 'var(--color-text-2)' }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                     <rect x="3" y="3" width="7" height="18" rx="1" stroke="currentColor" strokeWidth="2"/>
@@ -548,7 +548,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-blue-500/30 w-full sm:w-56 transition-colors"
-                style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-2)' }}
+                style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-1)' }}
               />
               <div className="flex gap-1 overflow-x-auto pb-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {FILTERS.map(f => {
@@ -573,7 +573,7 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                             ? 'text-blue-400'
                             : 'hover:text-[var(--color-text-2)]'
                         }`}
-                        style={filter === f.value ? undefined : { color: 'var(--color-text-3)' }}
+                        style={filter === f.value ? undefined : { color: 'var(--color-text-2)' }}
                       >
                         {f.label}
                         {count > 0 && (
@@ -583,8 +583,8 @@ export default function CallsList({ initialCalls, phone, isAdmin, adminClients =
                               : f.value === 'HOT' ? 'bg-red-500/20 text-red-400'
                               : f.value === 'WARM' ? 'bg-amber-500/20 text-amber-400'
                               : f.value === 'COLD' ? 'bg-blue-500/20 text-blue-400'
-                              : f.value === 'JUNK' ? 'bg-hover t3'
-                              : 'bg-hover t3'
+                              : f.value === 'JUNK' ? 'bg-hover t2'
+                              : 'bg-hover t2'
                           }`}>
                             {count}
                           </span>
