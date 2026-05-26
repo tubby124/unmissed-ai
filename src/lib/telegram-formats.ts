@@ -44,7 +44,7 @@ interface FormatInput {
 }
 
 const STATUS_EMOJI: Record<string, string> = {
-  HOT: '🔥', WARM: '🟡', COLD: '❄️', JUNK: '🗑', UNKNOWN: '⚠️',
+  HOT: '🔥', WARM: '🟡', COLD: '❄️', JUNK: '📞', UNKNOWN: '⚠️',
 }
 
 function formatPhone(p: string): string {
@@ -72,6 +72,7 @@ function formatDateTime(iso: string, tz: string): { date: string; time: string }
 /** Build the action line — the most important line in the message. */
 function buildActionLine(status: string, callerName: string | null, phone: string): string {
   const fmtPhone = formatPhone(phone)
+  if (phone === 'unknown') return ''
   if (status === 'HOT') {
     return callerName
       ? `📞 Call <b>${callerName}</b> NOW: ${fmtPhone}`
@@ -82,12 +83,18 @@ function buildActionLine(status: string, callerName: string | null, phone: strin
       ? `📞 Follow up with <b>${callerName}</b>: ${fmtPhone}`
       : `📞 Follow up: ${fmtPhone}`
   }
+  if (status === 'JUNK') {
+    return `📞 Caller: ${fmtPhone}`
+  }
   return ''
 }
 
 /** Build the header line — status + service label. */
 function buildHeader(status: string, serviceType: string, serviceRequested: string | null): string {
   const emoji = STATUS_EMOJI[status] || '📞'
+  if (status === 'JUNK') {
+    return `${emoji} <b>INCOMPLETE CALL</b>`
+  }
   const label = serviceRequested || serviceType || ''
   const labelStr = label && label !== 'other' ? ` — ${label}` : ''
   return `${emoji} <b>${status} LEAD${labelStr}</b>`
@@ -95,8 +102,6 @@ function buildHeader(status: string, serviceType: string, serviceRequested: stri
 
 // ── Style: Compact ─────────────────────────────────────────────────────────
 function formatCompact(input: FormatInput): string {
-  if (input.status === 'JUNK') return ''
-
   const callerName = input.callerData?.callerName ?? null
   const lines: string[] = []
 
@@ -136,8 +141,6 @@ function formatCompact(input: FormatInput): string {
 
 // ── Style: Standard (DEFAULT) ──────────────────────────────────────────────
 function formatStandard(input: FormatInput): string {
-  if (input.status === 'JUNK') return ''
-
   const callerName = input.callerData?.callerName ?? null
   const { date, time } = formatDateTime(input.endedAt, input.timezone)
   const dur = formatDuration(input.durationSeconds)
@@ -157,20 +160,6 @@ function formatStandard(input: FormatInput): string {
     lines.push(input.summary)
   }
 
-  if (input.urgencyLabel || typeof input.qualityScore === 'number') {
-    const score = typeof input.qualityScore === 'number' ? ` · ${input.qualityScore}/100 quality` : ''
-    lines.push('')
-    lines.push(`Priority: ${input.urgencyLabel || input.status}${score}`)
-  }
-
-  if (input.nextSteps) {
-    lines.push(`Next step: ${input.nextSteps}`)
-  }
-
-  if (input.callbackOpener) {
-    lines.push(`Suggested opener: "${input.callbackOpener}"`)
-  }
-
   if (input.booking) {
     lines.push('')
     lines.push(`📅 <b>BOOKED:</b> ${input.booking.appointmentTime}`)
@@ -184,12 +173,8 @@ function formatStandard(input: FormatInput): string {
   }
 
   if (input.recordingUrl) {
-    lines.push(`🎧 <a href="${input.recordingUrl}">Recording</a>`)
-  }
-
-  if (input.status === 'COLD') {
     lines.push('')
-    lines.push(`ℹ️ No action needed.`)
+    lines.push(`🎧 <a href="${input.recordingUrl}">Listen to the call</a>`)
   }
 
   return lines.join('\n')
@@ -199,8 +184,6 @@ function formatStandard(input: FormatInput): string {
 const DIVIDER = '━━━━━━━━━━━━━━━━━'
 
 function formatActionCard(input: FormatInput): string {
-  if (input.status === 'JUNK') return ''
-
   const callerName = input.callerData?.callerName ?? null
   const { date, time } = formatDateTime(input.endedAt, input.timezone)
   const dur = formatDuration(input.durationSeconds)

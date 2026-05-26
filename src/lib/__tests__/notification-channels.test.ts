@@ -92,13 +92,16 @@ describe('sendOwnerSmsAlert: body builder', () => {
     assert.ok(body.length <= 1600, `body is ${body.length} chars, exceeds 1600`)
   })
 
-  test('handles JUNK status by returning empty string (caller-side guards skip)', () => {
+  test('JUNK status still produces a body — owner sees the call happened', () => {
     const body = buildOwnerSmsBody({
-      classification: makeClassification({ status: 'JUNK' }),
+      classification: makeClassification({ status: 'JUNK', summary: '' }),
       callerPhone: '+13065550123',
       businessName: 'Prairie Plumbing',
       testMode: false,
+      durationSeconds: 8,
     })
-    assert.equal(body, '')
+    assert.notEqual(body, '', 'JUNK should still notify the owner')
+    assert.match(body, /306.*555.*0123/, 'phone present so owner can call back')
+    assert.match(body, /hung up|didn't|no details/i, 'honest fallback when caller gave nothing')
   })
 })

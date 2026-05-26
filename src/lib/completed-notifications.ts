@@ -99,9 +99,22 @@ function urgencyEmoji(status: string | undefined): string {
     case 'HOT': return '🔥'
     case 'WARM': return '👋'
     case 'COLD': return '📩'
-    case 'JUNK': return '🚫'
+    case 'JUNK': return '📞'  // someone called, even if they hung up
     default: return '📞'
   }
+}
+
+/**
+ * Honest fallback when classification.summary is empty/useless (typically JUNK calls
+ * — hangups, silent calls, wrong numbers). Returns a duration-aware sentence so
+ * the owner sees the call happened and can decide whether to call back.
+ */
+function fallbackSummaryForShortCall(durationSeconds: number, status: string | undefined): string {
+  const d = Math.max(0, Math.floor(durationSeconds || 0))
+  if (d < 5) return 'Caller hung up almost immediately — no details captured.'
+  if (d < 15) return `Caller hung up after ${d}s without giving a reason.`
+  if (status === 'JUNK') return `Call lasted ${d}s but the caller didn't give a clear reason.`
+  return `Call lasted ${d}s. Listen to the recording for details.`
 }
 
 function formatLocalDateTime(iso: string | null | undefined, tz: string): string {
@@ -229,7 +242,8 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
     return
   }
 
-  const fullSummary = classification.summary || ultravoxSummary || ''
+  const rawTelegramSummary = (classification.summary || ultravoxSummary || '').trim()
+  const fullSummary = rawTelegramSummary || fallbackSummaryForShortCall(durationSeconds, classification.status)
   const clientTz = client.timezone || 'America/Regina'
   const ownerAlert = buildOwnerAlertDetails(classification, callerPhone, client.business_name)
 
@@ -292,9 +306,9 @@ export async function sendTelegramNotification(ctx: NotificationContext): Promis
     })
   }
 
-  // D248: empty message = JUNK classification — skip sending
+  // Empty message is now an unexpected condition (JUNK calls render fallback content).
   if (!message) {
-    console.log(`[completed] Telegram SKIPPED for slug=${slug} callId=${callId}: JUNK classification`)
+    console.warn(`[completed] Telegram SKIPPED for slug=${slug} callId=${callId}: empty message (unexpected)`)
     return
   }
 
@@ -603,7 +617,9 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
     durationSeconds, transcript, recordingUrl, endedAt } = ctx
 
   const emailDestination = client.alert_email || client.contact_email
-  if (!emailDestination || classification.status === 'JUNK') return
+  if (!emailDestination) return
+  // JUNK calls (hangups, silent calls) still send — owner wants to see who called.
+  // The email body uses an honest duration-aware fallback when the summary is empty.
 
   // Voicemail replacement always sends per-call email by default, even when the
   // business niche is HVAC/plumbing/etc. Telegram remains optional.
@@ -648,7 +664,8 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
     const emoji = urgencyEmoji(classification.status)
     const whenLocal = formatLocalDateTime(endedAt, client.timezone || 'America/Regina')
     const telHref = callerPhone && callerPhone !== 'unknown' ? `tel:${callerPhone.replace(/[^\d+]/g, '')}` : null
-    const summaryText = (classification.summary || '').trim() || 'No summary available.'
+    const rawSummary = (classification.summary || '').trim()
+    const summaryText = rawSummary || fallbackSummaryForShortCall(durationSeconds, classification.status)
 
     const emailSubject = whenLocal
       ? `${emoji} ${ownerAlert.callerName} · ${ownerAlert.formattedPhone} · ${whenLocal}`
@@ -665,7 +682,7 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
 
     const emailHtml = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;color:#111827;background:#ffffff">
   <div style="padding:24px 24px 8px">
-    <div style="font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin:0 0 6px">${emoji} New ${escHtml(classification.status || 'CALL')} lead</div>
+    <div style="font-size:13px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:#6b7280;margin:0 0 6px">${emoji} ${classification.status === 'JUNK' ? 'Incomplete call' : classification.status === 'HOT' ? 'Hot lead' : classification.status === 'WARM' ? 'Warm lead' : classification.status === 'COLD' ? 'Cold lead' : 'New call'}</div>
     <h1 style="margin:0 0 4px;font-size:28px;line-height:1.2;font-weight:700">${escHtml(ownerAlert.callerName)}</h1>
     ${telHref
       ? `<a href="${telHref}" style="display:inline-block;font-size:18px;color:#2563eb;text-decoration:none;margin:0 0 6px">${escHtml(ownerAlert.formattedPhone)}</a>`
@@ -752,9 +769,9 @@ export function buildOwnerSmsBody(params: {
   callerPhone: string
   businessName: string | null
   testMode: boolean
+  durationSeconds?: number
 }): string {
-  const { classification, callerPhone, businessName, testMode } = params
-  if (classification.status === 'JUNK') return ''
+  const { classification, callerPhone, businessName, testMode, durationSeconds = 0 } = params
 
   const ownerAlert = buildOwnerAlertDetails(classification, callerPhone, businessName)
   const prefix = testMode ? 'TEST — ' : ''
@@ -762,7 +779,14 @@ export function buildOwnerSmsBody(params: {
 
   // Use the classification's narrative summary (first sentence, ~220 chars).
   // Full details + transcript live in the email — SMS is the heads-up.
-  const oneLine = firstSentence(classification.summary || '') || ownerAlert.reasonForCall
+  // For JUNK / empty-summary calls (hangups, silent calls), use a duration-aware
+  // honest fallback so the owner sees who called even when the agent got nothing.
+  const summary = firstSentence(classification.summary || '')
+  // Fallback only when JUNK or there's truly nothing to say. A real summary
+  // should be shown verbatim regardless of duration.
+  const oneLine = (!summary || classification.status === 'JUNK')
+    ? fallbackSummaryForShortCall(durationSeconds, classification.status)
+    : summary
 
   const lines: string[] = [
     `${prefix}${emoji} ${ownerAlert.callerName} · ${ownerAlert.formattedPhone}`,
@@ -779,7 +803,7 @@ export async function sendOwnerSmsAlert(
   ctx: NotificationContext,
   opts: { testMode?: boolean } = {}
 ): Promise<void> {
-  const { supabase, client, slug, callId, callLogId, callerPhone, classification } = ctx
+  const { supabase, client, slug, callId, callLogId, callerPhone, classification, durationSeconds } = ctx
   const testMode = opts.testMode === true
 
   // Skip per the spec gate: explicit opt-in via sms_alerts_enabled = true
@@ -824,17 +848,14 @@ export async function sendOwnerSmsAlert(
     return
   }
 
-  // Build body
+  // Build body — JUNK / hangup calls still fire (owner wants to see who called)
   const body = buildOwnerSmsBody({
     classification,
     callerPhone,
     businessName: client.business_name,
     testMode,
+    durationSeconds,
   })
-  if (!body) {
-    console.log(`[completed] Owner SMS SKIPPED slug=${slug} callId=${callId}: empty body (JUNK)`)
-    return
-  }
 
   // Send via Twilio
   try {
