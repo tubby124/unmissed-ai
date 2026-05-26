@@ -21,12 +21,14 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
   const [telegramEnabled, setTelegramEnabled] = useState(client.telegram_notifications_enabled !== false)
   const [emailEnabled, setEmailEnabled] = useState(client.email_notifications_enabled !== false)
 
-  // Multichannel owner-alert state (added 2026-05-25)
+  // Multichannel owner-alert state
   const [smsAlertsEnabled, setSmsAlertsEnabled] = useState(client.sms_alerts_enabled === true)
   const [alertPhone, setAlertPhone] = useState(client.alert_phone ?? '')
   const [alertEmail, setAlertEmail] = useState(client.alert_email ?? '')
+  const [alertEmailCc, setAlertEmailCc] = useState(client.alert_email_cc ?? '')
   const [alertPhoneDirty, setAlertPhoneDirty] = useState(false)
   const [alertEmailDirty, setAlertEmailDirty] = useState(false)
+  const [alertEmailCcDirty, setAlertEmailCcDirty] = useState(false)
   const [testingChannel, setTestingChannel] = useState<'sms' | 'email' | 'telegram' | null>(null)
   const [testResult, setTestResult] = useState<{ channel: string; ok: boolean; error?: string } | null>(null)
 
@@ -111,18 +113,21 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
   }
 
   async function saveAlertPhone() {
-    const trimmed = alertPhone.trim()
-    if (trimmed && !/^\+[1-9]\d{1,14}$/.test(trimmed)) {
-      // toast handled by patch error path if Zod rejects
-    }
-    const res = await patch({ alert_phone: trimmed })
+    if (!alertPhoneDirty) return
+    const res = await patch({ alert_phone: alertPhone.trim() })
     if (res?.ok) setAlertPhoneDirty(false)
   }
 
   async function saveAlertEmail() {
-    const trimmed = alertEmail.trim()
-    const res = await patch({ alert_email: trimmed })
+    if (!alertEmailDirty) return
+    const res = await patch({ alert_email: alertEmail.trim() })
     if (res?.ok) setAlertEmailDirty(false)
+  }
+
+  async function saveAlertEmailCc() {
+    if (!alertEmailCcDirty) return
+    const res = await patch({ alert_email_cc: alertEmailCc.trim() })
+    if (res?.ok) setAlertEmailCcDirty(false)
   }
 
   async function sendTestAlert(channel: 'sms' | 'email' | 'telegram') {
@@ -294,12 +299,12 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
       </div>
     )}
 
-    {/* Multichannel owner-alert cards (SMS / Email / Telegram) */}
+    {/* Delivery preferences (SMS / Email / Telegram toggles + destinations) */}
     <div className="rounded-2xl border b-theme bg-surface overflow-hidden">
       <div className="p-5 border-b b-theme">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Alert Channels</p>
+            <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Delivery Preferences</p>
             <p className="text-[11px] t3">Pick where call alerts get sent. Mix and match — all enabled channels fire on every call.</p>
           </div>
           {saving && (
@@ -331,42 +336,39 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
               disabled={saving || previewMode || !client.twilio_number}
             />
           </div>
-          {smsAlertsEnabled && client.twilio_number && (
+          {client.twilio_number && (
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
+              <div>
+                <p className="text-[10px] t3 mb-1">Send alerts to</p>
                 <input
                   type="tel"
                   value={alertPhone}
                   onChange={(e) => { setAlertPhone(e.target.value); setAlertPhoneDirty(true) }}
+                  onBlur={saveAlertPhone}
                   placeholder={client.callback_phone || '+13065550123'}
-                  className="flex-1 text-[11px] px-3 py-2 rounded-lg border b-theme bg-surface t1 font-mono"
+                  className="w-full text-[11px] px-3 py-2 rounded-lg border b-theme bg-surface t1 font-mono"
                   disabled={previewMode}
                 />
-                <button
-                  onClick={saveAlertPhone}
-                  disabled={!alertPhoneDirty || saving || previewMode}
-                  className="text-[11px] font-semibold px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Save
-                </button>
               </div>
               {!alertPhone.trim() && !client.callback_phone && (
-                <p className="text-[10px] text-amber-400">⚠ No destination — texts will be skipped until you set one.</p>
+                <p className="text-[10px] text-amber-400">⚠ No destination set — texts will be skipped until you add one.</p>
               )}
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => sendTestAlert('sms')}
-                  disabled={(!alertPhone.trim() && !client.callback_phone) || testingChannel === 'sms'}
-                  className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border b-theme bg-surface hover:bg-hover t1 disabled:opacity-40"
-                >
-                  {testingChannel === 'sms' ? 'Sending...' : 'Send test SMS'}
-                </button>
-                {testResult?.channel === 'sms' && (
-                  <span className={`text-[10px] ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>
-                    {testResult.ok ? '✓ Sent' : `✗ ${testResult.error?.slice(0, 60)}`}
-                  </span>
-                )}
-              </div>
+              {smsAlertsEnabled && (
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    onClick={() => sendTestAlert('sms')}
+                    disabled={(!alertPhone.trim() && !client.callback_phone) || testingChannel === 'sms'}
+                    className="text-[10px] font-semibold px-2.5 py-1.5 rounded-lg border b-theme bg-surface hover:bg-hover t1 disabled:opacity-40"
+                  >
+                    {testingChannel === 'sms' ? 'Sending...' : 'Send test SMS'}
+                  </button>
+                  {testResult?.channel === 'sms' && (
+                    <span className={`text-[10px] ${testResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+                      {testResult.ok ? '✓ Sent' : `✗ ${testResult.error?.slice(0, 60)}`}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -386,29 +388,36 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
               disabled={saving || previewMode}
             />
           </div>
-          {emailEnabled && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="email"
-                  value={alertEmail}
-                  onChange={(e) => { setAlertEmail(e.target.value); setAlertEmailDirty(true) }}
-                  placeholder={client.contact_email || 'alerts@yourbusiness.com'}
-                  className="flex-1 text-[11px] px-3 py-2 rounded-lg border b-theme bg-surface t1"
-                  disabled={previewMode}
-                />
-                <button
-                  onClick={saveAlertEmail}
-                  disabled={!alertEmailDirty || saving || previewMode}
-                  className="text-[11px] font-semibold px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Save
-                </button>
-              </div>
-              {!alertEmail.trim() && !client.contact_email && (
-                <p className="text-[10px] text-amber-400">⚠ No destination — emails will be skipped until you set one.</p>
-              )}
-              <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div>
+              <p className="text-[10px] t3 mb-1">Send alerts to</p>
+              <input
+                type="email"
+                value={alertEmail}
+                onChange={(e) => { setAlertEmail(e.target.value); setAlertEmailDirty(true) }}
+                onBlur={saveAlertEmail}
+                placeholder={client.contact_email || 'alerts@yourbusiness.com'}
+                className="w-full text-[11px] px-3 py-2 rounded-lg border b-theme bg-surface t1"
+                disabled={previewMode}
+              />
+            </div>
+            <div>
+              <p className="text-[10px] t3 mb-1">CC (optional)</p>
+              <input
+                type="email"
+                value={alertEmailCc}
+                onChange={(e) => { setAlertEmailCc(e.target.value); setAlertEmailCcDirty(true) }}
+                onBlur={saveAlertEmailCc}
+                placeholder="assistant@yourbusiness.com"
+                className="w-full text-[11px] px-3 py-2 rounded-lg border b-theme bg-surface t1"
+                disabled={previewMode}
+              />
+            </div>
+            {!alertEmail.trim() && !client.contact_email && (
+              <p className="text-[10px] text-amber-400">⚠ No destination set — emails will be skipped until you add one.</p>
+            )}
+            {emailEnabled && (
+              <div className="flex items-center justify-between pt-1">
                 <button
                   onClick={() => sendTestAlert('email')}
                   disabled={(!alertEmail.trim() && !client.contact_email) || testingChannel === 'email'}
@@ -422,8 +431,8 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
                   </span>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Telegram card */}
