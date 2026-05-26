@@ -243,11 +243,6 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
           </div>
         </div>
 
-        {/* Placeholder for future channels */}
-        <div className="p-4 rounded-xl border b-theme bg-page">
-          <p className="text-[11px] t3">More alert channels (SMS, email) are in development.</p>
-        </div>
-
       </div>
     </div>
 
