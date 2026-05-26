@@ -78,17 +78,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: 'No target client resolved' }, { status: 400 })
   }
 
-  // Rate limit (5 per client per hour)
-  const rl = testLimiter.check(targetClientId)
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { ok: false, error: `Rate limit: try again in ${Math.ceil(rl.retryAfterMs / 1000)}s` },
-      { status: 429 }
-    )
-  }
-  testLimiter.record(targetClientId)
-
   // Fetch client row using service client (bypasses RLS — owner-test is privileged)
+  // Done BEFORE rate-limit record so a bogus clientId can't burn another client's quota.
   const svc = createServiceClient()
   const { data: client, error: clientErr } = await svc
     .from('clients')
@@ -99,6 +90,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (clientErr || !client) {
     return NextResponse.json({ ok: false, error: 'Client not found' }, { status: 404 })
   }
+
+  // Rate limit (5 per client per hour) — check + record AFTER existence verified
+  const rl = testLimiter.check(targetClientId)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { ok: false, error: `Rate limit: try again in ${Math.ceil(rl.retryAfterMs / 1000)}s` },
+      { status: 429 }
+    )
+  }
+  testLimiter.record(targetClientId)
 
   const classification = buildSyntheticClassification()
   const syntheticCtx: NotificationContext = {
@@ -131,7 +132,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ ok: true })
   } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err)
-    return NextResponse.json({ ok: false, error: errMsg }, { status: 500 })
+    // Log full error server-side; return generic message to browser (Twilio/Resend
+    // error strings can include phone numbers, account SIDs, and auth details).
+    console.error(`[test-alert] channel=${channel} client=${targetClientId}:`, err)
+    return NextResponse.json({ ok: false, error: 'Alert send failed — check server logs' }, { status: 500 })
   }
 }

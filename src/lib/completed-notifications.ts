@@ -803,7 +803,7 @@ export async function sendOwnerSmsAlert(
       from: fromNumber,
       to: toNumber,
     })
-    console.log(`[completed] Owner SMS sent slug=${slug} callId=${callId} to=${toNumber} sid=${twilioMsg.sid} testMode=${testMode}`)
+    console.log(`[completed] Owner SMS sent slug=${slug} callId=${callId} to=****${toNumber.slice(-4)} sid=${twilioMsg.sid} testMode=${testMode}`)
     // Cost monitoring marker (spec §7.5)
     console.log(`[sms_owner_alert] client=${slug} cost_estimate_cad=$0.011`)
 
