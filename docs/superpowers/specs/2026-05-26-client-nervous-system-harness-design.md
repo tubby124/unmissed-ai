@@ -57,19 +57,23 @@ Suggested columns:
 - `id uuid primary key`
 - `client_id uuid null`
 - `client_slug text null`
+- `event_version int not null default 1`
 - `event_type text not null`
 - `event_group text not null`
+- `severity text not null default 'info'`
 - `actor_type text not null`
 - `actor_user_id uuid null`
 - `source text not null`
 - `source_route text null`
 - `correlation_id text null`
+- `dedupe_key text null`
 - `run_id text null`
 - `call_log_id uuid null`
 - `ultravox_call_id text null`
 - `prompt_version_id uuid null`
 - `harness_finding_id uuid null`
 - `status text not null`
+- `visibility text not null default 'admin_only'`
 - `summary text not null`
 - `before jsonb not null default '{}'::jsonb`
 - `after jsonb not null default '{}'::jsonb`
@@ -93,6 +97,29 @@ Allowed `status` values:
 - `warning`
 - `error`
 - `skipped`
+
+Allowed `severity` values:
+
+- `debug`
+- `info`
+- `notice`
+- `warning`
+- `critical`
+
+Allowed `visibility` values:
+
+- `admin_only`
+- `owner_safe`
+- `system_only`
+
+Event design rules:
+
+- Use `correlation_id` to connect a multi-step operation such as onboarding, provisioning, a settings save, a call lifecycle, or a harness run.
+- Use `dedupe_key` for idempotent event insertion when webhooks or cron jobs retry.
+- Use `event_version` when changing the shape of `details`, not by silently changing old event meanings.
+- Never store secrets, full auth payloads, API keys, raw payment tokens, or unredacted request bodies.
+- Store hashes or safe summaries when full values would leak private data.
+- Keep logging non-blocking for user/runtime paths, but emit a separate `observability.event_write_failed` finding when event writes fail repeatedly.
 
 ## Event Types
 
@@ -138,6 +165,46 @@ Harness / drift:
 - `harness.finding_resolved`
 - `drift.detected`
 - `drift.clean`
+
+Observability system:
+
+- `observability.event_write_failed`
+- `observability.backfill_started`
+- `observability.backfill_completed`
+- `observability.report_generated`
+
+## Notification Model
+
+Telegram is the fire alarm, not the full dashboard.
+
+Surfaces:
+
+- Client timeline report: source of truth for A-Z history.
+- Harness dashboard: current open health problems.
+- Telegram: actionable P0/P1 alerts only.
+- Daily digest: calm summary of what changed.
+- CLI report: deep investigation mode.
+
+Telegram should alert on:
+
+- onboarding/provisioning created partial state but agent creation failed
+- prompt/settings saved but Ultravox sync failed
+- `clients.tools` drift from generated tools
+- call completed but transcript persistence, billing, or notification failed
+- webhook signature/config failure
+- P0/P1 harness finding opened or reopened
+- logging/event write failures crossing a threshold
+
+Telegram should not alert on normal successful events like every setting save, every tool invocation, every prompt version, or every routine call completion. Those belong in the timeline.
+
+Daily digest should include:
+
+- new onboarded clients
+- failed or partial onboarding/provisioning runs
+- new/reopened P0/P1 harness findings
+- calls with missing transcript, billing, or notification rows
+- drift summary by client
+- observability write failures
 
 ## Initial Report
 
@@ -202,6 +269,49 @@ Add harness checks in priority order:
    UI truth must match runtime tool gates.
 
 Each harness writes to `harness_findings` and emits `client_events` entries.
+
+## Operational Guardrails
+
+Privacy and redaction:
+
+- Do not store secrets, tokens, raw webhook signatures, API keys, payment tokens, or full request bodies in `client_events`.
+- Redact or hash phone numbers/emails in owner-safe views when possible.
+- Full transcript access remains governed by existing call detail permissions; timeline events should link to transcripts, not duplicate transcript bodies.
+
+RLS and access:
+
+- Admins can read all events.
+- Owners can read only `visibility='owner_safe'` events for their client when an owner-facing timeline exists.
+- `system_only` events are service-role/admin diagnostics only.
+- Inserts happen server-side through a helper, not from arbitrary client code.
+
+Idempotency:
+
+- Webhook, cron, and harness events should use `dedupe_key`.
+- Retried completed webhooks should update/link existing lifecycle events rather than creating confusing duplicate narratives.
+
+Retention:
+
+- Keep high-level timeline events indefinitely.
+- Consider TTL or archive policy for verbose debug events after 90 days.
+- Store large payloads in the source table/object storage and link to them from `client_events`.
+
+Backfill:
+
+- Phase 1 should include a read-only backfill script that reconstructs recent events from `clients`, `prompt_versions`, `call_logs`, `notification_logs`, `tool_invocations`, `client_drift_log`, and `harness_findings`.
+- Backfilled events must use `source='backfill'` and `status='success' | 'warning'` depending on confidence.
+
+Failure handling:
+
+- `recordClientEvent()` must not break the primary user/runtime path.
+- Repeated event-write failures should become a `harness_findings` row and an actionable Telegram alert.
+- The report must distinguish "no event happened" from "event logging missing or backfilled."
+
+Schema governance:
+
+- Keep event names stable.
+- Add new event types through the feature launch contract.
+- Add tests that fail if settings fields, onboarding fields, tool builders, or webhook routes are added without inventory/event coverage.
 
 ## Feature Launch Contract
 
@@ -278,6 +388,8 @@ Add:
 - `client_events` migration
 - `recordClientEvent()` helper
 - `scripts/client-timeline-report.ts`
+- read-only recent-event backfill script
+- notification routing helper for P0/P1 nervous-system alerts
 
 Wire conservative emitters:
 
@@ -288,6 +400,8 @@ Wire conservative emitters:
 - trial/live call start
 - completed webhook
 - harness writer
+
+Do not build the admin UI in Phase 1. First prove the report and event model are useful from the CLI.
 
 ### Phase 2: Harness Contract Checks
 
@@ -309,6 +423,16 @@ The UI reads the same report service as the CLI. It should show:
 
 Add a check or lightweight CI guard that flags new settings fields, tool builders, webhook routes, or onboarding fields that are not represented in the surface inventory and event contract.
 
+### Phase 5: Digest and Alert Tuning
+
+Add a daily digest and tune Telegram routing.
+
+The goal is high signal:
+
+- P0/P1 immediate Telegram
+- P2 and normal activity in digest/report only
+- no repeated alert storms for the same unresolved finding
+
 ## Verification
 
 For each phase:
@@ -326,4 +450,6 @@ For each phase:
 - Every saved field has a reader or explicit justification.
 - Every prompt/tool/runtime-affecting edit has a trace.
 - Harness findings are visible, deduped, and linked to timeline events.
+- Telegram alerts are actionable and low-noise.
+- Event writes are idempotent, redacted, and monitored.
 - Future features must register their fields, events, and harness coverage before shipping.
