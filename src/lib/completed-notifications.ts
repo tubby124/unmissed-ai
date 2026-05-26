@@ -770,8 +770,10 @@ export function buildOwnerSmsBody(params: {
   businessName: string | null
   testMode: boolean
   durationSeconds?: number
+  endedAt?: string | null
+  timezone?: string | null
 }): string {
-  const { classification, callerPhone, businessName, testMode, durationSeconds = 0 } = params
+  const { classification, callerPhone, businessName, testMode, durationSeconds = 0, endedAt, timezone } = params
 
   const ownerAlert = buildOwnerAlertDetails(classification, callerPhone, businessName)
   const prefix = testMode ? 'TEST — ' : ''
@@ -788,8 +790,16 @@ export function buildOwnerSmsBody(params: {
     ? fallbackSummaryForShortCall(durationSeconds, classification.status)
     : summary
 
+  // When + duration line — matches Telegram/email format
+  const whenLocal = formatLocalDateTime(endedAt ?? null, timezone || 'America/Regina')
+  const mins = Math.floor(durationSeconds / 60)
+  const secs = durationSeconds % 60
+  const durLabel = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+  const whenLine = whenLocal ? `${whenLocal} · ${durLabel}` : null
+
   const lines: string[] = [
     `${prefix}${emoji} ${ownerAlert.callerName} · ${ownerAlert.formattedPhone}`,
+    ...(whenLine ? [whenLine] : []),
     oneLine,
     `— Full details in your email.`,
   ]
@@ -855,6 +865,8 @@ export async function sendOwnerSmsAlert(
     businessName: client.business_name,
     testMode,
     durationSeconds,
+    endedAt: ctx.endedAt,
+    timezone: client.timezone,
   })
 
   // Send via Twilio
