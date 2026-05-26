@@ -4,6 +4,7 @@
  * Usage:
  *   npx tsx scripts/client-nervous-system-harness-check.ts --slug=hasan-sharif --dry-run
  *   npx tsx scripts/client-nervous-system-harness-check.ts --slug=hasan-sharif,windshield-hub
+ *   npx tsx scripts/client-nervous-system-harness-check.ts --all-active
  *
  * The checks only read source tables and source files. When not in --dry-run,
  * findings are persisted through the existing harness_findings writer.
@@ -54,6 +55,20 @@ function parseSlugs(argv: string[]): string[] {
     .filter(Boolean)
 }
 
+async function fetchActiveSlugs(supabase: { from(table: string): any }): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('clients')
+    .select('slug')
+    .eq('status', 'active')
+    .order('slug')
+
+  if (error) throw new Error(`Could not fetch active client slugs: ${error.message}`)
+
+  return ((data ?? []) as Array<{ slug: string | null }>)
+    .map((row) => row.slug?.trim())
+    .filter((slug): slug is string => !!slug)
+}
+
 function readEmitterSources(): EventSourceText[] {
   return EMITTER_FILES.map((path) => ({
     path,
@@ -76,10 +91,16 @@ function readDashboardAgentTestSources(): EventSourceText[] {
 }
 
 async function main(): Promise<number> {
-  const slugs = parseSlugs(process.argv.slice(2))
+  const argv = process.argv.slice(2)
+  const requestedSlugs = parseSlugs(argv)
+  const allActive = argv.includes('--all-active')
   const dryRun = process.argv.includes('--dry-run')
-  if (slugs.length === 0) {
-    console.error('Usage: npx tsx scripts/client-nervous-system-harness-check.ts --slug=client-slug[,other-slug] [--dry-run]')
+  if (requestedSlugs.length === 0 && !allActive) {
+    console.error('Usage: npx tsx scripts/client-nervous-system-harness-check.ts (--slug=client-slug[,other-slug] | --all-active) [--dry-run]')
+    return 2
+  }
+  if (requestedSlugs.length > 0 && allActive) {
+    console.error('Use either --slug or --all-active, not both')
     return 2
   }
 
@@ -91,6 +112,12 @@ async function main(): Promise<number> {
   }
 
   const supabase = createClient(url, key, { auth: { persistSession: false } })
+  const slugs = allActive ? await fetchActiveSlugs(supabase) : requestedSlugs
+  if (slugs.length === 0) {
+    console.error('[client-nervous-system] no client slugs to check')
+    return 2
+  }
+
   const findings: Finding[] = [
     ...await checkClientEventsTableExists(supabase),
     ...await checkClientTimelineReportSourcesAvailable(supabase, slugs),

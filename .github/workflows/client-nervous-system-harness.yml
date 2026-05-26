@@ -1,0 +1,99 @@
+name: Client nervous system harness
+
+# Nightly read-only client timeline health check. It writes current problems to
+# harness_findings so /dashboard/admin/harness shows them without anyone having
+# to remember a local command. It intentionally does not send Telegram alerts;
+# routing noisy timeline findings is a later phase.
+#
+# Schedule lineage (UTC):
+#   09:00 nightly-drift-check
+#   09:30 data-hygiene-check
+#   09:45 stripe-drift-check
+#   10:00 twilio-ownership-check
+#   10:30 telegram-health-check
+#   11:00 calendar-oauth-check
+#   11:15 client-nervous-system-harness  <- this one
+#
+# Required secrets:
+#   NEXT_PUBLIC_SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  schedule:
+    - cron: "15 11 * * *"
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: "Optional comma-separated slugs. Empty means all active clients."
+        required: false
+        default: ""
+        type: string
+      dry_run:
+        description: "Dry run - log only, no harness_findings writes"
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - "scripts/client-nervous-system-harness-check.ts"
+      - "src/lib/client-nervous-system-harness.ts"
+      - "src/lib/client-timeline-report.ts"
+      - "src/lib/client-events.ts"
+      - "src/lib/client-event-types.ts"
+      - "src/lib/__tests__/client-nervous-system-harness.test.ts"
+      - ".github/workflows/client-nervous-system-harness.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/client-nervous-system-harness-check.ts"
+      - "src/lib/client-nervous-system-harness.ts"
+      - "src/lib/client-timeline-report.ts"
+      - "src/lib/client-events.ts"
+      - "src/lib/client-event-types.ts"
+      - "src/lib/__tests__/client-nervous-system-harness.test.ts"
+      - ".github/workflows/client-nervous-system-harness.yml"
+
+concurrency:
+  group: client-nervous-system-harness
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check client timeline health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Run client nervous system harness
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INPUT_SLUGS: ${{ inputs.slugs }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+
+          args=()
+          if [ -n "${INPUT_SLUGS:-}" ]; then
+            args+=("--slug=${INPUT_SLUGS}")
+          else
+            args+=("--all-active")
+          fi
+
+          if [ "${INPUT_DRY_RUN:-false}" = "true" ]; then
+            args+=("--dry-run")
+          fi
+
+          npx tsx scripts/client-nervous-system-harness-check.ts "${args[@]}"
