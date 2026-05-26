@@ -1,58 +1,113 @@
-# Session Handoff — 2026-04-30 PM (D442 Followup — Fix 1.5 + Fix 4 + D445 forceRecompose)
+# Session Handoff — Multichannel Notifications (2026-05-25)
 
-## Completed This Session
+**Branch:** `main` (14 commits ahead of `origin/main`, NOT pushed)
+**HEAD:** `519ddd68`
+**Plan:** [docs/superpowers/plans/2026-05-25-multichannel-notifications.md](docs/superpowers/plans/2026-05-25-multichannel-notifications.md) (plan-commit `83fd57df`)
+**Spec:** [docs/superpowers/specs/2026-05-25-multichannel-notifications-design.md](docs/superpowers/specs/2026-05-25-multichannel-notifications-design.md)
 
-- **`210d598`** — `fix(d442): registry-readonly enforcement + phone-only capability labels` shipped to `feat/admin-redesign-phase-0-5`. 4 files, ~22 lines. Closes universal Greeting fake-control + adds "Phone calls only" footnotes to IVR/Transfer surfaces.
-- **`d9d0be7`** — `feat(d445): forceRecompose bypass on recomposePrompt for snowflake migration` shipped to same branch. Added 4th positional `forceRecompose: boolean = false` to `recomposePrompt()` ([slot-regenerator.ts:526](src/lib/slot-regenerator.ts#L526)). Distinct migration changelog string. Admin-only opt-in via `force_recompose` body field. Public `variables/preview` route intentionally NOT changed — keeps the marker guard for end users.
-- **D447 spec written** at [CALLINGAGENTS/Tracker/D447.md](CALLINGAGENTS/Tracker/D447.md) — Fix 1 (runtime truth on Overview). Full ticket: new `/api/dashboard/agent/runtime-state` endpoint with 60s LRU + ETag, 3-component refactor, 6-reason divergence classifier, Ultravox quota mitigation, feature-flag rollout sequence.
-- **D448 investigation ticket** at [CALLINGAGENTS/Tracker/D448.md](CALLINGAGENTS/Tracker/D448.md) — universal `clients.tools.hangUp` divergence across all 5 clients. 3 hypotheses, 5-step procedure. Marked as **hard blocker for D447's tool-comparison logic.**
-- **NEXT-CHAT-D442-Followup.md** rewritten at [CALLINGAGENTS/00-Inbox/NEXT-CHAT-D442-Followup.md](CALLINGAGENTS/00-Inbox/NEXT-CHAT-D442-Followup.md) with full cold-start including 5 verifications + 5 net-new learnings.
+---
+
+## Completed This Session (Tasks 0 through 9)
+
+| Task | Commit | What |
+|------|--------|------|
+| 0 | (working-tree only — no commit) | Reverted codex's uncommitted `RESEND_API_KEY_ENDVOICEMAIL_SEND` diff; tree matches HEAD |
+| 0.5 | `754eefae` | Pre-deploy email flag state note added to plan |
+| 1 | `0e511e77` | Migration `20260525000000_add_alert_channels.sql` (3 columns: `alert_phone`, `alert_email`, `sms_alerts_enabled`) — **APPLIED TO PROD** (project `qwhvblomlgeapzhnuwlb`). `database.types.ts` regenerated. |
+| 2 | `8e49f70d` | All 3 fields registered in `settings-schema.ts` FIELD_REGISTRY (DB_ONLY, triggersSync: false), Zod schema, `buildUpdates`. +12 tests. Critical: NOT in `SYNC_TRIGGER_FIELDS` (test enforces). |
+| 3 | `5ecd44a6` | `CompletedClient` interface extended with 4 fields. `sendEmailNotification` resolves destination via `alert_email ?? contact_email`. +4 tests. |
+| 4 | `3e46ee91` | `shouldSendPerCallEmail` unified to symmetric `!== false`. **PROD BACKFILL APPLIED** — 10 rows with NULL flag + contact_email defensively set to false (non-voicemail, non-message_only). 4 working clients were already explicit false, unaffected. |
+| 5 | `b86cd670` | `sendOwnerSmsAlert` + `buildOwnerSmsBody` + `resolveSmsOwnerDestination` added to `completed-notifications.ts`. New test file `notification-channels.test.ts` (+8 tests). |
+| 5-followup | `dc3ddf57` | Backfilled `CompletedClient` test fixture with the 4 new fields (closed a tsc error). |
+| 6 | `b252359d` | `/completed` webhook wired: SELECT extended, `sendOwnerSmsAlert` imported, added as 4th sibling between caller-SMS and email. **tsc fully clean after this commit.** |
+| 7 | `afbceee4` | `POST /api/dashboard/notifications/test` endpoint. Auth via `client_users`, rate-limited 5/client/hour, synthetic NotificationContext. DONE_WITH_CONCERNS — see Known Issues. |
+| 8 | `45221e52` | `ClientConfig` + `NotificationsConfigSection` SELECT extended with 3 new fields + `twilio_number` + `telegram_registration_token`. |
+| 9 | `519ddd68` | `AlertsTab.tsx` rebuilt: 2-toggle block replaced with 3 channel cards (SMS / Email / Telegram). Each has destination input + Save + Send test alert + result chip. Telegram connect + style + weekly digest blocks untouched. |
+
+**Test counts:** 2160 → 2172 pass (2 skipped). tsc clean.
+
+---
 
 ## Decisions Made
 
-- **Public `variables/preview` route was deliberately NOT given the forceRecompose bypass.** Migration tooling = admin route only. Owner-facing preview keeps the marker guard for safety. Any future "let me preview the migration as the owner" must build a separate admin-gated path, not relax the public route.
-- **Distinct changelog string for migration runs** ("Snowflake migration to slot format (D445 forceRecompose)") so the `prompt_versions` audit trail distinguishes one-shot migrations from routine recomposes.
-- **Positional 4th boolean over options-object refactor** — chose narrow diff per code-change discipline. Flagged in memory: next caller addition makes it 5 positional booleans, which IS the breaking point.
-- **D447 written with H1/H2/H3 dependency on D448** rather than guessing which array (`clients.tools` vs Ultravox `selectedTools`) is runtime-authoritative. The audit found `hangUp` missing from `clients.tools` on all 5 clients but the agents do hang up correctly — contradicts the documented mutation contract.
-- **Recommended D448 first in next chat** — 30-min focused investigation that either confirms or rewrites the foundation that D447, drift-detector, command-routing, and the mutation contract all sit on top of.
+- **Supabase project ID:** Plan said `kntgxkvgxlhrwonlfbny`. Verified against `package.json:db:types` and `ARCHITECTURE_STATE.md` — correct unmissed.ai prod ref is `qwhvblomlgeapzhnuwlb`. All Supabase ops in this branch used the correct ref. Plan file's Task 0.5 note records the correction.
+- **Task 4 backfill:** Plan said "conditional on Task 0.5 state." Task 0.5 query showed 4 active clients explicit-false (safe), but 10 other rows (1 active canary + 9 paused, non-voicemail, non-message_only) had NULL flag + contact_email. Without backfill those would receive surprise per-call email after deploy. Backfill applied, 10 rows affected.
+- **Email/Telegram testMode asymmetry (Task 7):** Plan called this out — only `sendOwnerSmsAlert` accepts `{ testMode: true }`. Email + Telegram functions get the same skip behavior via `callLogId: null`, but they will write a `notification_logs` row with `call_id=null` (the column is nullable). Harmless test noise.
+- **Playwright button precedence bug:** Plan's draft had `!a.trim() && !b || c` (button incorrectly disabled by `c` alone). Fixed to `(!a.trim() && !b) || c` in Task 9 commit `519ddd68`.
 
-## Current State
-
-- **Prod:** No prod state changed this session. Both commits on `feat/admin-redesign-phase-0-5`, not merged to main yet.
-- **Branch:** `feat/admin-redesign-phase-0-5` is now 2 commits ahead of where it was (`c2f9e06` → `d9d0be7`). Pushed to origin.
-- **Build:** PASS. `test:all` PASS (pre-commit). `slot-regenerator.test.ts` 26/26 PASS. `test:settings-truth` 16/16 PASS.
-- **Uncommitted on branch:** the usual vault notes (`Tracker/D437`, `Tracker/D442`, `Tracker/D443`, `Tracker/D444`, `Tracker/D445`, `Tracker/D446`, `Tracker/D447` (new), `Tracker/D448` (new), `00-Inbox/NEXT-CHAT-D442-*` files (rewritten), `00-Inbox/overview-drift-audit-2026-04-30.md`, `Architecture/Snowflake-Migration-Deep-Plan.md`, `docs/refactor-baseline/snapshots/2026-04-30-pre-d442/`, several already-modified vault notes from prior sessions). All untracked. None code.
-- **PR:** GitHub offered a PR link on first push: `https://github.com/tubby124/unmissed-ai/pull/new/feat/admin-redesign-phase-0-5`. Not opened.
+---
 
 ## Pending / Next Steps
 
-- [ ] **D448 truth-tracer dispatch** — answer H1/H2/H3 on `clients.tools` vs Ultravox `selectedTools` divergence. Hard blocker for D447.
-- [ ] **D447 file path verifications** before any code (HomeOverview.tsx existence, deep-link router targets).
-- [ ] **File D449 (Fix 2 per-field warning chip)** — independent of D447, cheap.
-- [ ] **File D450 (Fix 3 `twilio_number` → `needsAgentSync`)** — one-line backend change.
-- [ ] **forceRecompose integration test** — required before first per-client D445 migration. The bypass branch has zero coverage.
-- [ ] **Decide go/no-go on D447** — or defer indefinitely if D443 (shipped) + D449 close enough of the trust gap.
-- [ ] **Vault-sync the untracked tracker notes** when convenient.
-- [ ] **Optionally open PR** for `feat/admin-redesign-phase-0-5` — currently 2 commits ahead, both green.
-- [x] Telegram Tier 3 still shipped per prior session — no rollback signal seen.
+- [ ] **Task 10 — Playwright integration test.** Paused for user decision. Options:
+  - (a) Ship as-is with auto-skip when `TEST_PASSWORD` env unset (matches `dashboard-features.spec.ts` pattern)
+  - (b) Skip entirely — rely on Task 11 (Hasan manual) as the actual ship gate (which spec §7.3 calls the "only must-ship gate")
+  - (c) Replace Playwright with a node:test unit test against `/api/dashboard/notifications/test` (mocks Supabase + send functions)
+  - (d) Both Playwright + node:test API-route test
+  - Draft file exists at [tests/notification-dashboard.spec.ts](tests/notification-dashboard.spec.ts) (untracked, unstaged). Content is correct (auto-skip on `!TEST_PASSWORD`, SMS tests also skip if test client has no twilio_number). Either delete or commit.
+- [ ] **Final code review.** Dispatch `unmissed-code-reviewer` over the 11-commit branch diff (`83fd57df..HEAD`).
+- [ ] **Push to `origin/main`** — 14 commits ahead, unpushed. Push is pre-authorized but was held during execution. Should be a deliberate decision after final review.
+- [ ] **Task 11 — Hasan manual self-test (spec §7.3 Gate A — the only must-ship gate):**
+  1. SQL (prod, project `qwhvblomlgeapzhnuwlb`): set `sms_alerts_enabled=true`, `alert_phone='<Hasan's cell, E.164>'`, `email_notifications_enabled=true`, `alert_email='hasan.sharif@exprealty.com'` on slug `hasan-sharif`.
+  2. Verify all 3 cards render on `/dashboard/notifications`.
+  3. Click each "Send test" button: SMS / email / Telegram all land within 10-30s.
+  4. Real call to Aisha's Twilio number → confirm all 3 channels fire within 30s.
+  5. Drift check: `SELECT last_agent_sync_at FROM clients WHERE slug='hasan-sharif'` should be BEFORE the migration timestamp (no agent re-sync triggered by anything in this PR).
+  6. Sign off "Gate A passes" or file specific changes.
 
-## Files Changed (this session)
+---
 
-- `src/app/api/dashboard/variables/route.ts` — Fix 1.5 backend reject (committed `210d598`)
-- `src/components/dashboard/CapabilitiesCard.tsx` — Fix 4 phone-only footnote (`210d598`)
-- `src/components/dashboard/home/AgentIdentityCard.tsx` — Fix 1.5 frontend Edit-button gate (`210d598`)
-- `src/components/dashboard/home/QuickConfigStrip.tsx` — Fix 4 phone-only footnotes (`210d598`)
-- `src/lib/slot-regenerator.ts` — D445 forceRecompose 4th param + distinct changelog (`d9d0be7`)
-- `src/app/api/admin/recompose-client/route.ts` — accept `force_recompose` body field (`d9d0be7`)
-- `CALLINGAGENTS/Tracker/D447.md` — new spec
-- `CALLINGAGENTS/Tracker/D448.md` — new investigation ticket
-- `CALLINGAGENTS/00-Inbox/NEXT-CHAT-D442-Followup.md` — rewritten cold-start
-- `SESSION-HANDOFF.md` — this file (overwritten)
+## Files Changed
+
+```
+.env.example                                                              (reverted to HEAD — no commit)
+src/lib/email/send.ts                                                     (reverted to HEAD — no commit)
+docs/superpowers/plans/2026-05-25-multichannel-notifications.md
+supabase/migrations/20260525000000_add_alert_channels.sql                 (new)
+src/lib/database.types.ts                                                 (regenerated; +180 lines drift catch-up)
+src/lib/settings-schema.ts
+src/lib/__tests__/notification-guards.test.ts
+src/lib/completed-notifications.ts
+src/lib/__tests__/notification-channels.test.ts                           (new)
+src/app/api/webhook/[slug]/completed/route.ts
+src/app/api/dashboard/notifications/test/route.ts                         (new)
+src/app/dashboard/settings/page.tsx
+src/app/dashboard/notifications/NotificationsConfigSection.tsx
+src/components/dashboard/settings/AlertsTab.tsx
+```
+
+Untracked:
+- [tests/notification-dashboard.spec.ts](tests/notification-dashboard.spec.ts) — Task 10 draft, decision pending
+- `CALLINGAGENTS/00-Inbox/2026-05-21-harness-continuation-prompt.md` — pre-existing, not from this session
+
+---
+
+## Prod DB State Notes
+
+- 3 new columns live on `clients` in project `qwhvblomlgeapzhnuwlb`: `alert_phone text`, `alert_email text`, `sms_alerts_enabled boolean`. All nullable.
+- `email_notifications_enabled` backfill applied: 10 rows updated to `false` defensively. The 4 working clients (`hasan-sharif`, `exp-realty`, `urban-vibe`, `windshield-hub`) were already explicit `false` and were not touched by the backfill.
+- No agent redeploy triggered. All 3 new fields are `DB_ONLY, triggersSync: false`. Tests enforce they're NOT in `SYNC_TRIGGER_FIELDS`.
+
+---
+
+## Known Issues / Concerns
+
+1. **Email/Telegram testMode asymmetry (Task 7):** The synthetic test endpoint writes `notification_logs` rows with `call_id=null` when channel ∈ {email, telegram}. Spec §6.3 says the test should be ephemeral; this is a minor deviation. Acceptable per plan's own docstring acknowledgment. If we want true skip, add `{ testMode }` parameter to `sendEmailNotification` + `sendTelegramNotification` (mirror `sendOwnerSmsAlert` pattern). Follow-up, not blocker.
+
+2. **Plan project-ID error:** The plan file still references `kntgxkvgxlhrwonlfbny` in 3 places that weren't edited. The Task 0.5 amendment notes the correction inline. A docs-only find/replace pass would close this.
+
+3. **`database.types.ts` drift catch-up:** Task 1's regen pulled in unrelated pre-existing schema (`inbound_personality`, `outbound_*`, `learning_loop_suggestions` table) that earlier commits introduced without regenerating types. Type cleanup, not new functionality.
+
+4. **`manzil-isa` not in this DB:** The plan named 5 active clients; Task 0.5 query found only 4. `manzil-isa` is the n8n-legacy test client mentioned in `.claude/rules/command-routing.md` and isn't in `clients` table of unmissed.ai prod. Not a concern for this PR.
+
+---
 
 ## How to Continue
 
-To pick up: read [CALLINGAGENTS/00-Inbox/NEXT-CHAT-D442-Followup.md](CALLINGAGENTS/00-Inbox/NEXT-CHAT-D442-Followup.md). Recommended first move is **dispatch the truth-tracer agent for D448** before any D447 code. D448 either confirms the documented mutation contract (`clients.tools` is runtime-authoritative) or rewrites it — either way, D447's tool-comparison logic depends on the answer, and so does every prior drift-detector run anchored on `clients.tools`.
+Next session, paste:
 
-If owner wants a fast win without that investigation: file + ship D450 (Fix 3 `twilio_number` → `needsAgentSync` one-liner). It's independent, low-risk, and closes a documented MEDIUM gap.
+> Resume multichannel notifications — Tasks 0-9 done on main (HEAD=519ddd68). Read SESSION-HANDOFF.md at repo root. Decide Task 10 approach (Playwright vs node:test vs skip), then run final review, then push, then Hasan executes Task 11 manual gate.
 
-Don't ship any per-client D445 migration until the forceRecompose integration test exists. Currently the bypass branch is untested.
+Or if jumping straight to Task 11:
+
+> Multichannel notifications dashboard is shipped (14 commits, unpushed). I'm ready for Task 11 Gate A. Push to origin first, then walk me through the manual SQL + dashboard test buttons. My cell is <E.164>.
