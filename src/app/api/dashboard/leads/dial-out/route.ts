@@ -214,13 +214,14 @@ export async function POST(req: NextRequest) {
   if (ctx.knowledge.block) fullPrompt += `\n\n${ctx.knowledge.block}`
   if (ctx.assembled.contextDataBlock) fullPrompt += `\n\n${ctx.assembled.contextDataBlock}`
 
-  // Build tools (use client.tools for same capability set as inbound)
-  // hangUp MUST be first — without it Ultravox cannot end calls (Gotcha #55)
+  // Build tools — hangUp must be present, client.tools may already include it
+  const clientTools = Array.isArray(client.tools) ? (client.tools as Record<string, unknown>[]) : []
+  const hasHangUp = clientTools.some(t =>
+    t.toolName === 'hangUp' || t.nameOverride === 'hangUp' ||
+    (t.temporaryTool as Record<string, unknown> | undefined)?.modelToolName === 'hangUp'
+  )
   const HANGUP_TOOL = { toolName: 'hangUp', parameterOverrides: { strict: true } }
-  const tools = [
-    HANGUP_TOOL,
-    ...(Array.isArray(client.tools) ? (client.tools as object[]) : []),
-  ]
+  const tools = hasHangUp ? clientTools : [HANGUP_TOOL, ...clientTools]
 
   const callbackUrl = signCallbackUrl(`${APP_URL}/api/webhook/${slug}/completed`, slug)
 
