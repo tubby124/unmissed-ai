@@ -105,6 +105,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   callback_phone:                { mutationClass: 'DB_ONLY', triggersSync: false },
   alert_phone:                   { mutationClass: 'DB_ONLY', triggersSync: false },
   alert_email:                   { mutationClass: 'DB_ONLY', triggersSync: false },
+  alert_email_cc:                { mutationClass: 'DB_ONLY', triggersSync: false },
   sms_alerts_enabled:            { mutationClass: 'DB_ONLY', triggersSync: false },
   city:                          { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'slot_regen' },
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
@@ -273,6 +274,10 @@ export const settingsBodySchema = z.object({
     z.string().email('alert_email must be a valid email address'),
     z.literal(''),
   ]).optional(),
+  alert_email_cc: z.union([
+    z.string().email('alert_email_cc must be a valid email address'),
+    z.literal(''),
+  ]).optional(),
   sms_alerts_enabled: z.boolean().optional(),
   city: z.string().optional(),
   website_url: z.string().optional(),
@@ -395,7 +400,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     'after_hours_emergency_phone', 'transfer_conditions', 'voicemail_greeting_text',
     'voicemail_greeting_audio_url', 'ivr_prompt', 'owner_name', 'callback_phone',
     'city', 'website_url', 'context_data', 'context_data_label',
-    'display_name', 'alert_phone', 'alert_email',
+    'display_name', 'alert_phone', 'alert_email', 'alert_email_cc',
   ]
 
   // String fields that get trimmed + nullable, but require non-empty
