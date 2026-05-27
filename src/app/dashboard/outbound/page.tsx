@@ -6,6 +6,7 @@ import { useAdminClient } from '@/contexts/AdminClientContext'
 import { Plus, Phone, Save, Trash2, Star, ChevronDown, ChevronUp, Eye } from 'lucide-react'
 import LeadQueue from '@/components/dashboard/outbound/LeadQueue'
 import OutboundHistoryTab from '@/components/dashboard/outbound/OutboundHistoryTab'
+import ClientSelector from '@/components/dashboard/ClientSelector'
 
 interface Template {
   id: string
@@ -34,7 +35,7 @@ const TONES: Record<string, { label: string; color: string }> = {
 }
 
 export default function OutboundPage() {
-  const { selectedClient, selectedClientId, isAdmin } = useAdminClient()
+  const { selectedClient, selectedClientId, isAdmin, clients: adminClients, setSelectedClientId } = useAdminClient()
   const adminClientId = isAdmin && selectedClientId !== 'all' ? (selectedClient?.id ?? selectedClientId) : null
   const [ownerClientId, setOwnerClientId] = useState<string | null>(null)
   const clientId = isAdmin ? adminClientId : ownerClientId
@@ -148,10 +149,18 @@ Opening: "${formOpening || 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...
   if (isAdmin && !clientId) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        <div className="rounded-2xl p-8 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-          <Phone className="h-10 w-10 mx-auto mb-3" style={{ color: 'var(--color-text-3)' }} />
-          <h2 className="text-lg font-bold mb-2" style={{ color: 'var(--color-text-1)' }}>Outbound Calling</h2>
-          <p className="text-sm" style={{ color: 'var(--color-text-3)' }}>Select a client to configure outbound calling templates.</p>
+        <div className="rounded-2xl p-8 text-center space-y-4" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+          <Phone className="h-10 w-10 mx-auto" style={{ color: 'var(--color-text-3)' }} />
+          <h2 className="text-lg font-bold" style={{ color: 'var(--color-text-1)' }}>Outbound Calling</h2>
+          <p className="text-sm" style={{ color: 'var(--color-text-3)' }}>Pick a client to start calling.</p>
+          <div className="flex justify-center">
+            <ClientSelector
+              clients={adminClients}
+              value={selectedClientId}
+              onChange={setSelectedClientId}
+              hideAllOption
+            />
+          </div>
         </div>
       </div>
     )
