@@ -23,6 +23,8 @@ export type EmailPurpose = 'system' | 'marketing' | 'support'
 
 export interface BrandedEmailInput extends FooterContext {
   to: string | string[]
+  /** Optional CC recipient(s). */
+  cc?: string | string[]
   subject: string
   /** Body HTML — footer is appended automatically. Do NOT include your own footer. */
   html: string
@@ -99,6 +101,7 @@ ${footer.html}
     const result = await resend.emails.send({
       from,
       to: Array.isArray(input.to) ? input.to : [input.to],
+      ...(input.cc ? { cc: Array.isArray(input.cc) ? input.cc : [input.cc] } : {}),
       replyTo,
       subject: input.subject,
       html: fullHtml,

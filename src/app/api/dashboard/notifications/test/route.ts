@@ -83,7 +83,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const svc = createServiceClient()
   const { data: client, error: clientErr } = await svc
     .from('clients')
-    .select('id, slug, business_name, niche, call_handling_mode, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, alert_phone, alert_email, sms_alerts_enabled, callback_phone')
+    .select('id, slug, business_name, niche, call_handling_mode, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, alert_phone, alert_email, alert_email_cc, sms_alerts_enabled, callback_phone')
     .eq('id', targetClientId)
     .single()
 
