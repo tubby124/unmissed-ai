@@ -12,20 +12,28 @@ interface Template {
   is_default: boolean
 }
 
+interface ExistingLead {
+  id: string
+  name: string | null
+  phone: string
+  notes?: string | null
+}
+
 interface CallComposerProps {
   clientId: string
   templates: Template[]
   onClose: () => void
   onCallPlaced?: () => void
+  existingLead?: ExistingLead
 }
 
 type CallStatus = 'idle' | 'creating' | 'dialing' | 'live' | 'failed'
 
-export default function CallComposer({ clientId, templates, onClose, onCallPlaced }: CallComposerProps) {
-  const [phone, setPhone] = useState('')
-  const [name, setName] = useState('')
+export default function CallComposer({ clientId, templates, onClose, onCallPlaced, existingLead }: CallComposerProps) {
+  const [phone, setPhone] = useState(existingLead?.phone ?? '')
+  const [name, setName] = useState(existingLead?.name ?? '')
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
-  const [notes, setNotes] = useState('')
+  const [notes, setNotes] = useState(existingLead?.notes ?? '')
   const [status, setStatus] = useState<CallStatus>('idle')
   const [error, setError] = useState('')
   const [callId, setCallId] = useState('')
@@ -35,44 +43,51 @@ export default function CallComposer({ clientId, templates, onClose, onCallPlace
   const selectedTpl = templates.find(t => t.id === selectedTemplateId)
 
   async function dial() {
-    if (!phone || !name) return
-    setStatus('creating')
     setError('')
-
-    const normalizedPhone = phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`
     const templateId = selectedTemplateId || defaultTpl?.id || null
 
-    const leadRes = await fetch('/api/dashboard/leads', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: clientId,
-        phone: normalizedPhone,
-        name,
-        notes: notes || null,
-      }),
-    })
+    let leadId: string
 
-    if (!leadRes.ok) {
-      const err = await leadRes.json().catch(() => ({ error: leadRes.statusText }))
-      setError(err.error || 'Failed to create lead')
-      setStatus('failed')
-      return
+    if (existingLead) {
+      setStatus('dialing')
+      leadId = existingLead.id
+    } else {
+      if (!phone || !name) return
+      setStatus('creating')
+
+      const normalizedPhone = phone.startsWith('+') ? phone : `+1${phone.replace(/\D/g, '')}`
+      const leadRes = await fetch('/api/dashboard/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: clientId,
+          phone: normalizedPhone,
+          name,
+          notes: notes || null,
+        }),
+      })
+
+      if (!leadRes.ok) {
+        const err = await leadRes.json().catch(() => ({ error: leadRes.statusText }))
+        setError(err.error || 'Failed to create lead')
+        setStatus('failed')
+        return
+      }
+
+      const { lead } = await leadRes.json()
+      if (!lead) {
+        setError('Failed to create lead')
+        setStatus('failed')
+        return
+      }
+      setStatus('dialing')
+      leadId = lead.id
     }
 
-    const { lead } = await leadRes.json()
-
-    if (!lead) {
-      setError('Failed to create lead')
-      setStatus('failed')
-      return
-    }
-
-    setStatus('dialing')
     const res = await fetch('/api/dashboard/leads/dial-out', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ lead_id: lead.id, template_id: templateId }),
+      body: JSON.stringify({ lead_id: leadId, template_id: templateId }),
     })
 
     if (!res.ok) {
@@ -131,48 +146,61 @@ export default function CallComposer({ clientId, templates, onClose, onCallPlace
           )}
         </div>
 
-        {/* Contact name */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>
-            Contact Name
-          </label>
-          <input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="e.g. Ryan Parry"
-            className="w-full border rounded-xl px-3 py-2.5 text-sm"
-            style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
-          />
-        </div>
+        {/* Contact — read-only summary when dialing from lead queue, editable for manual entry */}
+        {existingLead ? (
+          <div className="rounded-xl p-3 space-y-0.5" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <div className="text-sm font-semibold" style={{ color: 'var(--color-text-1)' }}>{existingLead.name ?? 'Unknown'}</div>
+            <div className="text-xs font-mono" style={{ color: 'var(--color-text-3)' }}>{existingLead.phone}</div>
+            {existingLead.notes && (
+              <div className="text-xs" style={{ color: 'var(--color-text-3)' }}>{existingLead.notes}</div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Contact name */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>
+                Contact Name
+              </label>
+              <input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Ryan Parry"
+                className="w-full border rounded-xl px-3 py-2.5 text-sm"
+                style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+              />
+            </div>
 
-        {/* Phone */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>
-            Phone Number
-          </label>
-          <input
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
-            placeholder="(403) 796-9038"
-            className="w-full border rounded-xl px-3 py-2.5 text-sm font-mono"
-            style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
-          />
-        </div>
+            {/* Phone */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>
+                Phone Number
+              </label>
+              <input
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="(403) 796-9038"
+                className="w-full border rounded-xl px-3 py-2.5 text-sm font-mono"
+                style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+              />
+            </div>
 
-        {/* Notes */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>
-            Call Notes <span className="font-normal lowercase">(agent reads this)</span>
-          </label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            rows={2}
-            placeholder="Context for the agent, e.g. 'Met at open house, interested in 3-bedroom'"
-            className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
-            style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
-          />
-        </div>
+            {/* Notes */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: 'var(--color-text-3)' }}>
+                Call Notes <span className="font-normal lowercase">(agent reads this)</span>
+              </label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Context for the agent, e.g. 'Met at open house, interested in 3-bedroom'"
+                className="w-full border rounded-xl px-3 py-2.5 text-sm resize-none"
+                style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
+              />
+            </div>
+          </>
+        )}
 
         {/* Status */}
         {error && (
@@ -192,7 +220,7 @@ export default function CallComposer({ clientId, templates, onClose, onCallPlace
         {/* Dial button */}
         <button
           onClick={dial}
-          disabled={status === 'creating' || status === 'dialing' || !phone || !name}
+          disabled={status === 'creating' || status === 'dialing' || (!existingLead && (!phone || !name))}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
           style={{ backgroundColor: 'var(--color-primary)' }}
         >

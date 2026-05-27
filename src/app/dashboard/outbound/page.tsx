@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAdminClient } from '@/contexts/AdminClientContext'
 import { Plus, Phone, Save, Trash2, Star, ChevronDown, ChevronUp, Eye } from 'lucide-react'
-import CallComposer from '@/components/dashboard/outbound/CallComposer'
+import LeadQueue from '@/components/dashboard/outbound/LeadQueue'
+import OutboundHistoryTab from '@/components/dashboard/outbound/OutboundHistoryTab'
 
 interface Template {
   id: string
@@ -43,7 +44,6 @@ export default function OutboundPage() {
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
-  const [showComposer, setShowComposer] = useState(false)
 
   // Create/edit form state
   const [formName, setFormName] = useState('')
@@ -396,50 +396,14 @@ Opening: "${formOpening || 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...
         )}
       </AnimatePresence>
 
-      {/* Composer Tab */}
+      {/* Composer Tab — lead queue with search, import, and per-row dial */}
       {activeTab === 'composer' && (
-        <div className="rounded-2xl p-8 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-          <Phone className="h-10 w-10 mx-auto mb-3" style={{ color: 'var(--color-text-3)' }} />
-          <h2 className="text-base font-bold mb-1" style={{ color: 'var(--color-text-1)' }}>Call Composer</h2>
-          <p className="text-sm mb-4" style={{ color: 'var(--color-text-3)' }}>
-            Pick a template, enter a contact, and dial.
-          </p>
-          {templates.length > 0 ? (
-            <button onClick={() => setShowComposer(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02]"
-              style={{ backgroundColor: 'var(--color-primary)' }}>
-              <Phone className="h-4 w-4" />
-              Open Call Composer
-            </button>
-          ) : (
-            <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-              Create a template first to start making calls.
-            </p>
-          )}
-        </div>
+        <LeadQueue clientId={clientId} templates={templates} />
       )}
 
-      {/* Call Composer Modal */}
-      <AnimatePresence>
-        {showComposer && clientId && (
-          <CallComposer
-            clientId={clientId}
-            templates={templates}
-            onClose={() => setShowComposer(false)}
-            onCallPlaced={() => {}}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* History Tab - placeholder */}
+      {/* History Tab — real outbound call log */}
       {activeTab === 'history' && (
-        <div className="rounded-2xl p-8 text-center" style={{ border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-          <Eye className="h-10 w-10 mx-auto mb-3" style={{ color: 'var(--color-text-3)' }} />
-          <h2 className="text-base font-bold mb-1" style={{ color: 'var(--color-text-1)' }}>Outbound Call History</h2>
-          <p className="text-sm" style={{ color: 'var(--color-text-3)' }}>
-            View past outbound calls, recordings, and transcripts. Coming next.
-          </p>
-        </div>
+        <OutboundHistoryTab clientId={clientId} />
       )}
     </div>
   )

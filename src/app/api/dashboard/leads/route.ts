@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from('campaign_leads')
-    .select('id, client_id, phone, name, status, notes, added_at, last_called_at, clients(business_name)')
+    .select('id, client_id, phone, name, status, notes, added_at, last_called_at, call_count, clients(business_name)')
     .order('added_at', { ascending: false })
 
   if (!isAdmin) {
