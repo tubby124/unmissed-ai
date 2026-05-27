@@ -223,6 +223,7 @@ describe('S8d: NotificationContext required fields', () => {
         call_handling_mode: 'triage',
         alert_phone: null,
         alert_email: null,
+        alert_email_cc: null,
         sms_alerts_enabled: null,
         callback_phone: null,
       },

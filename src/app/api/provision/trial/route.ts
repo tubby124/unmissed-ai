@@ -215,6 +215,9 @@ export async function POST(req: NextRequest) {
       state: data.state || null,
       services_offered: intakePayload.services_offered || null,
       callback_phone: intakePayload.callback_phone || null,
+      // Pre-fill alert destinations from signup data — owner can change in dashboard
+      alert_phone: intakePayload.callback_phone || null,
+      alert_email: data.contactEmail || null,
       ivr_enabled: data.ivrEnabled ?? false,
       ivr_prompt: data.ivrPrompt || null,
       call_handling_mode: effectiveCallHandlingMode,

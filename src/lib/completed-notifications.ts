@@ -35,6 +35,7 @@ export interface CompletedClient {
   email_notifications_enabled: boolean | null
   alert_phone: string | null
   alert_email: string | null
+  alert_email_cc: string | null
   sms_alerts_enabled: boolean | null
   callback_phone: string | null
   call_handling_mode?: string | null
@@ -704,6 +705,7 @@ export async function sendEmailNotification(ctx: NotificationContext): Promise<v
 
     const emailResult = await sendBrandedEmail({
       to: emailDestination,
+      ...(client.alert_email_cc ? { cc: client.alert_email_cc } : {}),
       clientId: client.id,
       clientSlug: slug,
       purpose: 'system',

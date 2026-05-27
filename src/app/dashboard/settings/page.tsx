@@ -95,6 +95,7 @@ export interface ClientConfig {
   // Multichannel owner-alert fields (added 2026-05-25)
   alert_phone: string | null
   alert_email: string | null
+  alert_email_cc: string | null
   sms_alerts_enabled: boolean | null
   // IVR — voicemail menu pre-filter
   ivr_enabled: boolean | null
