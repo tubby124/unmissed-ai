@@ -67,6 +67,7 @@ export default function LeadQueue({ clientId, templates }: LeadQueueProps) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [cityFilter, setCityFilter] = useState('all')
   const [dialingLead, setDialingLead] = useState<CampaignLead | null>(null)
+  const [showManual, setShowManual] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
@@ -168,6 +169,14 @@ export default function LeadQueue({ clientId, templates }: LeadQueueProps) {
             style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-1)' }}
           />
         </div>
+        <button
+          onClick={() => setShowManual(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white shrink-0 transition-all hover:scale-[1.02]"
+          style={{ backgroundColor: 'var(--color-primary)' }}
+        >
+          <Phone className="h-3.5 w-3.5" />
+          + New Lead
+        </button>
         <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleFile} />
         <button
           onClick={() => fileRef.current?.click()}
@@ -317,17 +326,24 @@ export default function LeadQueue({ clientId, templates }: LeadQueueProps) {
         </div>
       )}
 
-      {/* CallComposer modal */}
+      {/* Dial existing lead */}
       {dialingLead && (
         <CallComposer
           clientId={clientId}
           templates={templates}
           existingLead={dialingLead}
           onClose={() => setDialingLead(null)}
-          onCallPlaced={() => {
-            setDialingLead(null)
-            loadLeads()
-          }}
+          onCallPlaced={() => { setDialingLead(null); loadLeads() }}
+        />
+      )}
+
+      {/* Manual new lead + dial */}
+      {showManual && (
+        <CallComposer
+          clientId={clientId}
+          templates={templates}
+          onClose={() => setShowManual(false)}
+          onCallPlaced={() => { setShowManual(false); loadLeads() }}
         />
       )}
     </div>
