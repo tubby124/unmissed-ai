@@ -8,7 +8,7 @@ import { useClientScope } from '@/lib/admin-scope'
 import { isAdminRedesignEnabledClient } from '@/lib/feature-flags'
 
 // Minimal fields needed by AlertsTab
-const SELECT = 'id, telegram_chat_id, telegram_bot_token, telegram_style, weekly_digest_enabled, contact_email, telegram_notifications_enabled, email_notifications_enabled, alert_phone, alert_email, sms_alerts_enabled, callback_phone, twilio_number, telegram_registration_token'
+const SELECT = 'id, telegram_chat_id, telegram_bot_token, telegram_style, weekly_digest_enabled, contact_email, telegram_notifications_enabled, email_notifications_enabled, alert_phone, alert_email, alert_email_cc, sms_alerts_enabled, callback_phone, twilio_number, telegram_registration_token'
 
 /**
  * Renders the Alerts configuration (channel status, message style, notification
