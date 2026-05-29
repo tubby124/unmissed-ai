@@ -97,6 +97,7 @@ export interface ClientConfig {
   alert_email: string | null
   alert_email_cc: string | null
   sms_alerts_enabled: boolean | null
+  notification_filter_spam: boolean | null
   // IVR — voicemail menu pre-filter
   ivr_enabled: boolean | null
   ivr_prompt: string | null

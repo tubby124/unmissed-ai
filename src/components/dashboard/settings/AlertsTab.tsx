@@ -29,6 +29,7 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
   const [alertPhoneDirty, setAlertPhoneDirty] = useState(false)
   const [alertEmailDirty, setAlertEmailDirty] = useState(false)
   const [alertEmailCcDirty, setAlertEmailCcDirty] = useState(false)
+  const [filterSpam, setFilterSpam] = useState(client.notification_filter_spam === true)
   const [testingChannel, setTestingChannel] = useState<'sms' | 'email' | 'telegram' | null>(null)
   const [testResult, setTestResult] = useState<{ channel: string; ok: boolean; error?: string } | null>(null)
 
@@ -110,6 +111,13 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
     setSmsAlertsEnabled(newVal)
     const res = await patch({ sms_alerts_enabled: newVal })
     if (!res?.ok) setSmsAlertsEnabled(!newVal)
+  }
+
+  async function toggleFilterSpam() {
+    const newVal = !filterSpam
+    setFilterSpam(newVal)
+    const res = await patch({ notification_filter_spam: newVal })
+    if (!res?.ok) setFilterSpam(!newVal)
   }
 
   async function saveAlertPhone() {
@@ -472,6 +480,26 @@ export default function AlertsTab({ client, previewMode, isAdmin, tgStyle, setTg
             </div>
           )}
         </div>
+      </div>
+    </div>
+
+    {/* Spam Filter — D457 opt-in to suppress JUNK call alerts */}
+    <div className="rounded-2xl border b-theme bg-surface p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <p className="text-[10px] font-semibold tracking-[0.15em] uppercase t3 mb-1">Spam Filter</p>
+          <p className="text-[11px] t3">
+            By default we alert you on every call so real leads can&apos;t slip through.
+          </p>
+          <p className="text-[11px] t3 mt-1">
+            Turn this on to skip obvious robocallers (JUNK classification). Real leads always come through regardless of this setting.
+          </p>
+        </div>
+        <PremiumToggle
+          checked={filterSpam}
+          onChange={() => { if (!previewMode) toggleFilterSpam() }}
+          disabled={saving || previewMode}
+        />
       </div>
     </div>
 

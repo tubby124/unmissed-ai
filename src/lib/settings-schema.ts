@@ -107,6 +107,7 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   alert_email:                   { mutationClass: 'DB_ONLY', triggersSync: false },
   alert_email_cc:                { mutationClass: 'DB_ONLY', triggersSync: false },
   sms_alerts_enabled:            { mutationClass: 'DB_ONLY', triggersSync: false },
+  notification_filter_spam:      { mutationClass: 'DB_ONLY', triggersSync: false },
   city:                          { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'slot_regen' },
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
 
@@ -279,6 +280,7 @@ export const settingsBodySchema = z.object({
     z.literal(''),
   ]).optional(),
   sms_alerts_enabled: z.boolean().optional(),
+  notification_filter_spam: z.boolean().optional(),
   city: z.string().optional(),
   website_url: z.string().optional(),
 
@@ -417,7 +419,7 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   const boolFields: (keyof SettingsBody)[] = [
     'sms_enabled', 'booking_enabled', 'setup_complete', 'weekly_digest_enabled',
     'telegram_notifications_enabled', 'email_notifications_enabled', 'ivr_enabled',
-    'sms_alerts_enabled',
+    'sms_alerts_enabled', 'notification_filter_spam',
   ]
 
   // Enum/string fields — direct copy
