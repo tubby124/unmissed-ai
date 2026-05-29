@@ -40,6 +40,8 @@ updated: 2026-05-29
 
 **Inbound webhook gating:** confirmed only gates on `trial_expires_at` past + `trial_converted=false`, minute limit, or grace period. Reactivation alone (no Ultravox toggle) is enough to make the line answer.
 
+**Notification pipeline (post 2026-05-29 overhaul):** Velly is now at full parity with the `hasan-sharif` baseline. All three owner channels on, destinations configured: email → `info@vellyremodeling.com` cc `kausarimam10@yahoo.com`, owner SMS → `+13062416312` from `+13069887699`, Telegram → chat `7928494158`. `notification_filter_spam=false` (every call alerts). New AlertsTab spam-filter toggle live (commit `dd2ada3e`). Verification call to `+13069887699` still pending. See [[Tracker/D461]] for the Settings>Alerts SELECT divergence that affects how this client appears in `/dashboard/settings` (use `/dashboard/notifications` for accurate state in the meantime).
+
 **If Kausar pays:** the Core $29 Founding price is `price_1TRKma0tFbm4ZBYUJi5p69s4` under product `prod_UCl8nni05Nk9lB`. Webhook auto-flips `selected_plan=core`. Manual post-payment cleanup: set `monthly_minute_limit=100`, `status='active'`, clear `trial_reminder_sent` JSON, confirm `last_agent_sync_at` refreshed.
 
 **If Kausar releases:** release the Twilio DID, set `status='cancelled'`, archive the Ultravox agent.
