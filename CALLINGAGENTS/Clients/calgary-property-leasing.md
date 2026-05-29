@@ -15,13 +15,41 @@ related:
   - Features/MaintenanceRequest
   - Decisions/Knowledge-Threshold-Loosening-2026-04-25
   - Decisions/2026-04-29-voicemail-removal-required-for-cf
-updated: 2026-04-25
+updated: 2026-05-29
 shipped: 2026-04-25
 ---
 
 # Calgary Edmonton Property Leasing — Brian Demo
 
 > Renamed 2026-04-25 from "Calgary Property Leasing". Slug retained.
+
+## Current state — 2026-05-29
+
+Brian reported "calls going to voicemail." Audit: not the system — pipeline answered 4 calls today (last at 19:02 UTC, including one caller asking for Bryan by name at 17:09). All 5 inbound hard-blocks clean (trial expires 2026-06-15, 5% of minute cap, agent synced 14:44 UTC, no grace-period issue). Conclusion: Rogers conditional forwarding from his personal cell to `+16397393885` is no longer active — `forwarding_self_attested=false`, `forwarding_verified_at=NULL`. Most likely cause: Rogers re-enabled voicemail during a recent plan/SIM change, which blocks conditional forwarding on Rogers lines (per [[Decisions/2026-04-29-voicemail-removal-required-for-cf]]).
+
+### Actions taken today
+
+- **Email sent to Brian via Resend** (message_id `b6470b1c-bdd4-46b8-b240-041e1f842183`). From `Hasan Sharif <hello@endvoicemail.ai>`, to `edmontonpropertyleasing@gmail.com`, cc `urbanvibe.ca@gmail.com` + `calgarypropertyleasing@gmail.com`, reply-to `hasan.sharif.realtor@gmail.com`. Subject: "Brian — quick fix for your call forwarding". Body: 2-step fix (Rogers `1-800-764-3771` voicemail removal, then dial combo code `**004*16397393885#`) + 3 conditional code fallbacks + test instructions.
+- **DB alert routing repaired** (per Ray's onboarding email reveal — Brian's real reading inbox is `edmontonpropertyleasing@gmail.com`, the calgary address is his login-only):
+  - `alert_email`: `calgarypropertyleasing@gmail.com` → `edmontonpropertyleasing@gmail.com`
+  - `alert_email_cc`: NULL → `calgarypropertyleasing@gmail.com`
+  - All other notification flags untouched.
+
+### Notification pipeline now armed for Brian
+
+| Channel | Destination | Source | Status |
+|---|---|---|---|
+| Email | `edmontonpropertyleasing@gmail.com` + cc `calgarypropertyleasing@gmail.com` | `email_notifications_enabled=true`, alert_email + cc set | WILL FIRE every call |
+| Owner SMS | `+1 (403) 620-2377` (alert_phone) | sent FROM `+16397393885` (twilio_number), `sms_alerts_enabled=true` | WILL FIRE every call (~$0.01/text) |
+| Telegram | chat `8653350958` | bot token + `telegram_notifications_enabled=true` | WILL FIRE every call |
+| Spam filter | OFF (`notification_filter_spam=false`) | new column per [[Tracker/D457]] | JUNK calls still notify all 3 channels |
+| Weekly digest | `calgarypropertyleasing@gmail.com` (login mailbox) | `weekly_digest_enabled=true`, `contact_email` (separate column from alert_email) | Will land in login inbox not reading inbox — worth flagging if Brian asks |
+
+### Pending verification
+
+- Brian must complete the Rogers voicemail removal + dial the combo code. Once he confirms, flip `forwarding_self_attested=true` in DB.
+- Spot-check: have someone call his personal cell, don't answer; confirm it rolls to Eric within 4-5 rings.
+- Watch `notification_logs` for next call → confirm all 3 channels fired without errors.
 
 ## Identity
 | Field | Value |
