@@ -1,23 +1,48 @@
 ---
 type: client
-status: provisioning
+status: paused-unpaid
 slug: velly-remodeling
-ultravox_agent_id: TBD
-voice_id: TBD
-twilio_did: TBD
+ultravox_agent_id: 2164eda9-... (full UUID in Supabase clients row)
+voice_id: aa601962-1cbd-4bbd-9d96-3c7a93c3414a
+voice_style_preset: casual_friendly
+twilio_did: +13069887699
 plan: founding-29
-tags: [client, renovation, concierge, founding]
+tags: [client, renovation, concierge, founding, paused]
 related:
   - Architecture/Control-Plane-Mutation-Contract
   - Features/Transfer
   - Product/Concierge-Onboarding-SOP
-updated: 2026-04-28
+  - Tracker/D456
+updated: 2026-05-29
 ---
 
-# Velly Remodeling — Eric (Renovation / New Build / Basement Suites)
+# Velly Remodeling — Samantha (Renovation / New Build / Basement Suites)
 
 > Manual concierge onboarding (D380). First client with `transferCall` actually wired.
 > Owner Kausar Imam is Hasan's uncle — $29/mo founding rate forever, 100-min cap.
+> Agent renamed Eric → **Samantha** (sometime before 2026-05-29; confirmed in both `agent_name` column and `system_prompt` body, zero "Eric" references remain).
+
+## Current state — 2026-05-29 (post-reactivation)
+
+| | |
+|---|---|
+| Status | `active` (reactivated 2026-05-29 — courtesy trial extension) |
+| Subscription status | `trialing` |
+| Trial expires | `2026-06-01T06:00:00Z` (= end of Sunday May 31 Saskatoon CST) |
+| Stripe subscription id | NULL — **never charged** |
+| Stripe customer id | `cus_UbbjZc7wQxeMYQ` (object exists, currency null, zero invoices ever) |
+| `welcome_email_sent_at` | NULL — pipeline never delivered the original |
+| Reminders Kausar actually received before 2026-05-29 | **0** (Telegram claimed 3, none reached him — see [[Tracker/D456]]) |
+| Reserved Twilio DID | `+13069887699` — answering again; to release Mon 2026-06-01 if no decision |
+| Re-engagement email | **SENT 2026-05-29** via Resend, message_id `a805c6ae-748c-48e8-a215-70c911def080`. From `Hasan Sharif <hello@endvoicemail.ai>`, to `kausarimam10@yahoo.com`, cc `info@vellyremodeling.com`, reply-to `hasan.sharif.realtor@gmail.com`. Subject: "Kausar — Velly account: decision needed by Sunday". CTA = $29 Core Founding payment link `plink_1TRKmr0tFbm4ZBYUB9B4GmXf` (verified live, $29.00 CAD/mo, HTTP 200). |
+| Plan in DB right now | `lite` / 150-min cap — **drift from intended Core/100-min**. On payment, Stripe webhook will flip `selected_plan` back to `core`; minute cap will need a manual reset to 100. |
+| `trial_reminder_sent` | cleared (was `{day3, day1}` — both flags were Telegram lies, see [[Tracker/D456]]) |
+
+**Inbound webhook gating:** confirmed only gates on `trial_expires_at` past + `trial_converted=false`, minute limit, or grace period. Reactivation alone (no Ultravox toggle) is enough to make the line answer.
+
+**If Kausar pays:** the Core $29 Founding price is `price_1TRKma0tFbm4ZBYUJi5p69s4` under product `prod_UCl8nni05Nk9lB`. Webhook auto-flips `selected_plan=core`. Manual post-payment cleanup: set `monthly_minute_limit=100`, `status='active'`, clear `trial_reminder_sent` JSON, confirm `last_agent_sync_at` refreshed.
+
+**If Kausar releases:** release the Twilio DID, set `status='cancelled'`, archive the Ultravox agent.
 
 ## Identity
 | Field | Value |
@@ -32,7 +57,7 @@ updated: 2026-04-28
 | Address | 4-216 33rd Street West, Saskatoon, SK |
 | Website | https://www.vellyremodeling.com/ |
 | Niche | `other` — **migration to `home_renovation` planned**, see [[Tracker/D-NEW-velly-kb-niche-migration]] (PR #87 shipped the home_renovation niche 2026-05-06) |
-| Agent name | Eric |
+| Agent name | Samantha (renamed from Eric pre-2026-05-29) |
 | Plan | $29/mo, Core feature gates, 100-minute cap (custom combo — see "Plan combo" section) |
 | Monthly minute limit | 100 |
 | Hours behavior | Always answer 24/7. Business hours Mon–Fri 8am–5pm, weekends by appointment — used as callback timing context, not as gating. |
@@ -79,7 +104,7 @@ Activation path detailed in [[00-Inbox/NEXT-CHAT-Kausar-Velly-Activation]].
 6. Caller name + best callback number
 
 ## Greeting tone
-"Thanks for calling Velly Remodeling, this is Eric. We do renovations, new builds, basement suites, kitchens and bathrooms. What are you looking to get done?"
+"Thanks for calling Velly Remodeling, this is Samantha. We do renovations, new builds, basement suites, kitchens and bathrooms. What are you looking to get done?"
 
 Warm/concierge. After-hours: same greeting — never says "we're closed."
 
