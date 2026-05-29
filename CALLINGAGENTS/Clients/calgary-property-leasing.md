@@ -30,20 +30,23 @@ Brian reported "calls going to voicemail." Audit: not the system — pipeline an
 ### Actions taken today
 
 - **Email sent to Brian via Resend** (message_id `b6470b1c-bdd4-46b8-b240-041e1f842183`). From `Hasan Sharif <hello@endvoicemail.ai>`, to `edmontonpropertyleasing@gmail.com`, cc `urbanvibe.ca@gmail.com` + `calgarypropertyleasing@gmail.com`, reply-to `hasan.sharif.realtor@gmail.com`. Subject: "Brian — quick fix for your call forwarding". Body: 2-step fix (Rogers `1-800-764-3771` voicemail removal, then dial combo code `**004*16397393885#`) + 3 conditional code fallbacks + test instructions.
-- **DB alert routing repaired** (per Ray's onboarding email reveal — Brian's real reading inbox is `edmontonpropertyleasing@gmail.com`, the calgary address is his login-only):
-  - `alert_email`: `calgarypropertyleasing@gmail.com` → `edmontonpropertyleasing@gmail.com`
-  - `alert_email_cc`: NULL → `calgarypropertyleasing@gmail.com`
+- **DB alert routing repaired and consolidated** — discovered via Ray's April 28 onboarding email that Brian's real reading inbox is `edmontonpropertyleasing@gmail.com` (Gmail contact name "Dragon Mitrovic"). Hasan later confirmed `calgarypropertyleasing@gmail.com` doesn't actually exist as a real Gmail inbox — was used as a placeholder during signup. Final state:
+  - `alert_email`: `edmontonpropertyleasing@gmail.com` (was calgary)
+  - `alert_email_cc`: NULL (briefly was calgary; cleared once we learned calgary is dead)
+  - `contact_email`: `edmontonpropertyleasing@gmail.com` (was calgary — flipped so weekly digest also reaches him)
   - All other notification flags untouched.
+  - **Login email unchanged**: `auth.users.email` for the owner row still reads `calgarypropertyleasing@gmail.com`. Password resets / account recovery would fail until this is rotated to edmonton via Supabase admin API (not a direct table write).
+  - Outbound email I sent today (`b6470b1c...`) had calgary on CC — that CC bounced into the void; the TO (edmonton) and the other CC (urbanvibe) delivered normally.
 
 ### Notification pipeline now armed for Brian
 
 | Channel | Destination | Source | Status |
 |---|---|---|---|
-| Email | `edmontonpropertyleasing@gmail.com` + cc `calgarypropertyleasing@gmail.com` | `email_notifications_enabled=true`, alert_email + cc set | WILL FIRE every call |
+| Email | `edmontonpropertyleasing@gmail.com` (no cc) | `email_notifications_enabled=true`, alert_email set, cc cleared because calgary inbox is fake | WILL FIRE every call |
 | Owner SMS | `+1 (403) 620-2377` (alert_phone) | sent FROM `+16397393885` (twilio_number), `sms_alerts_enabled=true` | WILL FIRE every call (~$0.01/text) |
 | Telegram | chat `8653350958` | bot token + `telegram_notifications_enabled=true` | WILL FIRE every call |
 | Spam filter | OFF (`notification_filter_spam=false`) | new column per [[Tracker/D457]] | JUNK calls still notify all 3 channels |
-| Weekly digest | `calgarypropertyleasing@gmail.com` (login mailbox) | `weekly_digest_enabled=true`, `contact_email` (separate column from alert_email) | Will land in login inbox not reading inbox — worth flagging if Brian asks |
+| Weekly digest | `edmontonpropertyleasing@gmail.com` | `weekly_digest_enabled=true`, `contact_email` flipped to edmonton | Will land in reading inbox |
 
 ### Pending verification
 
