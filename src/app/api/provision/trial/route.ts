@@ -228,12 +228,14 @@ export async function POST(req: NextRequest) {
       forwarding_number: effectiveEmergencyPhone,
       // Use agentTone directly as voice_style_preset (types now aligned)
       voice_style_preset: data.agentTone || 'casual_friendly',
-      // Gate-12: Persist notification preference — runtime uses opt-out semantics (null=enabled, false=disabled)
-      // D376: Email always stays enabled at provision — telegram_chat_id may not be connected yet.
-      // Disabling email when telegram is chosen but not connected = silent failure (zero notifications).
-      // Email is disabled only when telegram is selected AND confirmed connected (post-provision via bot webhook).
-      telegram_notifications_enabled: data.notificationMethod === 'email' ? false : null,
-      email_notifications_enabled: null,
+      // D458 (2026-05-29): Default ALL owner-alert channels to TRUE at provision.
+      // Previously email/telegram defaulted to NULL (runtime treated as enabled — opt-out semantics)
+      // and sms_alerts_enabled was unset (column default was false → owner SMS never fired by default).
+      // New contract: every channel defaults to TRUE. Owner explicitly opts out per-channel from the dashboard.
+      // telegram_notifications_enabled is still false-able when the user picked email-only at intake.
+      telegram_notifications_enabled: data.notificationMethod === 'email' ? false : true,
+      email_notifications_enabled: true,
+      sms_alerts_enabled: true,
       // Capability flags — must be written at provision time so syncClientTools() picks them up
       booking_enabled: intakePayload.booking_enabled ?? false,
       sms_enabled: data.callerAutoText !== false,

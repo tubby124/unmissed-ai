@@ -364,6 +364,8 @@ export async function POST(
         console.log(`[completed] Skipping notifications for test call callId=${callId}`)
       } else if (await notificationsAlreadySent(supabase, callLogId)) {
         console.warn(`[completed] IDEMPOTENCY — notifications already sent for callId=${callId} callLogId=${callLogId} — skipping Telegram/SMS/email`)
+      } else if ((client as Record<string, unknown>).notification_filter_spam === true && classification.status === 'JUNK') {
+        console.log(`[completed] D457: notification_filter_spam=true and call_status=JUNK — skipping all owner notifications callId=${callId}`)
       } else {
         // Build shared notification context
         const notifCtx = {
