@@ -133,5 +133,37 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Update notification_logs.status with the latest delivery state, keyed by
+  // external_id = Resend email_id. The row was written by sendBrandedEmail at
+  // send-time with status='sent' — we overwrite with the actual outcome.
+  const resendEmailId = event.data?.email_id
+  const eventToStatus: Record<string, string> = {
+    'email.sent': 'sent',
+    'email.delivered': 'delivered',
+    'email.opened': 'opened',
+    'email.clicked': 'clicked',
+    'email.bounced': 'bounced',
+    'email.complained': 'complained',
+    'email.delivery_delayed': 'delayed',
+    'email.failed': 'failed',
+  }
+  const newStatus = event.type ? eventToStatus[event.type] : undefined
+  if (resendEmailId && newStatus) {
+    const updatePayload: Record<string, unknown> = { status: newStatus }
+    if (newStatus === 'bounced' || newStatus === 'complained' || newStatus === 'failed') {
+      const reason = (event as { data?: { reason?: string; bounce?: { message?: string } } }).data
+      const failMsg = reason?.bounce?.message ?? reason?.reason ?? newStatus
+      updatePayload.error = String(failMsg).slice(0, 1000)
+    }
+    const { error: nlErr } = await supabase
+      .from('notification_logs')
+      .update(updatePayload)
+      .eq('external_id', resendEmailId)
+      .eq('channel', 'email')
+    if (nlErr) {
+      console.error(`[resend-webhook] notification_logs status update failed for ${resendEmailId}: ${nlErr.message}`)
+    }
+  }
+
   return new NextResponse('OK', { status: 200 })
 }

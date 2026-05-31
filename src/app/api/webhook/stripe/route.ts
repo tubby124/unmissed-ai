@@ -766,7 +766,7 @@ export async function POST(req: NextRequest) {
 
     const { data: cl } = await adminSupa
       .from('clients')
-      .select('id, slug, business_name, contact_email, niche, selected_plan')
+      .select('id, slug, business_name, contact_email, niche, selected_plan, twilio_number')
       .eq('slug', conciergeSlug)
       .maybeSingle()
 
@@ -859,11 +859,34 @@ export async function POST(req: NextRequest) {
       try {
         const { sendBrandedEmail } = await import('@/lib/email/send')
         const { APP_URL } = await import('@/lib/app-url')
-        const { BRAND_NAME } = await import('@/lib/brand')
+        const { BRAND_NAME, BRAND_DOMAIN } = await import('@/lib/brand')
         const dashboardUrl = `${APP_URL}/dashboard`
+        const websiteUrl = `https://${BRAND_DOMAIN}`
+        const twilioNumber = (cl.twilio_number as string | null) ?? null
+
         const renewalDateCopy = nextPeriodEnd
           ? `<p style="font-size:13px;color:#555;margin:8px 0 0">Next renewal: <strong>${new Date(nextPeriodEnd).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>.</p>`
           : ''
+
+        const numberBlock = twilioNumber
+          ? `<table style="width:100%;border-collapse:collapse;margin:20px 0;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px">
+  <tr><td style="padding:16px">
+    <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Your agent's phone number</div>
+    <div style="font-size:20px;font-weight:600;color:#111">${twilioNumber}</div>
+    <div style="font-size:13px;color:#6b7280;margin-top:6px">Forward your business line to this number to start catching missed calls.</div>
+  </td></tr>
+</table>`
+          : `<p style="font-size:14px;color:#555;margin:20px 0 0">Your agent's phone number is being provisioned and will be on your dashboard shortly. We'll email you again once it's ready to forward calls to.</p>`
+
+        const setupSteps = twilioNumber
+          ? `<h3 style="margin:24px 0 8px;font-size:16px">Set up takes 3 minutes</h3>
+<ol style="line-height:1.7;padding-left:20px;color:#333">
+  <li><strong>Open your dashboard</strong> using the button below.</li>
+  <li><strong>Open Go Live and forward your business line</strong> to ${twilioNumber} — the dashboard walks you through carrier steps.</li>
+  <li><strong>Call your normal business number from another phone</strong> and let it ring through — that's the proof your AI agent is now answering.</li>
+</ol>`
+          : ''
+
         const result = await sendBrandedEmail({
           to: recipientEmail,
           clientId: cl.id,
@@ -875,8 +898,10 @@ export async function POST(req: NextRequest) {
           html: `<h2 style="margin-bottom:4px;font-size:24px">Your AI agent is live.</h2>
 <p style="color:#555;margin-top:0">Payment confirmed. Your ${BRAND_NAME} AI receptionist is active and ready to answer calls.</p>
 ${renewalDateCopy}
+${numberBlock}
+${setupSteps}
 <a href="${dashboardUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin:20px 0;font-size:15px">Open my dashboard →</a>
-<p style="font-size:14px;color:#555;margin-top:24px">Reply to this email if anything's broken or confusing — Hasan answers personally.</p>`,
+<p style="font-size:14px;color:#555;margin-top:24px">Need anything? Reply to this email — Hasan answers personally. Or browse <a href="${websiteUrl}" style="color:#4f46e5;text-decoration:none">${BRAND_DOMAIN}</a> for guides and help docs.</p>`,
         })
         if (result.ok) {
           console.log(`[stripe-webhook] Concierge welcome email sent to ${recipientEmail} (id=${result.id})`)

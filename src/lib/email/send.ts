@@ -96,6 +96,7 @@ ${footer.html}
   const baseText = input.text ?? htmlToText(input.html)
   const fullText = `${baseText}\n\n${footer.text}`
 
+  let sendResult: BrandedEmailResult
   try {
     const resend = new Resend(key)
     const result = await resend.emails.send({
@@ -109,11 +110,35 @@ ${footer.html}
       headers,
       tags: input.tag ? [{ name: 'purpose', value: input.tag }] : undefined,
     })
-    if (result.error) {
-      return { ok: false, error: result.error.message ?? String(result.error) }
-    }
-    return { ok: true, id: result.data?.id }
+    sendResult = result.error
+      ? { ok: false, error: result.error.message ?? String(result.error) }
+      : { ok: true, id: result.data?.id }
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) }
+    sendResult = { ok: false, error: err instanceof Error ? err.message : String(err) }
   }
+
+  // Auto-log to notification_logs for any client-scoped email so the audit trail
+  // exists without each caller having to write the same insert. The Resend webhook
+  // (/api/webhook/resend) later updates `status` on this row when Resend reports
+  // delivered/bounced/complained — keyed by external_id = Resend email id.
+  if (input.clientId) {
+    try {
+      const { createServiceClient } = await import('@/lib/supabase/server')
+      const supa = createServiceClient()
+      const recipient = Array.isArray(input.to) ? input.to[0] : input.to
+      await supa.from('notification_logs').insert({
+        client_id: input.clientId,
+        channel: 'email',
+        recipient,
+        content: `[${input.tag ?? 'email'}] ${input.subject}`,
+        status: sendResult.ok ? 'sent' : 'failed',
+        error: sendResult.ok ? null : (sendResult.error ?? 'unknown').slice(0, 1000),
+        external_id: sendResult.ok ? (sendResult.id ?? null) : null,
+      })
+    } catch (logErr) {
+      console.error('[sendBrandedEmail] notification_logs insert failed (non-fatal):', logErr)
+    }
+  }
+
+  return sendResult
 }
