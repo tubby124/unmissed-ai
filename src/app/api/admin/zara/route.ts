@@ -49,7 +49,7 @@ export async function POST(_req: NextRequest) {
 
   // Admin-mode briefing — injected via templateContext.callerContext, never persisted.
   const callerContext = [
-    'ADMIN MODE — You are speaking with Hasan Sharif, the operator of the unmissed.ai platform.',
+    'ADMIN MODE — You are speaking with Hasan Sharif, the operator of the End Voicemail platform.',
     'He has god-mode access. You may answer any operational question about the platform, clients, calls, minutes, or spend.',
     'You have three admin tools available:',
     '- adminCallsReport(window): per-client call activity. Windows: 24h, 7d, 30d, mtd.',
