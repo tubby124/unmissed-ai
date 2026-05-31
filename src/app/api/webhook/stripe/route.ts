@@ -616,6 +616,154 @@ export async function POST(req: NextRequest) {
     return new NextResponse('OK', { status: 200 })
   }
 
+  // ── Concierge / generic payment-link path ──────────────────────────
+  // Triggered when a Stripe Payment Link uses metadata.client=<slug>
+  // (no intake_id, no advisor_credits, no minute_reload, no dashboard upgrade).
+  // Activates the named client + (optionally) anchors billing to a chosen day of month.
+  //
+  // Metadata contract:
+  //   client            — required. clients.slug (e.g. "velly-remodeling")
+  //   program           — optional. label for tagging (e.g. "founding_concierge")
+  //   anchor_day        — optional. 1-28. Push billing anchor to next occurrence of this day.
+  //   extra_days_free   — optional. Add N days on top of the anchor push.
+  //
+  // Used for: founder/concierge links, one-off custom-priced clients, any link
+  // where Hasan wants "paste this URL, they pay, it just works".
+  if (session.metadata?.client && !session.metadata?.intake_id && !session.metadata?.clientId) {
+    const conciergeSlug = session.metadata.client
+    const program = session.metadata.program ?? null
+    const anchorDay = Math.min(28, Math.max(0, parseInt(session.metadata.anchor_day ?? '0', 10) || 0))
+    const extraDaysFree = Math.max(0, parseInt(session.metadata.extra_days_free ?? '0', 10) || 0)
+
+    const { data: cl } = await adminSupa
+      .from('clients')
+      .select('id, slug, business_name, contact_email, niche, selected_plan')
+      .eq('slug', conciergeSlug)
+      .maybeSingle()
+
+    if (!cl) {
+      console.error(`[stripe-webhook] Concierge: client slug not found: ${conciergeSlug}`)
+      await notifySystemFailure(
+        `Concierge payment received but client slug not found: ${conciergeSlug}`,
+        `metadata.client="${conciergeSlug}" session=${session.id}`,
+        adminSupa,
+      )
+      return new NextResponse('OK', { status: 200 })
+    }
+
+    const subscriptionId = typeof session.subscription === 'string'
+      ? session.subscription : (session.subscription as { id: string } | null)?.id ?? null
+    const customerId = typeof session.customer === 'string' ? session.customer : null
+
+    let nextPeriodEnd: string | null = null
+    if (subscriptionId && anchorDay) {
+      try {
+        const now = new Date()
+        const targetMonth = now.getUTCDate() >= anchorDay ? now.getUTCMonth() + 1 : now.getUTCMonth()
+        const anchorDate = new Date(Date.UTC(now.getUTCFullYear(), targetMonth, anchorDay, 0, 0, 0))
+        if (extraDaysFree > 0) anchorDate.setUTCDate(anchorDate.getUTCDate() + extraDaysFree)
+        const trialEndUnix = Math.floor(anchorDate.getTime() / 1000)
+        await getStripe().subscriptions.update(subscriptionId, {
+          trial_end: trialEndUnix,
+          proration_behavior: 'none',
+        })
+        nextPeriodEnd = anchorDate.toISOString()
+        console.log(`[stripe-webhook] Concierge: anchored ${cl.slug} billing to ${nextPeriodEnd}`)
+      } catch (anchorErr) {
+        console.error(`[stripe-webhook] Concierge: failed to anchor billing for ${cl.slug}:`, anchorErr)
+      }
+    } else if (subscriptionId) {
+      try {
+        const sub = await getStripe().subscriptions.retrieve(subscriptionId)
+        const periodEnd = sub.items.data[0]?.current_period_end ?? sub.trial_end
+        if (periodEnd) nextPeriodEnd = new Date(periodEnd * 1000).toISOString()
+      } catch { /* non-fatal */ }
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      subscription_status: 'active',
+      trial_converted: true,
+      status: 'active',
+    }
+    if (customerId) updatePayload.stripe_customer_id = customerId
+    if (subscriptionId) updatePayload.stripe_subscription_id = subscriptionId
+    if (nextPeriodEnd) updatePayload.subscription_current_period_end = nextPeriodEnd
+
+    await adminSupa.from('clients').update(updatePayload).eq('id', cl.id)
+    console.log(`[stripe-webhook] Concierge: activated ${cl.slug} (program=${program})`)
+
+    // Telegram alert to admin (hasan-sharif row)
+    try {
+      const { data: adminCl } = await adminSupa
+        .from('clients')
+        .select('telegram_bot_token, telegram_chat_id')
+        .eq('slug', 'hasan-sharif')
+        .single()
+      if (adminCl?.telegram_bot_token && adminCl?.telegram_chat_id) {
+        const amountStr = session.amount_total
+          ? `$${(session.amount_total / 100).toFixed(0)} ${(session.currency || 'cad').toUpperCase()}`
+          : ''
+        const nextStr = nextPeriodEnd ? `\nNext renewal: ${new Date(nextPeriodEnd).toLocaleDateString('en-CA')}` : ''
+        const programStr = program ? `\nProgram: ${program}` : ''
+        await sendAlert(
+          adminCl.telegram_bot_token as string,
+          adminCl.telegram_chat_id as string,
+          `💰 New paid client: ${cl.business_name} (${cl.slug})${programStr}\nAmount: ${amountStr}${nextStr}`
+        )
+        await adminSupa.from('notification_logs').insert({
+          client_id: cl.id,
+          channel: 'telegram',
+          recipient: adminCl.telegram_chat_id,
+          content: `Concierge payment: ${cl.business_name} (${cl.slug})`,
+          status: 'sent',
+        })
+      }
+    } catch (tgErr) {
+      console.error('[stripe-webhook] Concierge Telegram alert failed:', tgErr)
+    }
+
+    // Welcome / subscription-active email to the customer
+    const customerEmail = typeof session.customer_details?.email === 'string'
+      ? session.customer_details.email : null
+    const recipientEmail = (cl.contact_email as string | null) || customerEmail
+    if (recipientEmail) {
+      try {
+        const { sendBrandedEmail } = await import('@/lib/email/send')
+        const { APP_URL } = await import('@/lib/app-url')
+        const { BRAND_NAME } = await import('@/lib/brand')
+        const dashboardUrl = `${APP_URL}/dashboard`
+        const renewalDateCopy = nextPeriodEnd
+          ? `<p style="font-size:13px;color:#555;margin:8px 0 0">Next renewal: <strong>${new Date(nextPeriodEnd).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</strong>.</p>`
+          : ''
+        const result = await sendBrandedEmail({
+          to: recipientEmail,
+          clientId: cl.id,
+          clientSlug: cl.slug as string,
+          purpose: 'marketing',
+          tag: 'concierge_welcome',
+          reason: `You just activated ${BRAND_NAME} for ${cl.business_name}.`,
+          subject: `${cl.business_name} — your AI agent is live`,
+          html: `<h2 style="margin-bottom:4px;font-size:24px">Your AI agent is live.</h2>
+<p style="color:#555;margin-top:0">Payment confirmed. Your ${BRAND_NAME} AI receptionist is active and ready to answer calls.</p>
+${renewalDateCopy}
+<a href="${dashboardUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin:20px 0;font-size:15px">Open my dashboard →</a>
+<p style="font-size:14px;color:#555;margin-top:24px">Reply to this email if anything's broken or confusing — Hasan answers personally.</p>`,
+        })
+        if (result.ok) {
+          console.log(`[stripe-webhook] Concierge welcome email sent to ${recipientEmail} (id=${result.id})`)
+        } else {
+          console.error(`[stripe-webhook] Concierge welcome email failed: ${result.error}`)
+        }
+      } catch (emailErr) {
+        console.error('[stripe-webhook] Concierge welcome email threw:', emailErr)
+      }
+    } else {
+      console.warn(`[stripe-webhook] Concierge: no email on file for ${cl.slug} — welcome email skipped`)
+    }
+
+    return new NextResponse('OK', { status: 200 })
+  }
+
   // ── Activation path ────────────────────────────────────────────────
   const { intake_id, client_id, client_slug, reserved_number: reservedNumberMeta } = session.metadata ?? {}
   const reservedNumber = reservedNumberMeta || null
