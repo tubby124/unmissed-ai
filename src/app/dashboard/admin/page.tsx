@@ -89,6 +89,51 @@ export default async function AdminDashboardPage() {
         adminClients={adminClients}
         hotLeads={(hotLeads ?? []).map(h => ({ client_id: h.client_id, started_at: h.started_at }))}
       />
+
+      <div>
+        <SectionLabel className="mb-2">Admin tools</SectionLabel>
+        <div className="flex flex-wrap gap-2">
+          <a
+            href="/dashboard/admin/notifications"
+            className="rounded-xl px-4 py-3 flex flex-col gap-1 min-w-[220px] flex-1 sm:flex-none"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <span className="text-[13px] font-semibold" style={{ color: 'var(--color-text-1)' }}>Notifications</span>
+            <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
+              Every alert that went out — email + Telegram + SMS + delivery state, with client lifecycle drawer
+            </span>
+          </a>
+          <a
+            href="/dashboard/admin/harness"
+            className="rounded-xl px-4 py-3 flex flex-col gap-1 min-w-[220px] flex-1 sm:flex-none"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <span className="text-[13px] font-semibold" style={{ color: 'var(--color-text-1)' }}>Harness Findings</span>
+            <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
+              Nightly check output across all 7 harnesses
+            </span>
+          </a>
+          <a
+            href="/dashboard/admin/learning-bank"
+            className="rounded-xl px-4 py-3 flex flex-col gap-1 min-w-[220px] flex-1 sm:flex-none"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <span className="text-[13px] font-semibold" style={{ color: 'var(--color-text-1)' }}>Learning Bank</span>
+            <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
+              Prompt improvement suggestions from real calls
+            </span>
+          </a>
+        </div>
+      </div>
     </div>
   )
 }
