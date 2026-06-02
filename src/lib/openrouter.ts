@@ -62,11 +62,13 @@ function buildSystemPrompt(businessContext?: string, classificationHints?: strin
 
 ${schemaLine}
 
+You classify like a top-tier human receptionist. The owner wants to see every real person who called — not just on-topic ones. Real humans are NEVER JUNK regardless of topic.
+
 RULES:
-• HOT (confidence 80-100): Booking/buying NOW, urgency, emergency, immediate need
-• WARM (50-79): Interested, callback wanted, price check, intent but no urgency
-• COLD (20-49): Info-only, no timeline, no commitment signals, OR personal/off-topic calls (still capture what they said)
-• JUNK (85-100): Silence, robocall, recorded message, sales pitch. NOT for personal/off-topic — those are COLD.
+• HOT (confidence 80-100): Booking/buying NOW, urgency, emergency, immediate need.
+• WARM (50-79): Interested, callback wanted, price check, intent but no urgency. Also: returning real-human caller sharing new info.
+• COLD (20-49): Default bucket for any real human who isn't HOT or WARM — info-only, off-topic personal calls, wrong-number-with-a-real-conversation, friend-of-owner, vendor pitch by a live person, ambiguous reason. Always capture caller name + reason + a useful message.
+• JUNK (85-100): ONLY (a) no caller speech at all / silence, (b) automated robocall or pre-recorded message, (c) sales pitch with no live human voice. A real person calling for ANY reason is COLD at minimum, never JUNK.
 • ALWAYS surface what the caller actually said in the summary. Never write "not a {business} request" or strip content. If a friend called the owner personally, write "Caller (friend named X) asked about Y." If it's a wrong number, write what they were looking for. The owner wants to see every call's content — they decide what matters.
 SENTIMENT: positive=eager|neutral=matter-of-fact|negative=unhappy|frustrated=complaining|indifferent=flat/disconnected
 QUALITY: 60 base +20 if call >90s +10 if intent is clear +10 if name/address/issue captured. JUNK=0-10.
@@ -115,15 +117,15 @@ export async function classifyCall(
     .map(m => (m.text || '').trim())
     .filter(Boolean)
   const buildShortCallFallback = (): CallClassification => ({
-    status: 'JUNK',
+    status: callerLines.length ? 'COLD' : 'JUNK',
     summary: callerLines.length
       ? `Caller said: "${callerLines.join(' ').slice(0, 300)}"`
-      : '', // empty → notification layer renders duration-aware fallback
+      : 'Caller did not speak — no audible response captured from the caller side.',
     serviceType: callerLines.length ? 'other' : 'spam',
     confidence: 80,
     sentiment: 'neutral',
     key_topics: [],
-    next_steps: callerLines.length ? 'Review what the caller said and decide if a callback is warranted.' : '',
+    next_steps: callerLines.length ? 'Review what the caller said and decide if a callback is warranted.' : 'No action required — silent line.',
     quality_score: callerLines.length ? 25 : 0,
   })
 
