@@ -558,6 +558,17 @@ export function buildCallHandlingMode(ctx: SlotContext): string {
 // ── Slot 14: FAQ_PAIRS ─────────────────────────────────────────────────────
 
 export function buildFaqPairsSlot(ctx: SlotContext): string {
+  // Workstream B Phase 1 scrape-leak fix (2026-06-02). The same architectural rule
+  // buildKnowledgeBaseSlot already follows at line 583 (D265+D269): when pgvector
+  // serves and chunks exist, the FAQ data reaches the agent via runtime paths —
+  // (a) queryKnowledge against knowledge_chunks, and
+  // (b) per-call templateContext.businessFacts from clients.extra_qa
+  // (see docs/architecture/per-call-context-contract.md §2.1).
+  // Re-embedding the same content in the stored prompt is the scrape leak that grew
+  // Brian's prompt 18,998 -> 22,922 chars in 4 weeks. Skip when pgvector serves.
+  // Audit + regression harness: prompt-knowledge-separation.test.ts (Section 7).
+  if (ctx.knowledgeBackend === 'pgvector' && ctx.knowledgeChunkCount > 0) return ''
+  if (!ctx.faqPairs || ctx.faqPairs.trim().length === 0) return ''
   return wrapSection(`## FREQUENTLY ASKED QUESTIONS
 ${ctx.faqPairs}`, 'faq_pairs')
 }
