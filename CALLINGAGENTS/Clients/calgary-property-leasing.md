@@ -15,13 +15,40 @@ related:
   - Features/MaintenanceRequest
   - Decisions/Knowledge-Threshold-Loosening-2026-04-25
   - Decisions/2026-04-29-voicemail-removal-required-for-cf
-updated: 2026-05-29
+  - 00-Inbox/2026-06-02-brian-prompt-slimming-handoff
+updated: 2026-06-02
 shipped: 2026-04-25
 ---
 
 # Calgary Edmonton Property Leasing — Brian Demo
 
 > Renamed 2026-04-25 from "Calgary Property Leasing". Slug retained.
+
+## 2026-06-02 — JUNK classifier fix shipped + prompt-slimming queued
+
+`/calls` audit on Brian's line over last 7d surfaced 3 system-wide bugs. Two shipped today (commit `9ae6548d` on main), one queued for next session.
+
+### Shipped today
+- **Fix 1 — silent-call summary hallucination** ([src/lib/openrouter.ts](src/lib/openrouter.ts) `buildShortCallFallback`): silent JUNK rows were getting Haiku-fabricated summaries because classifier returned empty summary → `completed/route.ts:247` fell through to Ultravox's auto-summary. Now writes deterministic *"Caller did not speak — no audible response captured from the caller side."* Net: silent JUNK rows read cleanly instead of inventing topics (Fred DeSilva June 1 calls fabricated "Fred called to follow up on wire transfer" when Fred said nothing).
+- **Fix 2 — niche rules over-classify humans as JUNK** ([src/lib/prompt-config/niche-classification.ts](src/lib/prompt-config/niche-classification.ts) + base RULES in openrouter.ts): all 13 niche rules rewritten. New invariant baked everywhere: *"Real humans are NEVER JUNK regardless of topic. JUNK is reserved for silence, robocalls, and pre-recorded automated messages."* Off-topic real humans (vendors, friends, wrong-number-with-conversation) now route to COLD with full content captured. System-wide JUNK rate was 70% (451/30d, 317 JUNK). Brian's line was 60% JUNK with 50 of those having real caller speech — those should re-bucket starting next call.
+- **Fix 4 — SMS template typo**: `sms_template` "Bryan" → "Brian" via Supabase PATCH. No agent restart needed (DB-read at SMS-send time).
+
+### System-wide audit findings (queued)
+
+| Bug | Hits | Status |
+|---|---|---|
+| Bug 3 — agent presumes topic on returning callers | 14/19 short returning calls (74%) — affects Eric, Aisha (Alisha), Hassan (Velly) | NEXT — pair with prompt slim |
+| Bug 4 — prompts over 12K hard max from glm46-prompting-rules | **37 of 49 clients**. Brian's Eric = 22,922 chars (1.9x hard max). Worst: bowness 24.8K | NEXT — start with Brian |
+
+### Next session — Brian's Eric prompt slimming
+- Approach (per Hasan): **follow the slot pipeline** (D280 `recomposePrompt`) — Phase 6 Wave 1 backend is shipped. Full per-section audit.
+- Target: under 12K chars (down from 22,922). Hasan's lean real_estate baseline = 8,361.
+- Sacred sections to preserve: SAFETY 911 override, "never say AI unless asked," SCOPE rules (no unit-specific rent, no RTA legal advice), returning-caller name use, maintenance triage flow.
+- Resume prompt: [[00-Inbox/2026-06-02-brian-prompt-slimming-handoff]]
+
+### Outstanding from prior session (still pending)
+- Brian must complete Rogers voicemail removal + dial combo code → flip `forwarding_self_attested=true`
+- Spot-check call routing once forwarding is verified
 
 ## Current state — 2026-05-29
 

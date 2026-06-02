@@ -48,9 +48,16 @@ export const PROMPT_CHAR_TARGET = 15000
  * existing Brian (22.9k) + Urban Vibe (22.7k) prompts already run fine above the
  * old 21k cap in production. The 21k cap was hypothetical; 25k matches operational
  * reality and unblocks new signups whose data is richer than minimal trial intake.
- * Tightening to 12-15k deferred to post-Phase-9 (after promotion loop reduces FAQ pressure).
+ *
+ * 2026-06-02 — DROPPED to 12k (matches .claude/rules/prompt-edit-safety.md + GLM-4.6
+ * rules). Brian's 22.9k prompt produced a 71% returning-caller topic-presumption rate
+ * across 50 calls and 0 queryKnowledge fires on policy-question calls — confirming the
+ * Cline finding that GLM-4.6 loses instruction tracking above ~12k. The 25k ceiling
+ * normalized "operational reality" to dysfunctional behavior. With this drop, real_estate
+ * + scrape-derived facts MUST come through queryKnowledge / businessFacts per-call
+ * injection, not stored prompt — that's the architectural fix that closes the regrow path.
  */
-export const PROMPT_CHAR_HARD_MAX = 25000
+export const PROMPT_CHAR_HARD_MAX = 12000
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 

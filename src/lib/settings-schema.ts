@@ -354,8 +354,14 @@ export type SettingsBody = z.infer<typeof settingsBodySchema>
 export interface PromptWarning { field: string; message: string }
 export interface PromptValidation { valid: boolean; error?: string; warnings: PromptWarning[] }
 
-const PROMPT_WARN_CHARS = 15000
-const PROMPT_MAX_CHARS = 25000
+// 2026-06-02: dropped to match .claude/rules/prompt-edit-safety.md + memory/glm46-prompting-rules.md.
+// Was 15K/25K — that ceiling normalized Brian's 22.9K dysfunctional prompt as "valid". With 12K cap
+// the slim is enforced; scrape/extra_qa content must flow via per-call businessFacts injection or
+// queryKnowledge tool, NOT stored prompt (see docs/architecture/per-call-context-contract.md).
+// NOTE: this is the second of two validatePrompt() implementations. The other lives in
+// src/lib/prompt-validation.ts (also dropped to 12K). slot-regenerator.ts imports THIS one.
+const PROMPT_WARN_CHARS = 10000
+const PROMPT_MAX_CHARS = 12000
 
 export function validatePrompt(prompt: string): PromptValidation {
   const warnings: PromptWarning[] = []
