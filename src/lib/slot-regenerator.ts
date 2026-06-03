@@ -289,8 +289,20 @@ async function loadClientContext(clientId: string): Promise<
 }
 
 /** Build the agentFlags object needed for updateAgent() and buildAgentTools(). */
+/**
+ * Build the agentFlags object from a client row + new prompt.
+ *
+ * EXPORTED for regression testing — this object MUST include every field that
+ * `buildAgentTools()` reads, or sync silently drops tools. Bug history:
+ *   2026-06-02 — missing `niche` caused submitMaintenanceRequest to drop on
+ *   every regenerateSlot for property_management clients. Brian's prompt fix
+ *   shipped fine but his maintenance tool got stripped from clients.tools.
+ *   Caught by manual tool-inventory check, not by the test suite. See
+ *   src/lib/__tests__/slot-regenerator-flags-truth.test.ts for the contract
+ *   that any new field consumed by buildAgentTools MUST appear here.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildAgentFlagsFromClient(client: Record<string, any>, prompt: string, knowledgeChunkCount: number): Parameters<typeof updateAgent>[1] {
+export function buildAgentFlagsFromClient(client: Record<string, any>, prompt: string, knowledgeChunkCount: number): Parameters<typeof updateAgent>[1] {
   return {
     systemPrompt: prompt,
     ...(client.agent_voice_id ? { voice: client.agent_voice_id } : {}),
@@ -304,6 +316,12 @@ function buildAgentFlagsFromClient(client: Record<string, any>, prompt: string, 
     transfer_conditions: client.transfer_conditions,
     selectedPlan: (client.selected_plan as string | null) || undefined,
     subscriptionStatus: (client.subscription_status as string | null) || undefined,
+    // 2026-06-02: niche was missing — caused buildAgentTools to drop niche-gated tools
+    // (submitMaintenanceRequest on property_management) every time regenerateSlot /
+    // regenerateSlots / recomposePrompt synced tools to clients.tools. PM clients silently
+    // lost their maintenance tool on any slot regen. Detected when Brian's clients.tools
+    // dropped from 5 → 4 after the Bug 3 surgical deploy.
+    niche: (client.niche as string | null) || undefined,
   }
 }
 
