@@ -6,11 +6,11 @@
 | Niche | Chars | Target (Hasan) | Notes |
 |-------|------:|---------------:|-------|
 | voicemail-generic | 11283 | 8K ideal / 12K ceiling | ✅ under ceiling |
-| auto-glass | 13747 | 8K ideal / 12K ceiling | ❌ bloated |
-| hvac | 13392 | 8K ideal / 12K ceiling | ⚠️  over ceiling |
-| plumbing | 12491 | 8K ideal / 12K ceiling | ⚠️  over ceiling |
-| real-estate | 13478 | 8K ideal / 12K ceiling | ⚠️  over ceiling |
-| property-management | 19622 | 8K ideal / 12K ceiling | ❌ bloated |
+| auto-glass | 13749 | 8K ideal / 12K ceiling | ❌ bloated |
+| hvac | 13394 | 8K ideal / 12K ceiling | ⚠️  over ceiling |
+| plumbing | 12493 | 8K ideal / 12K ceiling | ⚠️  over ceiling |
+| real-estate | 13480 | 8K ideal / 12K ceiling | ⚠️  over ceiling |
+| property-management | 19624 | 8K ideal / 12K ceiling | ❌ bloated |
 
 These files are **IMMUTABLE** — do not regenerate. They are the ground-truth
 reference for post-Phase-D regression comparison. If a future edit changes
