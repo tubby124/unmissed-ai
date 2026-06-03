@@ -304,6 +304,12 @@ function buildAgentFlagsFromClient(client: Record<string, any>, prompt: string, 
     transfer_conditions: client.transfer_conditions,
     selectedPlan: (client.selected_plan as string | null) || undefined,
     subscriptionStatus: (client.subscription_status as string | null) || undefined,
+    // 2026-06-02: niche was missing — caused buildAgentTools to drop niche-gated tools
+    // (submitMaintenanceRequest on property_management) every time regenerateSlot /
+    // regenerateSlots / recomposePrompt synced tools to clients.tools. PM clients silently
+    // lost their maintenance tool on any slot regen. Detected when Brian's clients.tools
+    // dropped from 5 → 4 after the Bug 3 surgical deploy.
+    niche: (client.niche as string | null) || undefined,
   }
 }
 
