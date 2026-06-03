@@ -245,9 +245,34 @@ export function buildForbiddenActions(ctx: SlotContext): string {
     ? 'Only say you are transferring when the transferCall tool is actually invoked. If transfer fails, route to callback.'
     : 'Never say you are transferring. Transfer is not enabled — always route to callback.'
 
-  const extraRules = ctx.forbiddenExtraRules.length > 0
-    ? '\n' + ctx.forbiddenExtraRules.join('\n')
-    : ''
+  // 2026-06-02 Workstream B Phase 2a — FORBIDDEN_EXTRA cap.
+  // ctx.forbiddenExtraRules concatenates niche-defaults sacred rules (FHA, ESA, PEST,
+  // bedbug) FIRST (baseVars at prompt-slots.ts:758) and AI-generated bloat from
+  // niche_custom_variables.FORBIDDEN_EXTRA SECOND. Brian had 1,500+ chars of duplicate
+  // scrape-derived guardrails (rules 18-25 restating rules 11-17) — sections audit on
+  // 2026-06-02 confirmed.
+  //
+  // Cap sized to fit the heaviest niche-defaults (property_management: 2,608 chars,
+  // real_estate: 1,963) plus ~400 char headroom for legitimate owner-added rules.
+  // Anything above clips the bloated tail. Take complete rules in order until budget
+  // exhausted; sacred head survives because niche-defaults come first in the merge.
+  //
+  // Phase 2d compresses property_management + real_estate niche-defaults — once that
+  // ships, this cap can drop to ~1,500. Tracker: D460 Phase 2d. Regression harness:
+  // prompt-knowledge-separation.test.ts Section 8.
+  const FORBIDDEN_EXTRA_MAX = 3000
+  let extraJoined = ctx.forbiddenExtraRules.length > 0 ? ctx.forbiddenExtraRules.join('\n') : ''
+  if (extraJoined.length > FORBIDDEN_EXTRA_MAX) {
+    const truncated: string[] = []
+    let running = 0
+    for (const rule of ctx.forbiddenExtraRules) {
+      if (running + rule.length + 1 > FORBIDDEN_EXTRA_MAX) break
+      truncated.push(rule)
+      running += rule.length + 1
+    }
+    extraJoined = truncated.join('\n')
+  }
+  const extraRules = extraJoined ? '\n' + extraJoined : ''
 
   const kbAvailable = ctx.knowledgeBackend === 'pgvector' && ctx.knowledgeChunkCount > 0
   const kbPriming = !kbAvailable

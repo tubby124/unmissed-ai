@@ -22,6 +22,7 @@ import {
   buildSlotContext,
   buildFaqPairsSlot,
   buildKnowledgeBaseSlot,
+  buildForbiddenActions,
   buildPromptFromSlots,
 } from '../prompt-slots.js'
 
@@ -447,5 +448,157 @@ describe('SLOT PIPELINE — extra_qa leak guard (Workstream B)', () => {
       prompt.includes('# KNOWLEDGE BASE'),
       'The composed prompt must include the KNOWLEDGE BASE section so the agent knows the retrieval path.',
     )
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. FORBIDDEN_EXTRA cap — Workstream B Phase 2a (~3,000 char cap)
+//
+// buildForbiddenActions concatenates every rule in ctx.forbiddenExtraRules
+// unconditionally. The same scrape-leak that pumped clients.extra_qa into the
+// FAQ slot (Phase 1 above) also pumps AI-generated FORBIDDEN_EXTRA rules into
+// the FORBIDDEN_ACTIONS slot. Brian's prompt had 1,500+ chars of duplicate
+// scrape-derived guardrails (rules 18-25 restating rules 11-17 in different
+// words) — confirmed by sections audit on 2026-06-02.
+//
+// Architectural rule: niche-defaults rules (FHA, ESA, PEST, bedbug) are
+// SACRED and live FIRST in the forbiddenExtraRules array per the merge order
+// at prompt-slots.ts:758 (baseVars before customVars). AI-generated bloat
+// arrives via niche_custom_variables.FORBIDDEN_EXTRA and lands SECOND. A cap
+// that takes complete rules in order until budget exhausted naturally
+// preserves the sacred head and clips the bloated tail.
+//
+// Cap = 3,000 chars. Sized to fit the heaviest niche-defaults observed
+// (property_management: 2,608 chars across 8 sacred rules) plus ~400 char
+// headroom for legitimate owner-added rules. Phase 2d compresses
+// property_management + real_estate niche-defaults; once that ships, this
+// cap drops to ~1,500.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('FORBIDDEN_EXTRA cap (Workstream B Phase 2a)', () => {
+  function pmIntake(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      niche: 'property_management',
+      business_name: 'Test Properties',
+      agent_name: 'Eric',
+      timezone: 'America/Edmonton',
+      owner_name: 'Brian',
+      callback_phone: '+14035550100',
+      hours_weekday: '9am-5pm',
+      hours_weekend: 'closed',
+      ...overrides,
+    }
+  }
+
+  // Synthetic "scrape bloat" — 12 rules, ~120 chars each, ~1,500 chars total.
+  // Mirrors the wording pattern of Brian's actual rules 18-25 (restatements of
+  // existing rules with marginally different phrasing). None of these contain
+  // sacred phrases, so any survivor identifies a leak past the cap.
+  const SCRAPE_BLOAT_RULES = Array.from({ length: 12 }, (_, i) =>
+    `BLOAT_RULE_${i + 1}: never restate the obvious — duplicated guardrail number ${i + 1} pulled from a website scrape and re-injected by the AI compiler.`,
+  )
+  const SCRAPE_BLOAT_BLOCK = SCRAPE_BLOAT_RULES.join('\n')
+
+  test('CAP: with niche-defaults + 1,500 chars of scrape bloat, forbidden_extra portion stays under 3,000 chars', () => {
+    const ctx = buildSlotContext(pmIntake({
+      niche_custom_variables: { FORBIDDEN_EXTRA: SCRAPE_BLOAT_BLOCK },
+    }) as never)
+
+    const out = buildForbiddenActions(ctx)
+
+    // The forbidden_extra portion is everything appended after rule 10 (TOOL-LATENCY
+    // BRIDGE) and before the kbPriming block. We measure it by counting chars
+    // contributed from ctx.forbiddenExtraRules — which the cap controls directly.
+    // Sum the survivor rules: anything that appears in `out` from the original array.
+    const survivorChars = ctx.forbiddenExtraRules
+      .filter(rule => out.includes(rule))
+      .reduce((sum, rule) => sum + rule.length + 1, 0) // +1 for join newline
+    assert.ok(
+      survivorChars <= 3000,
+      `Forbidden-extra survivor bytes = ${survivorChars}, must be <= 3000. ` +
+      `Without the cap this concatenates niche-defaults (2,608c) + 1,500+ char scrape bloat = ~4,100c. ` +
+      `Phase 2a clips the bloated tail; sacred niche head survives.`,
+    )
+  })
+
+  test('CAP: sacred niche rules (FHA / ESA) at the head survive the cap', () => {
+    const ctx = buildSlotContext(pmIntake({
+      niche_custom_variables: { FORBIDDEN_EXTRA: SCRAPE_BLOAT_BLOCK },
+    }) as never)
+
+    const out = buildForbiddenActions(ctx)
+
+    // property_management niche-defaults FORBIDDEN_EXTRA contains the FHA penalty
+    // wording. That rule is FIRST in the merged array (baseVars before customVars
+    // per prompt-slots.ts:758) so the cap MUST preserve it.
+    assert.ok(
+      out.includes('Fair Housing Act violations carry penalties up to $150,000'),
+      'FHA sacred rule MUST survive the cap. If this fails, the cap is clipping the wrong end.',
+    )
+    assert.ok(
+      out.includes('NEVER reject or question service animal or ESA'),
+      'ESA sacred rule MUST survive the cap.',
+    )
+  })
+
+  test('CAP: tail bloat rules are dropped', () => {
+    const ctx = buildSlotContext(pmIntake({
+      niche_custom_variables: { FORBIDDEN_EXTRA: SCRAPE_BLOAT_BLOCK },
+    }) as never)
+
+    const out = buildForbiddenActions(ctx)
+
+    // At least the final 4 bloat rules should be dropped (12 rules × ~125 chars
+    // = ~1,500 chars; if sacred head takes ~700 chars then only ~500 chars of
+    // bloat fit, ~4 rules). Asserting on the LAST rule is conservative.
+    assert.ok(
+      !out.includes('BLOAT_RULE_12'),
+      'Tail bloat rule BLOAT_RULE_12 MUST be clipped. If present the cap is not firing.',
+    )
+  })
+
+  test('CAP: small extras (under 1,200 chars total) are unaffected', () => {
+    // Default property_management intake — no scrape bloat. The niche-defaults
+    // FORBIDDEN_EXTRA is ~1,100 chars on its own. The full set of sacred rules
+    // should pass through untouched.
+    const ctx = buildSlotContext(pmIntake() as never)
+
+    const out = buildForbiddenActions(ctx)
+
+    // All sacred niche-defaults rules must survive when no bloat is injected.
+    assert.ok(
+      out.includes('Fair Housing Act violations carry penalties up to $150,000'),
+      'FHA sacred rule must survive in the no-bloat case.',
+    )
+    assert.ok(
+      out.includes('NEVER reject or question service animal or ESA'),
+      'ESA sacred rule must survive in the no-bloat case.',
+    )
+    // Bedbug urgent-tier rule lives in the niche-defaults PEST rule.
+    assert.ok(
+      /bedbug/i.test(out),
+      'Bedbug sacred wording must survive in the no-bloat case.',
+    )
+  })
+
+  test('CAP: rule integrity — no mid-rule truncation', () => {
+    const ctx = buildSlotContext(pmIntake({
+      niche_custom_variables: { FORBIDDEN_EXTRA: SCRAPE_BLOAT_BLOCK },
+    }) as never)
+
+    const out = buildForbiddenActions(ctx)
+
+    // Every rule in ctx.forbiddenExtraRules that appears in `out` must appear in
+    // FULL — the cap operates at rule boundaries, never mid-rule. If any rule
+    // is present in `out` only as a prefix, the cap is truncating mid-string.
+    for (const rule of ctx.forbiddenExtraRules) {
+      const idx = out.indexOf(rule.slice(0, 30)) // probe with first 30 chars
+      if (idx === -1) continue // rule was clipped entirely — fine
+      assert.ok(
+        out.includes(rule),
+        `Rule appeared partially in output but not fully — mid-rule truncation. ` +
+        `Rule prefix: "${rule.slice(0, 40)}...". Cap must preserve rule boundaries.`,
+      )
+    }
   })
 })
