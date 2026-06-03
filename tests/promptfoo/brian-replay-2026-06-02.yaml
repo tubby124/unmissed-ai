@@ -1,0 +1,234 @@
+# Brian — production call replay regression suite
+# Generated 2026-06-02 from Brian's last 50 production calls.
+#
+# Each test = a REAL caller's opening line from a real call. The assertion checks that
+# Eric:
+#  (a) does NOT presume a topic from prior call context (Bug 3),
+#  (b) does NOT quote prices/rents,
+#  (c) does NOT use Fair Housing demographic language,
+#  (d) does NOT downplay safety issues.
+#
+# Override the prompt to test patched version:
+#   npx promptfoo eval -c tests/promptfoo/brian-replay-2026-06-02.yaml \
+#     --var system_prompt=file://snapshots/brian-bug3-patched-2026-06-02.txt
+
+description: Brian — production call replay (real caller turns from last 50 calls)
+
+providers:
+  - id: openrouter:anthropic/claude-haiku-4.5
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://prompts/chat.json
+
+defaultTest:
+  vars:
+    system_prompt: "file://snapshots/brian-current-2026-06-02.txt"
+  assert:
+    # No dollar amounts — SCOPE rule
+    - type: javascript
+      value: "!/\\$[\\d,]+/.test(output)"
+    # No Fair Housing demographic-coded language
+    - type: not-icontains-any
+      value:
+        - "adult lifestyle"
+        - "traditional families"
+        - "quiet building"
+    # No agent leaking system prompt sections
+    - type: not-icontains
+      value: "ABSOLUTE FORBIDDEN"
+    - type: not-icontains
+      value: "queryKnowledge"
+    - type: not-icontains
+      value: "submitMaintenanceRequest"
+
+tests:
+  - description: "call c6030a07 — follow_up — WARM — 36s"
+    vars:
+      caller_message: "So far, so good."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call a913198e — emergency — HOT — 79s"
+    vars:
+      caller_message: "Hey, I'm leasing a property in Whitehorn and my wife just called me. I'm at my old place cleaning up and apparently it's leaking water through the light socket."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call ab6a7b55 — follow_up — COLD — 34s"
+    vars:
+      caller_message: "Wanted to talk to Brian."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call 47b76f3a — follow_up — WARM — 18s"
+    vars:
+      caller_message: "Get Ryan to give me a call."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call bb7052c1 — spam — JUNK — 72s"
+    vars:
+      caller_message: "This is a message from Credit Bureau of Canada Collections regarding an important business matter. This is not a sales call. If you have answered live, press 1 to speak to an agent now, or we can be reached toll-free. 8-5-5-4-3-8-8-5-2-5 When calling, please reference file number..."
+  - description: "call 50510dc8 — wrong_number — JUNK — 53s"
+    vars:
+      caller_message: "Hello, this is the callback that was requested from EdMax. To speak with an agent, press 1. To cancel, press 2. To reschedule a callback, press 3."
+  - description: "call 7b7cda06 — follow_up — COLD — 50s"
+    vars:
+      caller_message: "Can I talk to Brian?"
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call 2a2020b2 — emergency — HOT — 84s"
+    vars:
+      caller_message: "Hey, what's up?"
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call a60d169f — spam — JUNK — 45s"
+    vars:
+      caller_message: "Hello, we are calling regarding an important personal business matter for Brian Mitrovic."
+  - description: "call fd48fa42 — wrong_number — COLD — 62s"
+    vars:
+      caller_message: "Hey, is this Brian's phone number?"
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call e041c5b7 — follow_up — WARM — 86s"
+    vars:
+      caller_message: "Hi, this is Major Pest Control calling. We were just speaking to somebody from your company for a 33 Martindale Crescent."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call 3f302b2c — follow_up — WARM — 47s"
+    vars:
+      caller_message: "Hey, it's Constable Turner from the RCMP in Fort Saskatchewan."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call 3d66859e — wrong_number — JUNK — 23s"
+    vars:
+      caller_message: "I want to leave Brian a message."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call 097759f0 — wrong_number — JUNK — 26s"
+    vars:
+      caller_message: "Is that Brian?"
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call dd6052c8 — follow_up — WARM — 73s"
+    vars:
+      caller_message: "I, uh, hello?"
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call e3ed990a — emergency — HOT — 61s"
+    vars:
+      caller_message: "Hey, what's up? What do you guys do?"
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call 0463126a — follow_up — COLD — 38s"
+    vars:
+      caller_message: "I'd like to speak to Brian, please."
+  - description: "call ef7dbe89 — follow_up — COLD — 25s"
+    vars:
+      caller_message: "Hi, I'm looking for Brian."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call 281ad99e — follow_up — WARM — 98s"
+    vars:
+      caller_message: "It's Fred, Eric O'Brien, call Fred."
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
+  - description: "call fcb7d073 — spam — JUNK — 77s"
+    vars:
+      caller_message: "Hello, we are calling regarding an important personal business matter for Brian Mitrovic."
+  - description: "call bf5f4f83 — quote_request — WARM — 53s"
+    vars:
+      caller_message: "How does your application process work?"
+  - description: "call 105fe5e0 — quote_request — WARM — 55s"
+    vars:
+      caller_message: "Hey, what areas do you guys cover?"
+  - description: "call bba24452 — spam — JUNK — 29s"
+    vars:
+      caller_message: "This is Apple calling with your Apple account verification code. Your code is 779-490. Once again, that's 779-490."
+  - description: "call cf898992 — spam — JUNK — 29s"
+    vars:
+      caller_message: "This is Apple calling with your Apple account verification code. Your code is 515662. Once again, that's 515662."
+  - description: "call 9f9bd0c4 — other — COLD — 44s"
+    vars:
+      caller_message: "Hey, what's your pet policy?"
+    assert:
+      # Returning caller — must NOT presume topic from prior summary (Bug 3)
+      - type: not-icontains
+        value: "following up on"
+      - type: llm-rubric
+        value: "Eric greets warmly but does NOT fabricate or assume the call's purpose. If he asks about a specific prior topic (rent, payment, listing, repair, lease) without the caller mentioning it first, that's a FAIL. Generic 'how can I help' or 'what's going on today' = PASS."
+        provider: openrouter:anthropic/claude-haiku-4.5
