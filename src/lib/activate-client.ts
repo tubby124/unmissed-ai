@@ -18,7 +18,7 @@ import { buildTelegramDeepLink } from '@/lib/telegram-link'
 import { APP_URL } from '@/lib/app-url'
 import { BRAND_NAME } from '@/lib/brand'
 import { sendBrandedEmail } from '@/lib/email/send'
-import { deleteClientChunks, embedChunks, type ChunkInput } from '@/lib/embeddings'
+import { deleteClientChunks, embedChunks, reseedKnowledgeFromSettings, type ChunkInput } from '@/lib/embeddings'
 
 async function notifyAdmin(bot: string | null, chat: string | null, msg: string) {
   if (!bot || !chat) return
@@ -467,6 +467,23 @@ ${!isTrial && telegramLink ? `<hr style="border:none;border-top:1px solid #eee;m
         await adminSupa.from('clients').update({ extra_qa: faqPairs }).eq('id', clientId)
         console.log(`${logPrefix} Persisted ${faqPairs.length} FAQ pairs to clients.extra_qa`)
         steps.push({ step: 'faq_persist', ok: true })
+
+        // Push FAQ pairs into pgvector immediately — direct DB write above bypasses the
+        // settings PATCH route's reseed call. Without this, queryKnowledge returns empty
+        // for questions the FAQ clearly answers (witnessed fleet-wide 2026-06-03,
+        // see Projects/unmissed/2026-06-03-fleet-audit-findings.md).
+        try {
+          const { data: kb } = await adminSupa.from('clients').select('knowledge_backend, business_facts').eq('id', clientId).single()
+          if (kb?.knowledge_backend === 'pgvector') {
+            const facts = (kb.business_facts as string[] | string | null) ?? null
+            const reseed = await reseedKnowledgeFromSettings(clientId, facts, faqPairs)
+            console.log(`${logPrefix} reseedKnowledgeFromSettings stored=${reseed.stored} failed=${reseed.failed}`)
+            steps.push({ step: 'faq_reseed_pgvector', ok: reseed.stored > 0, stored: reseed.stored, failed: reseed.failed })
+          }
+        } catch (reseedErr) {
+          console.error(`${logPrefix} reseed after FAQ persist threw (non-fatal): ${reseedErr}`)
+          steps.push({ step: 'faq_reseed_pgvector', ok: false, error: String(reseedErr).slice(0, 200) })
+        }
       } else {
         steps.push({ step: 'faq_persist', ok: false, skipped: true, skipReason: 'no FAQ pairs' })
       }
