@@ -18,6 +18,7 @@
  */
 
 import type { BusinessConfig } from '@/lib/agent-context'
+import { extractIdentityFacts } from '@/lib/prompt-config/niche-identity'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -109,17 +110,44 @@ export function truncateFact(fact: string, maxChars: number = MAX_FACT_CHARS): s
 
 /**
  * Builds a KnowledgeSummary from BusinessConfig.
- * Extracts top facts from businessFacts + extraQa, truncates each,
- * and caps the total block at SUMMARY_CHAR_LIMIT.
+ *
+ * Layout (2026-06-03 identity-tier refactor):
+ *   1. IDENTITY block — Tier-A facts (service area, hours, business model,
+ *      owner name) classified from extra_qa via niche-identity.ts. Rendered
+ *      at the TOP, uncapped by MAX_SUMMARY_FACTS, with an instruction telling
+ *      the agent to answer DIRECTLY (no bridge, no queryKnowledge).
+ *   2. KEY BUSINESS FACTS block — the existing summary cap-15 over remaining
+ *      facts (businessFacts text + non-identity extra_qa).
+ *
+ * Identity-tier Q&A pairs are SKIPPED in the Key Business Facts pass to avoid
+ * duplicate rendering. They surface only in the Identity block.
  *
  * Pure function — no side effects, no database calls.
  */
 export function buildKnowledgeSummary(business: BusinessConfig): KnowledgeSummary {
   const textFacts = extractFactsFromText(business.businessFacts)
-  const qaFacts = extractFactsFromQa(business.extraQa)
+
+  // Identity-tier extraction — runs the classifier with the client's niche.
+  const identityFacts = extractIdentityFacts(business.extraQa, business.niche)
+  const identityQuestionsSet = new Set(
+    identityFacts.map(f => `${f.label}::${f.answer}`.toLowerCase()),
+  )
+
+  // Filter identity-classified Q&A pairs out of the general summary pass so
+  // they don't render twice.
+  const nonIdentityQa = business.extraQa.filter(p => {
+    if (!p?.q || !p?.a) return false
+    // Re-derive label by checking each identityFact's source — cheaper to
+    // compare answer alone since identityKey dedupes per key.
+    for (const f of identityFacts) {
+      if (f.answer.trim().toLowerCase() === String(p.a).trim().toLowerCase()) return false
+    }
+    return true
+  })
+  const qaFacts = extractFactsFromQa(nonIdentityQa)
 
   // Merge: text facts first (higher signal — client wrote these as priorities),
-  // then Q&A facts. Deduplicate by content.
+  // then non-identity Q&A facts. Deduplicate by content.
   const allFacts = [...textFacts, ...qaFacts]
   const seen = new Set<string>()
   const uniqueFacts: string[] = []
@@ -134,8 +162,22 @@ export function buildKnowledgeSummary(business: BusinessConfig): KnowledgeSummar
   // Take top N, truncate each
   const topFacts = uniqueFacts.slice(0, MAX_SUMMARY_FACTS).map(f => truncateFact(f))
 
-  // Build block, respecting char limit
-  let block = ''
+  // ── Build IDENTITY block ─────────────────────────────────────────────────
+  // Rendered uncapped at the top. The instruction line is load-bearing — it
+  // tells the agent these facts are baked identity, not lookup candidates.
+  let identityBlock = ''
+  const identityIncluded: string[] = []
+  if (identityFacts.length > 0) {
+    identityBlock = '## Identity (instant answers — answer DIRECTLY, do NOT bridge or call queryKnowledge for these)\n'
+    for (const f of identityFacts) {
+      const line = `- ${f.label}: ${f.answer}\n`
+      identityBlock += line
+      identityIncluded.push(`${f.label}: ${f.answer}`)
+    }
+  }
+
+  // ── Build KEY BUSINESS FACTS block ──────────────────────────────────────
+  let factsBlock = ''
   const includedFacts: string[] = []
   if (topFacts.length > 0) {
     const header = '## Key Business Facts\n'
@@ -143,16 +185,21 @@ export function buildKnowledgeSummary(business: BusinessConfig): KnowledgeSummar
     for (const fact of topFacts) {
       const line = `- ${fact}\n`
       if (running + line.length > SUMMARY_CHAR_LIMIT) break
-      block += (block === '' ? header : '') + line
+      factsBlock += (factsBlock === '' ? header : '') + line
       running += line.length
       includedFacts.push(fact)
     }
   }
 
+  // ── Compose final block ──────────────────────────────────────────────────
+  const block = [identityBlock.trimEnd(), factsBlock.trimEnd()]
+    .filter(Boolean)
+    .join('\n\n')
+
   return {
-    facts: includedFacts,
-    block: block.trimEnd(),
-    charCount: block.trimEnd().length,
+    facts: [...identityIncluded, ...includedFacts],
+    block,
+    charCount: block.length,
     fullBusinessFacts: business.businessFacts,
     fullExtraQa: business.extraQa,
   }
