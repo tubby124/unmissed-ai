@@ -16,13 +16,35 @@ related:
   - Decisions/Knowledge-Threshold-Loosening-2026-04-25
   - Decisions/2026-04-29-voicemail-removal-required-for-cf
   - 00-Inbox/2026-06-02-brian-prompt-slimming-handoff
-updated: 2026-06-02
+updated: 2026-06-03
 shipped: 2026-04-25
 ---
 
 # Calgary Edmonton Property Leasing — Brian Demo
 
 > Renamed 2026-04-25 from "Calgary Property Leasing". Slug retained.
+
+## 2026-06-03 — Phase 1a prompt slim PUSHED LIVE
+
+`npx tsx scripts/recompose-brian.ts --live` at 21:27:55 UTC.
+
+| Metric | Before | After |
+|---|---|---|
+| `system_prompt` chars | 23,184 | **22,493** (−691) |
+| `prompt_versions.id` | `e3d37526-bc1d-4dc8-afd6-20286d93acb1` | `492cd655-c996-4a81-9550-287d88937149` |
+| Routing-strict (offline) | 2/6 | **4/6** |
+| Scenario regression | 13/15 | 13/15 (zero flips) |
+| Tools array | 5 items | 5 items (queryKnowledge intact) |
+
+Source edit: one TRIAGE_DEEP block tightening in [src/lib/prompt-config/niche-defaults.ts](../../src/lib/prompt-config/niche-defaults.ts). No slot composer changes. Other niches unaffected.
+
+**Key fix:** Edmonton fabrication on areas-served question eliminated. Was the legal-exposure scenario (recorded call claiming coverage Brian doesn't have).
+
+**Known remaining gaps:** utilities-included scenario still says "heat and water included for most units" (pure invention), application-process scenario invented MORE steps in Phase 1a. Both queued for Phase 1c — needs a FORBIDDEN_EXTRA rule, not another TRIAGE_DEEP tweak.
+
+**Validation pending:** one real call into `+16397393885` asking "what areas do you cover?" — expected: no mention of Edmonton. Roll back via `prompt_versions` row `e3d37526` if regressed.
+
+Vault: [[../../../Obsidian Vault/Projects/unmissed/2026-06-03-brian-phase1a-pushed-live]]
 
 ## 2026-06-02 — JUNK classifier fix shipped + prompt-slimming queued
 
