@@ -82,7 +82,14 @@ const SLOT_CEILINGS = {
 // Total prompt ceiling for auto_glass baseline.
 // Phase D landed at 11,974. Ideal: 8K. Practical ceiling: 12K (per Hasan 2026-04-09).
 // Test ceiling: 13,500 to allow +10% drift before failing.
-const TOTAL_PROMPT_CEILING = 13_500
+// Phase D ceiling was 13,500 (auto_glass baseline 11,974 + ~10% headroom).
+// Bug 3 fix (2026-06-02, buildReturningCaller) adds ~200 chars to the returning_caller
+// slot — the anti-presumption rule + Bad/Good examples are calibrated against the
+// brian-baseline promptfoo regression and shouldn't be compressed without re-validating.
+// Bumped to 13,700 to absorb the deliberate gain. Phase 2a (FORBIDDEN_EXTRA cap,
+// targeting ~1,200 char savings) will recover this many times over — ceiling can drop
+// back to 13,500 after Phase 2a ships.
+const TOTAL_PROMPT_CEILING = 13_700
 
 describe('Phase D slot char ceilings (auto_glass baseline)', () => {
   const ctx = buildSlotContext(AUTO_GLASS_INTAKE)

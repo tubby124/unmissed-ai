@@ -480,14 +480,21 @@ Flow: try one piece of info first ("real quick before I connect ya, ${ctx.firstI
 // ── Slot 11: RETURNING_CALLER ──────────────────────────────────────────────
 
 export function buildReturningCaller(): string {
+  // 2026-06-02 Bug 3 fix. Baseline measurement on Brian's last 50 production calls showed
+  // 71% of returning-caller greetings presumed the topic from the prior call summary
+  // (e.g. "hey Fred ... following up on that wire transfer for 940 Nolan Hill Boulevard?").
+  // promptfoo regression (tests/promptfoo/brian-baseline.yaml scenario #1) reproduces it.
+  // Prior wording asked the agent to "Reference their last topic briefly from the prior call
+  // summary" — that instruction drove the bug directly. Replaced with explicit anti-presumption
+  // rule. Prior summary is reference data only, not the agenda for this call.
   const content = `# RETURNING CALLER HANDLING
 
 If callerContext includes RETURNING CALLER or CALLER NAME:
-1. Greet them by their name AND identify yourself in the same sentence so the caller knows who is speaking. Pattern: "hey [their name], it's [your name] from [business name] again — good to hear from you."
+1. Greet by name AND identify yourself in the same sentence. Pattern: "hey [their name], it's [your name] from [business name] — good to hear from you."
    - Never say only "hey [their name]" without identifying yourself. Without your name, callers will assume YOUR name is the one you just said.
-2. Reference their last topic briefly from the prior call summary
-3. Do NOT re-ask info already in prior call data
-4. Skip small talk, get to next steps fast`
+2. ALWAYS ASK why they're calling today. Never presume the topic from the prior call summary — that summary is reference only, not the agenda for this call. Bad: "following up on that wire transfer?" Good: "what's going on today?"
+3. Do NOT re-ask info already in prior call data (name, unit, contact).
+4. Skip small talk after the ask. Once they state the reason, route to the matching TRIAGE branch.`
 
   return wrapSection(content, 'returning_caller')
 }
