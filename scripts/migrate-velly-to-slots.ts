@@ -3,18 +3,22 @@
  * to slot pipeline so dashboard edits work + future universal rules auto-flow.
  *
  * Steps:
- *  1. Snapshot current state (prompt, hand_tuned, custom_niche_config, niche_custom_variables)
+ *  1. Snapshot current state (prompt, hand_tuned, custom_niche_config, niche_custom_variables, niche)
  *  2. Populate custom_niche_config + niche_custom_variables from hand-tuned content
- *  3. Set hand_tuned=false
- *  4. Run recomposePrompt with forceRecompose=true
- *  5. (dryrun) Show diff + write snapshot. (live) Push to Ultravox.
+ *  3. Set niche='home_renovation' (was 'other' — all intake data is renovation-flavored)
+ *  4. Set hand_tuned=false
+ *  5. Run recomposePrompt with forceRecompose=true
+ *  6. (preview) compose in memory only, write nothing. (dryrun) write config but not prompt.
+ *     (live) write everything + PATCH Ultravox.
  *
  * Modes:
- *   default (no flag): dryRun=true. Writes config to DB but recompose is read-only.
- *                      WARNING: this DOES update custom_niche_config + niche_custom_variables
- *                      + hand_tuned in the DB even in dryrun mode (slot pipeline needs them
- *                      to read). The recompose itself is read-only. Snapshot saves rollback data.
- *   --live:            Same DB updates + recompose actually writes new prompt + PATCHes Ultravox.
+ *   --preview:  IN-MEMORY ONLY. Composes the prompt locally from current DB state + overrides
+ *               applied in memory. NO DB writes. NO Ultravox push. Safe to run on production.
+ *               Outputs comparison diff at /tmp/velly-slot-output.txt vs current prompt.
+ *   default:    dryRun=true. WRITES custom_niche_config + niche_custom_variables + niche +
+ *               hand_tuned to the DB. Recompose itself is read-only — prompt + Ultravox unchanged.
+ *               Use only after --preview looks correct.
+ *   --live:     Same DB updates + recompose writes new prompt + PATCHes Ultravox.
  *
  * Rollback: snapshot at /tmp/velly-pre-migration-snapshot.json contains everything to revert.
  */
@@ -34,7 +38,14 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
 
 const SLUG = 'velly-remodeling'
 const LIVE = process.argv.includes('--live')
+const PREVIEW = process.argv.includes('--preview')
 const SNAPSHOT_PATH = '/tmp/velly-pre-migration-snapshot.json'
+
+// Niche reclassification — Eric's intake data is renovation-flavored across the board.
+// home_renovation NICHE_DEFAULTS unlocks 35+ niche-specific fields ('other' has ~10).
+// Identity bucket at niche-identity.ts:157 provides Tier A patterns for "what services /
+// where located / hours / owner" that 'other' falls back to _universal-only on.
+const TARGET_NICHE = 'home_renovation'
 
 // Built from Eric's hand-tuned prompt content. Each field cross-referenced to source.
 const CUSTOM_NICHE_CONFIG = {
@@ -55,26 +66,33 @@ const CUSTOM_NICHE_CONFIG = {
 }
 
 // Niche_custom_variables for slot-level overrides (greeting line, hard rules quirks, etc.)
+// CRITICAL: agent_name is "Samantha" (not Eric). Eric is the owner. The agent identifies
+// as Samantha on every call. Greeting line must match.
 const NICHE_CUSTOM_VARIABLES = {
-  GREETING_LINE: 'Thanks for calling Velly Remodeling, this is Eric. We do renovations, new builds, basement suites, kitchens and bathrooms — what are you looking to get done?',
+  GREETING_LINE: 'Thanks for calling Velly Remodeling, this is Samantha. We do renovations, new builds, basement suites, kitchens and bathrooms — what are you looking to get done?',
   PRIMARY_GOAL: 'Take a clean intake on every renovation lead and decide who needs to talk to the owner versus who you can capture as a normal lead. Never quote firm prices or promise timelines on the phone — the team gives personalized estimates after reviewing the project.',
   CLOSE_ACTION: 'call you back within a business day to discuss your project',
-  // Bespoke FORBIDDEN extension preserves the "never name Kausar unprompted" rule + other hard rules
+  // Bespoke FORBIDDEN extension — Velly-specific only.
+  // 2026-06-04: home_renovation NICHE_DEFAULTS.FORBIDDEN_EXTRA now includes PRICING,
+  // TIMELINES, MATERIAL CHOICES, NEVER promise start date, URGENT flag, AVAILABILITY,
+  // HAZARDOUS MATERIALS, ACCESSIBILITY, INAPPROPRIATE CALLER, REAL ESTATE / PROPERTY ADVICE.
+  // These used to be duplicated here as Velly-specific rules — now dropped to avoid prompt bloat.
+  // Only KEEP rules that are uniquely Velly (owner name lockdown).
   FORBIDDEN_EXTRA: [
     'Never name the owner (Kausar) to a caller unprompted. Refer to who calls them back as "someone from our team", "the team", or "the owner". If the caller says "Kausar" first, you can mirror their language naturally.',
-    'Never quote firm prices, fees, square-foot rates, or hourly labour costs. Always: "someone from our team will give you a personalized estimate after they reviewed the project — that\'s how we keep quotes accurate."',
-    'Never promise a start date or timeline. Always: "the team will look at the project details and come back to you with a realistic timeline."',
-    'Never claim Velly does anything outside renovation/construction. If asked about real estate sales, financing, design-only work, demolition-only, or commercial fit-outs — be honest about scope.',
   ].join('\n'),
 }
 
 const svc = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
 
 async function main(): Promise<void> {
-  console.log(`[1/5] Snapshot current state for ${SLUG}...`)
+  const mode = LIVE ? 'LIVE' : PREVIEW ? 'PREVIEW (no DB writes)' : 'DRYRUN (DB writes, no Ultravox push)'
+  console.log(`\n=== migrate-velly-to-slots mode: ${mode} ===\n`)
+
+  console.log(`[1/6] Snapshot current state for ${SLUG}...`)
   const { data: clientBefore, error: cErr } = await svc
     .from('clients')
-    .select('id, slug, niche, hand_tuned, system_prompt, custom_niche_config, niche_custom_variables, ultravox_agent_id, voice_style_preset, business_facts, extra_qa, services_offered')
+    .select('*')
     .eq('slug', SLUG)
     .limit(1)
     .maybeSingle()
@@ -83,8 +101,42 @@ async function main(): Promise<void> {
   const before = clientBefore as Record<string, unknown>
   fs.writeFileSync(SNAPSHOT_PATH, JSON.stringify(before, null, 2))
   console.log(`  snapshot saved to ${SNAPSHOT_PATH} (${(before.system_prompt as string).length} char hand-tuned prompt preserved for rollback)`)
+  console.log(`  current state: niche=${before.niche} hand_tuned=${before.hand_tuned} agent_name=${before.agent_name}`)
 
-  console.log('\n[2/5] Resolving admin user_id...')
+  // ── PREVIEW MODE: compose locally without any DB writes ──────────────────
+  if (PREVIEW) {
+    console.log('\n[2/3] Composing prompt in-memory from CURRENT DB state + intended overrides...')
+    const { buildPromptFromSlots, buildSlotContext } = await import('../src/lib/prompt-slots')
+    const { clientRowToIntake } = await import('../src/lib/slot-regenerator')
+
+    // Apply intended overrides to a copy of the client row, then map through
+    // the canonical clientRowToIntake() so all field renames (business_hours_weekday →
+    // hours_weekday, etc.) match the production slot-pipeline path exactly.
+    const clientWithOverrides = {
+      ...before,
+      niche: TARGET_NICHE,
+      hand_tuned: false,
+      custom_niche_config: CUSTOM_NICHE_CONFIG,
+      niche_custom_variables: NICHE_CUSTOM_VARIABLES,
+    }
+    const intake = clientRowToIntake(clientWithOverrides, [], 0)
+    const ctx = buildSlotContext(intake)
+    const composedPrompt = buildPromptFromSlots(ctx)
+    fs.writeFileSync('/tmp/velly-slot-output.txt', composedPrompt)
+
+    const currentLen = (before.system_prompt as string).length
+    console.log(`\n[3/3] Composition complete (NO DB writes).`)
+    console.log(`  current hand-tuned prompt: ${currentLen} chars`)
+    console.log(`  proposed slot-composed:    ${composedPrompt.length} chars`)
+    console.log(`  delta:                     ${composedPrompt.length - currentLen >= 0 ? '+' : ''}${composedPrompt.length - currentLen} chars`)
+    console.log(`\n  Preview written to: /tmp/velly-slot-output.txt`)
+    console.log(`  Current prompt for diff: extract from ${SNAPSHOT_PATH} (.system_prompt key)`)
+    console.log(`\n  Next step: review the diff. If acceptable, run without --preview to write DB,`)
+    console.log(`             then with --live to push to Ultravox.`)
+    return
+  }
+
+  console.log('\n[2/6] Resolving admin user_id...')
   const { data: admin, error: aErr } = await svc
     .from('client_users')
     .select('user_id, role')
@@ -94,10 +146,11 @@ async function main(): Promise<void> {
   if (aErr || !admin?.user_id) throw new Error(`No admin: ${aErr?.message}`)
   const userId = admin.user_id as string
 
-  console.log('\n[3/5] Writing custom_niche_config + niche_custom_variables + hand_tuned=false...')
+  console.log(`\n[3/6] Writing niche=${TARGET_NICHE} + custom_niche_config + niche_custom_variables + hand_tuned=false...`)
   const { error: uErr } = await svc
     .from('clients')
     .update({
+      niche: TARGET_NICHE,
       custom_niche_config: CUSTOM_NICHE_CONFIG,
       niche_custom_variables: NICHE_CUSTOM_VARIABLES,
       hand_tuned: false,
@@ -106,8 +159,7 @@ async function main(): Promise<void> {
   if (uErr) throw new Error(`DB update failed: ${uErr.message}`)
   console.log('  DB updated.')
 
-  const mode = LIVE ? 'LIVE' : 'DRYRUN (recompose read-only)'
-  console.log(`\n[4/5] Running recomposePrompt — mode: ${mode}, forceRecompose=true`)
+  console.log(`\n[4/6] Running recomposePrompt — dryRun=${!LIVE}, forceRecompose=true`)
   const result = await recomposePrompt(
     before.id as string,
     userId,
@@ -122,19 +174,20 @@ async function main(): Promise<void> {
   console.log(`  delta=${(result.charCount ?? 0) - (before.system_prompt as string).length} chars`)
   console.log(`  error=${result.error ?? 'none'}`)
 
-  console.log('\n[5/5] Writing slot output preview...')
+  console.log('\n[5/6] Writing slot output preview...')
   const preview = (result as { preview?: string }).preview
   if (preview) {
     fs.writeFileSync('/tmp/velly-slot-output.txt', preview)
     console.log(`  slot output written to /tmp/velly-slot-output.txt (${preview.length} chars)`)
   }
 
+  console.log('\n[6/6] Final state...')
   if (LIVE) {
-    console.log('\n  Velly is now slot-pipeline. Ultravox PATCHed. Dashboard edits will now flow.')
+    console.log('  Velly is now slot-pipeline + niche=home_renovation. Ultravox PATCHed. Dashboard edits will now flow.')
   } else {
-    console.log('\n  DRYRUN done. DB has new config but prompt + Ultravox unchanged.')
+    console.log('  DRYRUN done. DB has new config but prompt + Ultravox unchanged.')
     console.log('  Inspect /tmp/velly-slot-output.txt vs current hand-tuned prompt before --live.')
-    console.log('  ROLLBACK if needed: restore from /tmp/velly-pre-migration-snapshot.json')
+    console.log(`  ROLLBACK if needed: restore from ${SNAPSHOT_PATH}`)
   }
 }
 
