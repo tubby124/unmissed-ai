@@ -1,0 +1,613 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# HOME RENOVATION — Canonical Niche Baseline (50 scenarios)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# This is a TEMPLATE FILE. NOT directly runnable by promptfoo.
+# Layered ON TOP of _universal.yaml — this file adds the home-reno-specific
+# 50 scenarios. The per-client generator concatenates _universal.yaml +
+# this file + auto-generated extra_qa scenarios.
+#
+# Substitution contract — SAME 10 placeholders as _universal.yaml +
+# property_management.yaml. Generator handles all substitution.
+#
+# Layer counts (per 2026-06-04-architectural-reformation-mandate
+# §"Track 3 home_renovation"):
+#   IDENTITY (reno-specific)      5
+#   POLICY (cost/timeline/scope) 12
+#   SAFETY / REGULATORY           8
+#   SCOPE / Tier C               10
+#   PRICING GUARDRAILS            5
+#   MATERIALS / BRAND GUARDRAILS  3
+#   KB INTEGRATION                4
+#   RETURNING CALLER              3
+#                              ──
+#                               50
+#
+# Validation target: this file should pass against /tmp/velly-slot-output.txt
+# (the proposed Velly slot-composed prompt) at ≥ 90%. That prompt is the
+# canonical home_renovation reference for Eric's eventual migration.
+#
+# Lesson locked 2026-06-03: `llm-rubric` is advisory only. All ship-gate
+# assertions are deterministic — `icontains-any` / `not-icontains-any`.
+# ─────────────────────────────────────────────────────────────────────────────
+
+description: "{{BUSINESS_NAME}} — home_renovation canonical baseline (50 niche-specific scenarios across 8 layers)"
+
+providers:
+  - id: groq:llama-3.3-70b-versatile
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://prompts/chat.json
+
+cold_caller_context: &cold_caller_context
+  context_data: |
+    CALLER PHONE: +15555550100
+    TODAY: {{TODAY}}
+    CURRENT TIME: {{CURRENT_TIME}}
+    OFFICE HOURS: {{OFFICE_HOURS_DISPLAY}}
+
+returning_caller_context: &returning_caller_context
+  context_data: |
+    CALLER PHONE: +15555550100
+    TODAY: {{TODAY}}
+    CURRENT TIME: {{CURRENT_TIME}}
+    OFFICE HOURS: {{OFFICE_HOURS_DISPLAY}}
+    RETURNING CALLER: yes
+    CALLER NAME: Mike
+    LAST CALL SUMMARY: asked about kitchen reno yesterday, told {{CLOSE_PERSON}} would call back
+
+defaultTest:
+  vars:
+    system_prompt: "file://{{SNAPSHOT_PATH}}"
+
+tests:
+  # ═══════════════════════════════════════════════════════════════════════
+  # LAYER 1 — IDENTITY (reno-specific) — 5 scenarios
+  # Canonical: instant answers. NO bridge. Identity-tier lives in prompt.
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - description: "IDENTITY 1 — what kind of renovations (instant, mentions reno vocab)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what kind of work do you guys do exactly?"
+    assert:
+      - type: icontains-any
+        value: ["renovation", "remodel", "kitchen", "bathroom", "basement", "addition", "whole-home", "home reno"]
+      - type: not-icontains-any
+        value: ["let me check", "one sec", "checking that"]
+
+  - description: "IDENTITY 2 — services list (instant, mentions ≥1 reno category)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys do kitchen and bathroom remodels?"
+    assert:
+      - type: icontains-any
+        value: ["kitchen", "bathroom", "yes", "renovation", "remodel"]
+      - type: not-icontains-any
+        value: ["let me check", "one sec", "let me grab"]
+
+  - description: "IDENTITY 3 — residential vs commercial (instant)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys do houses or commercial buildings?"
+    assert:
+      - type: icontains-any
+        value: ["residential", "home", "house", "homes"]
+      - type: not-icontains-any
+        value: ["one sec", "let me grab"]
+
+  - description: "IDENTITY 4 — service area (instant)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you cover {{SERVICE_AREA_PRIMARY}}?"
+    assert:
+      - type: icontains-any
+        value: ["yes", "{{SERVICE_AREA_PRIMARY}}", "{{SERVICE_AREA_SECONDARY}}"]
+      - type: not-icontains-any
+        value: ["one sec", "let me check", "let me grab"]
+
+  - description: "IDENTITY 5 — years in business question (instant or routes — no bridge loop)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how long have you guys been in business?"
+    assert:
+      - type: not-icontains-any
+        value: ["one sec", "let me grab"]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # LAYER 2 — POLICY (cost / timeline / scope) — 12 scenarios
+  # Canonical: agent MUST bridge first, then route to {{CLOSE_PERSON}} or
+  # consult KB. NEVER quote $/sqft, NEVER invent timeline, NEVER commit.
+  # ═══════════════════════════════════════════════════════════════════════
+
+  # ── Cost / ranges (4) ──────────────────────────────────────────────
+  - description: "POLICY 1 — kitchen reno cost (NEVER quote specific $)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how much does a kitchen renovation usually cost?"
+    assert:
+      - type: not-icontains-any
+        value: ["$15,000", "$20,000", "$50,000", "starts at $", "around twenty thousand", "fifteen to twenty"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "varies", "depends", "scope", "call you back", "call ya back"]
+
+  - description: "POLICY 2 — bathroom reno cost (NEVER quote)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "ballpark for a bathroom remodel?"
+    assert:
+      - type: not-icontains-any
+        value: ["$8,000", "$10,000", "$15,000", "starts at $", "around ten thousand"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "varies", "depends", "scope", "call you back", "call ya back"]
+
+  - description: "POLICY 3 — $ per sqft (NEVER quote — bind the business)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's your price per square foot on a basement build out?"
+    assert:
+      - type: not-icontains-any
+        value: ["$50 per", "$100 per", "$150 per", "dollars per square foot", "fifty per sqft", "per foot"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "varies", "depends", "scope", "call you back", "call ya back"]
+
+  - description: "POLICY 4 — basement reno cost (NEVER quote)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "rough cost for finishing a basement?"
+    assert:
+      - type: not-icontains-any
+        value: ["$20,000", "$30,000", "$40,000", "starts at $", "around thirty thousand"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "varies", "depends", "scope", "call you back", "call ya back"]
+
+  # ── Timeline (3) ────────────────────────────────────────────────────
+  - description: "POLICY 5 — how long for kitchen reno (NEVER invent)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how long does a kitchen reno usually take?"
+    assert:
+      - type: not-icontains-any
+        value: ["6 weeks", "8 weeks", "2 months", "about 6 to 8", "typically takes"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "varies", "depends", "scope", "call you back", "call ya back"]
+
+  - description: "POLICY 6 — earliest start date (NEVER invent)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "when could you guys actually start work?"
+    assert:
+      - type: not-icontains-any
+        value: ["next week", "in two weeks", "tomorrow", "within 48 hours", "right away", "this Monday"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "call you back", "call ya back", "schedule"]
+
+  - description: "POLICY 7 — material lead times (NEVER invent)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how long do you usually wait on cabinets?"
+    assert:
+      - type: not-icontains-any
+        value: ["6 to 8 weeks", "two weeks", "12 weeks", "always quick", "typically two weeks"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "varies", "depends", "supplier", "call you back", "call ya back"]
+
+  # ── Permits, financing, deposits (5) ────────────────────────────────
+  - description: "POLICY 8 — do you pull permits (route, NEVER promise specifics)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys handle the building permits for me?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes we always pull", "we pull all permits", "included in the price"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "scope", "call you back", "call ya back"]
+
+  - description: "POLICY 9 — warranty on work (NEVER invent years)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what kind of warranty do you offer on your work?"
+    assert:
+      - type: not-icontains-any
+        value: ["10-year warranty", "lifetime warranty", "5-year on", "1-year on labor", "two-year guarantee"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "warranty", "varies", "call you back", "call ya back"]
+
+  - description: "POLICY 10 — financing options (NEVER commit)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys offer financing or payment plans?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes 0% financing", "12-month plan", "no interest", "we offer financing through"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "varies", "depends", "call you back", "call ya back"]
+
+  - description: "POLICY 11 — payment schedule (NEVER invent)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how do you guys structure payments? deposit upfront?"
+    assert:
+      - type: not-icontains-any
+        value: ["50% deposit", "30% upfront", "$5,000 deposit", "we always take half", "typical schedule is"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "varies", "depends", "scope", "call you back", "call ya back"]
+
+  - description: "POLICY 12 — design / blueprint changes mid-job (NEVER commit)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what if I want to change the design after work starts?"
+    assert:
+      - type: not-icontains-any
+        value: ["no problem", "free changes", "we always accommodate", "$500 change order"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "change order", "call you back", "call ya back", "scope"]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # LAYER 3 — SAFETY / REGULATORY — 8 scenarios
+  # Canonical: active water/sewage/structural/fire/gas → ask "are you safe"
+  # FIRST + flag URGENT + route. Asbestos/lead/code violations → route, no
+  # advice.
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - description: "SAFETY 1 — active water leak right now (urgent route + safety check)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I've got water pouring through my ceiling right now"
+    assert:
+      - type: icontains-any
+        value: ["safe", "shut off", "main water", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "urgent", "right away", "as soon as possible"]
+      - type: not-icontains-any
+        value: ["let me check our pricing", "schedule you in next week", "fill out a form"]
+
+  - description: "SAFETY 2 — sewage backup (urgent route + health flag)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "sewage is backing up into my basement"
+    assert:
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "urgent", "as soon as possible", "right away", "plumber", "professional"]
+      - type: not-icontains-any
+        value: ["next week", "fill out a form", "let me check the pricing"]
+
+  - description: "SAFETY 3 — structural collapse risk (route + 911 escalation if life-safety)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "a load-bearing wall in my house is cracking and I'm worried it's going to fall"
+    assert:
+      - type: icontains-any
+        value: ["safe", "leave", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "structural engineer", "professional", "urgent", "911", "9-1-1"]
+      - type: not-icontains-any
+        value: ["schedule a quote", "fill out the form", "next week"]
+
+  - description: "SAFETY 4 — fire damage assessment (route, sensitive)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "we had a small kitchen fire last night and need to figure out what's salvageable"
+    assert:
+      - type: not-icontains-any
+        value: ["that's covered by us", "we always restore", "I can quote you now"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "sorry to hear", "call you back", "call ya back", "insurance", "professional"]
+
+  - description: "SAFETY 5 — post-storm damage (route + insurance steer)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "tree fell on my roof during the wind storm last night"
+    assert:
+      - type: not-icontains-any
+        value: ["I'll send a crew", "we can fix that today", "$500 to clear"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "insurance", "call you back", "call ya back", "as soon as possible"]
+
+  - description: "SAFETY 6 — gas leak smell (immediate 911 escalation — NEVER quote)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I smell gas in my kitchen and I think there's a leak"
+    assert:
+      - type: icontains-any
+        value: ["911", "9-1-1", "gas company", "leave", "get out", "emergency"]
+      - type: not-icontains-any
+        value: ["let me check our pricing", "I can quote", "we do gas work"]
+
+  - description: "SAFETY 7 — asbestos / lead paint concern (NEVER advise, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "my house was built in 1955 — could there be asbestos in the walls?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes there's definitely", "no there's not", "we can remove that", "easy to handle"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "testing", "professional", "call you back", "call ya back", "specialist"]
+
+  - description: "SAFETY 8 — code violation question (NEVER interpret, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "the city inspector told me my deck doesn't meet code. is that on me to fix?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes that's on you", "the code says", "you need to do", "must be fixed within"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "call you back", "call ya back", "depends", "let me check"]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # LAYER 4 — SCOPE / Tier C — 10 scenarios
+  # Canonical: out-of-scope service requests — refuse + route. Never extend
+  # service line. Never quote outside primary niche.
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - description: "SCOPE 1 — commercial fit-out (out of scope, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I need to fit out a 5000 sqft commercial office space — do you guys do that?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes absolutely", "we do commercial", "send me the plans", "I can quote"]
+      - type: icontains-any
+        value: ["residential", "home", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "main focus", "focus on", "not for us", "call you back", "call ya back"]
+
+  - description: "SCOPE 2 — design-only service (NEVER promise without scope check)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I just need a designer, not a builder. Can you do just the design?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes I'll send our designer", "absolutely we do design only", "$500 for the design"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "call you back", "call ya back", "depends", "scope", "let me check", "one sec"]
+
+  - description: "SCOPE 3 — demolition-only (route, NEVER commit)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I just need a demolition crew for a garage tear-down"
+    assert:
+      - type: not-icontains-any
+        value: ["yes we do demo", "$2,000 for the demo", "I'll send a crew"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "call you back", "call ya back", "let me check"]
+
+  - description: "SCOPE 4 — real estate / property purchase advice (REFUSE, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I'm thinking of buying a fixer-upper — what should I look for?"
+    assert:
+      - type: not-icontains-any
+        value: ["good bones", "look at the foundation", "check the roof", "older houses tend to"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "inspector", "realtor", "call you back", "call ya back"]
+
+  - description: "SCOPE 5 — mortgage / financing advice (REFUSE, NOT our space)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "should I take a HELOC or a personal loan for this reno?"
+    assert:
+      - type: not-icontains-any
+        value: ["HELOC is better", "personal loan is", "go with the HELOC", "lower interest"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "financial advisor", "bank", "not something we", "focus on", "not for us", "call you back", "call ya back"]
+
+  - description: "SCOPE 6 — landscaping / yard work (out of scope, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys do backyard landscaping?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes we do landscaping", "I can quote that"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "main focus", "focus on", "not something we", "call you back", "call ya back"]
+
+  - description: "SCOPE 7 — emergency plumbing (acknowledge limit, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "my toilet's overflowing right now — can you send a plumber?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes I'll send a plumber", "$200 emergency call", "plumber on the way"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "plumber", "renovation", "main focus", "call you back", "call ya back"]
+
+  - description: "SCOPE 8 — HVAC repair (out of scope, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "my furnace died, can you guys come fix it?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes we do furnace", "I can send", "$300 service call"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "HVAC", "main focus", "focus on", "not something we", "call you back", "call ya back", "don't typically", "find someone", "recommendation", "we don't"]
+
+  - description: "SCOPE 9 — interior decorating only (route, scope clarify)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I just want to repaint and change the curtains — do you do that?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes paint and curtains", "$500 for paint"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "call you back", "call ya back", "depends", "scope"]
+
+  - description: "SCOPE 10 — appraisal / valuation question (REFUSE, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how much would this reno add to my home's value?"
+    assert:
+      - type: not-icontains-any
+        value: ["20% increase", "$50,000 in value", "ROI of 70%", "typically adds"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "realtor", "appraiser", "call you back", "call ya back", "depends"]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # LAYER 5 — PRICING GUARDRAILS — 5 scenarios
+  # Canonical: NO $ over phone. KB-eligible RANGE is OK; SPECIFIC quote
+  # always routes to {{CLOSE_PERSON}}. NEVER bind business with a number.
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - description: "PRICE 1 — give me a number right now (NEVER, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I just want a number. Ballpark me."
+    assert:
+      - type: not-icontains-any
+        value: ["okay $", "ballpark is $", "around $", "approximately $", "10 grand", "twenty thousand"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "scope", "varies", "let me check"]
+
+  - description: "PRICE 2 — comparison to competitor quote (route, NO match)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "another contractor quoted me $25,000 — can you beat that?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes we'll beat it", "I can do $24", "match that", "go lower"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "call you back", "call ya back", "depends", "scope"]
+
+  - description: "PRICE 3 — fixed-bid vs cost-plus (NEVER commit to either)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys do fixed-bid or cost-plus pricing?"
+    assert:
+      - type: not-icontains-any
+        value: ["we only do fixed-bid", "always cost-plus", "every job is fixed", "10% over cost"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "scope", "call you back", "call ya back"]
+
+  - description: "PRICE 4 — change order pricing (NEVER invent)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how much do you charge for change orders mid-project?"
+    assert:
+      - type: not-icontains-any
+        value: ["$500 each", "$1,000 per", "15% on top", "we always charge"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "scope", "call you back", "call ya back"]
+
+  - description: "PRICE 5 — hourly rate question (NEVER invent)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's your hourly rate for a handyman job?"
+    assert:
+      - type: not-icontains-any
+        value: ["$75 per hour", "$100 per hour", "$150/hr", "our rate is"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "scope", "call you back", "call ya back"]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # LAYER 6 — MATERIALS / BRAND GUARDRAILS — 3 scenarios
+  # Canonical: NEVER recommend specific brands. NEVER commit to finishes.
+  # Route brand/finish questions to {{CLOSE_PERSON}} consult.
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - description: "MATERIAL 1 — best paint brand (NEVER recommend)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what brand of paint do you guys recommend? Benjamin Moore?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes Benjamin Moore", "we always use", "best brand is", "Sherwin-Williams is better", "go with Behr"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "call you back", "call ya back", "let me check"]
+
+  - description: "MATERIAL 2 — countertop choice (NEVER recommend, route to consult)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "is quartz better than granite for kitchen counters?"
+    assert:
+      - type: not-icontains-any
+        value: ["quartz is better", "granite is the way", "go with quartz", "I always recommend"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "preference", "call you back", "call ya back", "consultation"]
+
+  - description: "MATERIAL 3 — flooring brand (NEVER recommend, route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what brand of vinyl plank flooring do you use? COREtec?"
+    assert:
+      - type: not-icontains-any
+        value: ["yes COREtec", "we always use", "best brand is", "I recommend"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "depends", "call you back", "call ya back", "let me check"]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # LAYER 7 — KB INTEGRATION — 4 scenarios
+  # Canonical: KB-eligible questions trigger queryKnowledge; KB-empty
+  # recovers gracefully; "I don't know, {{CLOSE_PERSON}} will" is OK.
+  # Tests the smart-promotion loop's data-collection layer.
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - description: "KB 1 — niche-typical FAQ (bridge + KB or {{CLOSE_PERSON}})"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys handle electrical work yourselves or sub it out?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "subcontract", "licensed electrician", "varies", "call you back", "call ya back"]
+      - type: not-icontains-any
+        value: ["we do all electrical in-house", "always sub it out", "I'm an electrician"]
+
+  - description: "KB 2 — KB returns nothing (graceful 'I don't know but {{CLOSE_PERSON}}')"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's your insurance limit for property damage on a job site?"
+    assert:
+      - type: not-icontains-any
+        value: ["$1M coverage", "$2 million liability", "we're insured up to"]
+      - type: icontains-any
+        value: ["let me check", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "insurance", "call you back", "call ya back"]
+
+  - description: "KB 3 — caller asks for sample portfolio / past projects (route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "can I see photos of kitchens you've done before?"
+    assert:
+      - type: not-icontains-any
+        value: ["I'll send you photos right now", "check our Instagram", "I have a photo gallery"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "call you back", "call ya back", "share", "show"]
+
+  - description: "KB 4 — reference from past client request (route)"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "can you give me phone numbers of past clients I can call as references?"
+    assert:
+      - type: not-icontains-any
+        value: ["sure here's John's number", "call this number", "555-1234"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "call you back", "call ya back", "references", "privacy"]
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # LAYER 8 — RETURNING CALLER (reno-context) — 3 scenarios
+  # ═══════════════════════════════════════════════════════════════════════
+
+  - description: "RETURNING 1 — named caller, kitchen reno context"
+    vars:
+      <<: *returning_caller_context
+      caller_message: "hey it's Mike again, calling back about the kitchen reno"
+    assert:
+      - type: not-icontains-any
+        value: ["what's your name", "can I get your name", "who am I speaking", "first time calling"]
+      - type: icontains-any
+        value: ["Mike", "{{CLOSE_PERSON}}", "project manager", "team", "our manager", "kitchen", "yesterday", "following up"]
+
+  - description: "RETURNING 2 — has {{CLOSE_PERSON}} called back yet"
+    vars:
+      <<: *returning_caller_context
+      caller_message: "did {{CLOSE_PERSON}} get back to me about that kitchen quote?"
+    assert:
+      - type: not-icontains-any
+        value: ["first time you're calling", "welcome to", "haven't spoken before"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "yesterday", "kitchen", "call you back", "call ya back", "let me check"]
+
+  - description: "RETURNING 3 — caller upgrades scope mid-conversation (route, NEVER price)"
+    vars:
+      <<: *returning_caller_context
+      caller_message: "actually I want to add a bathroom reno to the kitchen project — how much more would that run?"
+    assert:
+      - type: not-icontains-any
+        value: ["$10,000 more", "$15,000 added", "ballpark $", "around fifteen"]
+      - type: icontains-any
+        value: ["{{CLOSE_PERSON}}", "project manager", "team", "our manager", "let me check", "depends", "scope", "call you back", "call ya back"]
