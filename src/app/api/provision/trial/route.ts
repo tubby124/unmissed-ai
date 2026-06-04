@@ -16,6 +16,7 @@ import { rowsToCatalogItems } from "@/lib/service-catalog";
 import { scrapeWebsite } from "@/lib/website-scraper";
 import { insertPromptVersion } from "@/lib/prompt-version-utils";
 import { seedKnowledgeFromScrape, upsertOnboardingWebsiteSource } from "@/lib/seed-knowledge";
+import { reseedKnowledgeFromSettings } from "@/lib/embeddings";
 import { generateNicheConfig, CustomNicheConfig } from "@/lib/niche-generator";
 import { enrichWithSonar } from "@/lib/sonar-enrichment";
 import { getPlanEntitlements } from "@/lib/plan-entitlements";
@@ -580,6 +581,25 @@ export async function POST(req: NextRequest) {
       ...(allQa.length > 0 ? { extra_qa: allQa } : {}),
     }).eq('id', clientId);
     console.log(`[provision/trial] Saved knowledge to client columns: facts=${factsArr.length} qa=${allQa.length} (scraped=${scrapedQa.length} manual=${manualQa.length})`);
+
+    // Reseed pgvector from settings — this used to ONLY fire on settings PATCH, which meant
+    // every new pgvector client onboarded with rich business_facts/extra_qa in the DB but
+    // ZERO 'settings_edit' chunks in pgvector. queryKnowledge tool was registered but
+    // returned empty for policy questions the agent could clearly answer from {{businessFacts}}.
+    // Fleet corpus-inspect 2026-06-03 confirmed this affected 24 of 50 clients (Brian, Urban
+    // Vibe, Velly, etc.) — see Projects/unmissed/2026-06-03-fleet-audit-findings.md.
+    // Knowledge_backend isn't set on the row yet at this point in provision; we read it
+    // back since the insert at line ~226 sets it to 'pgvector' by default.
+    try {
+      const { data: kb } = await supa.from('clients').select('knowledge_backend').eq('id', clientId).single();
+      if (kb?.knowledge_backend === 'pgvector') {
+        const reseed = await reseedKnowledgeFromSettings(clientId, factsArr.length > 0 ? factsArr : null, allQa);
+        console.log(`[provision/trial] reseedKnowledgeFromSettings stored=${reseed.stored} failed=${reseed.failed} client=${clientId}`);
+      }
+    } catch (err) {
+      // Fire-and-forget contract — log but don't fail provisioning if reseed throws
+      console.error(`[provision/trial] reseed at provision threw (non-fatal): ${err}`);
+    }
   }
 
   // Persist GBP provenance snapshot so the knowledge page can show "Imported from Google"
