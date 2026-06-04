@@ -184,6 +184,7 @@ export type ActivationStepName =
   | 'intake_update'
   | 'knowledge_docs'
   | 'faq_persist'
+  | 'faq_reseed_pgvector'  // Added 2026-06-03: pgvector reseed after FAQ persist — prevents the fleet-wide "queryKnowledge empty even though FAQ has the answer" bug. See Projects/unmissed/2026-06-03-fleet-audit-findings.md.
   | 'telegram_alert'
   | 'tools_sync'
   | 'activation_log'
@@ -194,6 +195,9 @@ export interface StepResult {
   error?: string
   skipped?: boolean
   skipReason?: string
+  // For faq_reseed_pgvector — how many chunks landed in pgvector
+  stored?: number
+  failed?: number
 }
 
 /**
