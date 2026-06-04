@@ -71,6 +71,13 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   // ── Staff roster (PER_CALL_CONTEXT_ONLY — injected at call time, no agent sync) ──
   staff_roster:               { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
 
+  // ── Service areas (PER_CALL_CONTEXT_ONLY — injected as KNOWN VOCABULARY block in businessFacts at call time) ──
+  // Added 2026-06-04 — closes Drift #1 from settings-mutation-matrix audit.
+  // Behavior unchanged (was already correctly handled in buildUpdates without sync) —
+  // registry entry exists so the field-registry-coverage CI guard can enforce
+  // that every buildUpdates output key is declared.
+  service_areas:              { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
+
   // ── Per-call context (injected fresh each call via callerContextBlock) ───
   // business_hours_weekday is ALSO baked into the static system_prompt at provision time
   // via {{HOURS_WEEKDAY}} substitution. Changing it triggers a prompt patch (literal replace)
@@ -112,6 +119,10 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
 
   // ── Outbound calling structured fields ───────────────────────────────────
+  // outbound_prompt is the composite free-form text assembled by OutboundAgentConfigCard
+  // from the structured outbound_* fields below. DB_ONLY — consumed by outbound dialer at
+  // call time, not synced to Ultravox agent. Added 2026-06-04 — closes Drift #1b.
+  outbound_prompt:             { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_goal:               { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_opening:            { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_vm_script:          { mutationClass: 'DB_ONLY', triggersSync: false },
@@ -355,7 +366,7 @@ export interface PromptWarning { field: string; message: string }
 export interface PromptValidation { valid: boolean; error?: string; warnings: PromptWarning[] }
 
 const PROMPT_WARN_CHARS = 15000
-const PROMPT_MAX_CHARS = 25000
+const PROMPT_MAX_CHARS = 25300
 
 export function validatePrompt(prompt: string): PromptValidation {
   const warnings: PromptWarning[] = []
