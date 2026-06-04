@@ -513,10 +513,14 @@ describe('FORBIDDEN_EXTRA cap (Workstream B Phase 2a)', () => {
     const survivorChars = ctx.forbiddenExtraRules
       .filter(rule => out.includes(rule))
       .reduce((sum, rule) => sum + rule.length + 1, 0) // +1 for join newline
+    // 2026-06-03 cap raised 3000 → 4500 to accommodate property_management Phase 1c
+    // rules (UTILITIES, APPLICATION, FAIR HOUSING-ESA carve-out, LEGAL ADVICE refusal)
+    // and 2026-06-04 home_renovation safety hardening (5 new rules + TIMELINES/MATERIAL
+    // strengthened). Test assertion updated to match the actual cap.
     assert.ok(
-      survivorChars <= 3000,
-      `Forbidden-extra survivor bytes = ${survivorChars}, must be <= 3000. ` +
-      `Without the cap this concatenates niche-defaults (2,608c) + 1,500+ char scrape bloat = ~4,100c. ` +
+      survivorChars <= 4500,
+      `Forbidden-extra survivor bytes = ${survivorChars}, must be <= 4500. ` +
+      `Without the cap this concatenates niche-defaults + scrape bloat unbounded. ` +
       `Phase 2a clips the bloated tail; sacred niche head survives.`,
     )
   })
