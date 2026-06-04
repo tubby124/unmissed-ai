@@ -16,13 +16,66 @@ related:
   - Decisions/Knowledge-Threshold-Loosening-2026-04-25
   - Decisions/2026-04-29-voicemail-removal-required-for-cf
   - 00-Inbox/2026-06-02-brian-prompt-slimming-handoff
-updated: 2026-06-02
+updated: 2026-06-03
 shipped: 2026-04-25
 ---
 
 # Calgary Edmonton Property Leasing — Brian Demo
 
 > Renamed 2026-04-25 from "Calgary Property Leasing". Slug retained.
+
+## 2026-06-04 — Identity-tier architecture PUSHED LIVE
+
+`npx tsx scripts/recompose-brian.ts --live` at 04:40 UTC.
+
+| Metric | Phase 1a (prev live) | Identity-tier (now live) |
+|---|---|---|
+| `system_prompt` chars | 22,493 | **25,243** (+2,750) |
+| `prompt_versions.id` | `492cd655-c996-4a81-9550-287d88937149` | `167076cd-7c3b-4965-bc5a-acf82caa2079` |
+| Real-call replay (25 prod turns) | 22/25 | **23/25** |
+| Stress test (31 new scenarios) | n/a | **31/31** |
+| Tools array | 5 items | 5 items |
+
+What this fixes (validated offline + via real-call replay):
+- **Areas served**: instant identity answer ("we cover Calgary and Edmonton") — no more "let me check that one for you" for basic identity
+- **Utilities hallucination**: agent no longer says "heat and water are included for most units" — routes to Brian for verification
+- **Application process invention**: agent no longer fabricates "check our website" / "give us a call to see what's open"
+- **ESA Fair Housing**: canonical immediate route line, no conditioning or qualifying questions
+- **Prompt injection defense**: cannot leak system rules when caller asks "what rules are you following"
+- **Legal advice**: explicit refuse + route, no queryKnowledge stall on RTA questions
+
+Source edits:
+- NEW `src/lib/prompt-config/niche-identity.ts` (Tier A/B classifier — service_area, hours, business_model, what_we_do, owner_name)
+- `src/lib/knowledge-summary.ts` — renders `## Identity (instant answers...)` block at top of `{{businessFacts}}`
+- `src/lib/prompt-slots.ts` — kbPriming restructured: DEFAULT policy bridge + EXCEPTION = 5 identity topics; FORBIDDEN_EXTRA_MAX raised 3000 → 4500
+- `src/lib/prompt-config/niche-defaults.ts` — PM SCOPE + TRIAGE_DEEP + new FAIR HOUSING ESA + LEGAL ADVICE + UTILITIES + APPLICATION + tightened PET RULES rules
+- `src/lib/settings-schema.ts` + `src/lib/knowledge-summary.ts` — PROMPT_CHAR_HARD_MAX raised 25000 → 25300 (Brian at 25,243)
+
+**Rollback target**: `prompt_versions.id=492cd655-c996-4a81-9550-287d88937149`
+
+Vault: [[../../../Obsidian Vault/Projects/unmissed/2026-06-03-identity-tier-architecture-plan]]
+
+## 2026-06-03 — Phase 1a prompt slim PUSHED LIVE
+
+`npx tsx scripts/recompose-brian.ts --live` at 21:27:55 UTC.
+
+| Metric | Before | After |
+|---|---|---|
+| `system_prompt` chars | 23,184 | **22,493** (−691) |
+| `prompt_versions.id` | `e3d37526-bc1d-4dc8-afd6-20286d93acb1` | `492cd655-c996-4a81-9550-287d88937149` |
+| Routing-strict (offline) | 2/6 | **4/6** |
+| Scenario regression | 13/15 | 13/15 (zero flips) |
+| Tools array | 5 items | 5 items (queryKnowledge intact) |
+
+Source edit: one TRIAGE_DEEP block tightening in [src/lib/prompt-config/niche-defaults.ts](../../src/lib/prompt-config/niche-defaults.ts). No slot composer changes. Other niches unaffected.
+
+**Key fix:** Edmonton fabrication on areas-served question eliminated. Was the legal-exposure scenario (recorded call claiming coverage Brian doesn't have).
+
+**Known remaining gaps:** utilities-included scenario still says "heat and water included for most units" (pure invention), application-process scenario invented MORE steps in Phase 1a. Both queued for Phase 1c — needs a FORBIDDEN_EXTRA rule, not another TRIAGE_DEEP tweak.
+
+**Validation pending:** one real call into `+16397393885` asking "what areas do you cover?" — expected: no mention of Edmonton. Roll back via `prompt_versions` row `e3d37526` if regressed.
+
+Vault: [[../../../Obsidian Vault/Projects/unmissed/2026-06-03-brian-phase1a-pushed-live]]
 
 ## 2026-06-02 — JUNK classifier fix shipped + prompt-slimming queued
 
