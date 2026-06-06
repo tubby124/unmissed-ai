@@ -1,24 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
 import Logo from "./Logo";
 import TrustPills from "./TrustPills";
-import { BRAND_NAME } from "@/lib/brand";
-import { NAV_NICHES } from "@/lib/niches";
+import { BRAND_NAME, HELLO_EMAIL } from "@/lib/brand";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-
-  function handleSubscribe(e: FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-    // TODO: wire to Brevo or backend endpoint
-    setSubscribed(true);
-    setEmail("");
-  }
-
   return (
     <footer
       className="border-t mt-auto"
@@ -40,36 +28,15 @@ export default function Footer() {
             {/* Email capture */}
             <div className="mt-5 max-w-sm">
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-2)" }}>
-                Get notified about new features
+                Need help setting up?
               </p>
-              {subscribed ? (
-                <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
-                  Thanks! We&apos;ll keep you posted.
-                </p>
-              ) : (
-                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none transition-colors"
-                    style={{
-                      backgroundColor: "var(--color-bg-raised)",
-                      borderColor: "var(--color-border)",
-                      color: "var(--color-text-1)",
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 shrink-0"
-                    style={{ backgroundColor: "var(--color-primary)" }}
-                  >
-                    Subscribe
-                  </button>
-                </form>
-              )}
+              <Link
+                href={BOOK_WALKTHROUGH_HREF}
+                className="inline-flex rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--color-primary)" }}
+              >
+                Book a walkthrough
+              </Link>
             </div>
 
             <p className="text-xs mt-4" style={{ color: "var(--color-text-3)" }}>
@@ -83,22 +50,22 @@ export default function Footer() {
               Product
             </p>
             <div className="flex flex-col gap-2">
-              <Link href="/#how-it-works" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>How It Works</Link>
+              <Link href="/try" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Try the Agent</Link>
+              <Link href="/for-auto-glass" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Auto Glass</Link>
               <Link href="/pricing" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Pricing</Link>
-              <Link href="/demo" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Demo</Link>
-              <Link href="/onboard" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Get Started</Link>
+              <Link href="/about" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>About</Link>
             </div>
           </div>
 
-          {/* Niches */}
+          {/* Support */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-2)" }}>
-              Industries
+              Support
             </p>
             <div className="flex flex-col gap-2">
-              {NAV_NICHES.map(n => (
-                <Link key={n.id} href={n.href} className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>{n.fullLabel}</Link>
-              ))}
+              <Link href="/keep-your-number" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Keep Your Number</Link>
+              <Link href="/guardrails" className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Guardrails</Link>
+              <a href={`mailto:${HELLO_EMAIL}`} className="text-sm hover:t1 transition-colors" style={{ color: "var(--color-text-2)" }}>Email Hasan</a>
             </div>
           </div>
         </div>

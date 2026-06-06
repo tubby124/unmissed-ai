@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 export default function StickyMobileCta() {
   const [visible, setVisible] = useState(false);
@@ -21,7 +22,7 @@ export default function StickyMobileCta() {
     >
       <div className="px-4 py-3 flex items-center gap-2">
         <Link
-          href="#demo"
+          href="/try"
           className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors"
           style={{
             backgroundColor: "var(--color-surface)",
@@ -29,15 +30,15 @@ export default function StickyMobileCta() {
             border: "1px solid var(--color-border)",
           }}
         >
-          Try Demo
+          Try Agent
         </Link>
-        <Link
-          href="/onboard"
+        <a
+          href={BOOK_WALKTHROUGH_HREF}
           className="flex-1 text-center py-2.5 rounded-lg text-white text-sm font-semibold transition-colors"
           style={{ backgroundColor: "var(--color-primary)" }}
         >
-          Get AI Number
-        </Link>
+          Book Walkthrough
+        </a>
       </div>
     </div>
   );

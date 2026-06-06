@@ -7,7 +7,6 @@ import RoiCalculator from "@/components/RoiCalculator";
 import FaqAccordion from "@/components/FaqAccordion";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { pricingSchema } from "@/lib/schema";
-import Link from "next/link";
 import PricingHero, { GuaranteeBar } from "@/components/PricingHero";
 import {
   PUBLIC_PLANS,
@@ -16,6 +15,7 @@ import {
   getPlanDisplayMonthly,
 } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 export const metadata: Metadata = {
   title: `Pricing — ${BRAND_NAME} AI Receptionist`,
@@ -104,13 +104,13 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <Link
-              href="/onboard"
+            <a
+              href={BOOK_WALKTHROUGH_HREF}
               className="inline-flex items-center justify-center px-8 py-4 rounded-xl text-white font-semibold transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              Get Your AI Number
-            </Link>
+              Book 15-min Walkthrough
+            </a>
           </div>
         </section>
 
@@ -120,13 +120,13 @@ export default function PricingPage() {
             <h2 className="text-3xl font-bold mb-4" style={{ color: "var(--color-text-1)" }}>
               Ready to stop missing calls?
             </h2>
-            <Link
-              href="/onboard"
+            <a
+              href={BOOK_WALKTHROUGH_HREF}
               className="inline-block px-8 py-4 rounded-xl text-white font-semibold text-sm transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              Get Your AI Number →
-            </Link>
+              Book a Walkthrough →
+            </a>
             <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
               {POLICIES.setupTime} · {POLICIES.contracts}
             </p>
