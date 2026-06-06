@@ -159,8 +159,8 @@ export const PRICING_SECTION = {
 // ─── Final CTA (homepage) ────────────────────────────────────────────
 export const FINAL_CTA = {
   headline: 'Your next voicemail should be the last one you have to hear.',
-  subheadline: 'Send missed calls to your named AI agent instead. Get the summary, call back smarter, and stop wasting time replaying audio.',
-  signupLinkText: 'Get your AI number →',
+  subheadline: 'Try the call flow, see the callback summary, and decide if it is worth replacing voicemail for your business.',
+  signupLinkText: 'Book a 15-min walkthrough →',
 }
 
 // ─── FAQ ─────────────────────────────────────────────────────────────

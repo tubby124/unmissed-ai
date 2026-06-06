@@ -69,13 +69,13 @@ export const PLANS = [
   {
     id: "core" as const,
     name: "AI Receptionist",
-    tagline: "Answers questions, books appointments, and handles callers like a trained receptionist \u2014 24/7.",
+    tagline: "Answers missed calls, captures what matters, and sends you the clean callback summary.",
     monthly: 189,
     foundingMonthly: 119,
     annual: 79, // annual pricing TBD
     annualBilledTotal: 948, // annual pricing TBD
     minutes: 250,
-    description: "Your agent knows your business and never forgets it. Answers caller questions, books appointments, ranks every lead, and tells you who's worth calling back.",
+    description: "Your agent knows your business and never forgets it. It answers missed callers, asks the right questions, ranks every lead, and tells you who's worth calling back.",
     isPopular: true,
     stripeMonthlyPriceId: "price_1TQdWK0tFbm4ZBYUz7JyvVpe", // $119/mo CAD founding (Core Monthly v2). Standard price $189 is display-only \u2014 no $189 Stripe price exists; founding promo is the charged amount.
     stripeAnnualPriceId: "price_1TELcr0tFbm4ZBYUgCoLTyef",
@@ -84,7 +84,7 @@ export const PLANS = [
       "250 minutes/month included",
       "Captures caller name, number, and what they need",
       "Answers from your own business info — website, hours, services",
-      "Books appointments into your Google Calendar",
+      "Collects urgency, timing, and next-step details",
       "Ranks captured calls so you know who to call back first",
       "Daily morning summary of all your calls",
       "Weekly review — your agent gets smarter from real call patterns",

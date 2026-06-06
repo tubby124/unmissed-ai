@@ -38,7 +38,7 @@ const SECTION_HEADER_ALIASES: Record<string, string[]> = {
   knowledge:   ['KNOWLEDGE', 'KNOWLEDGE BASE', 'KNOWLEDGE LOOKUP', 'PRODUCT KNOWLEDGE BASE'],
   after_hours: ['AFTER HOURS', 'AFTER-HOURS'],
   tone:        ['TONE', 'TONE AND STYLE', 'TONE & STYLE'],
-  triage:      ['TRIAGE', '3. TRIAGE'],
+  triage:      ['TRIAGE', '3. TRIAGE', '4. TRIAGE'],
 
   // Phase 2 slot IDs (D274 — sandwich spec)
   safety_preamble:      ['LIFE SAFETY EMERGENCY OVERRIDE'],

@@ -326,13 +326,17 @@ describe('buildUpdates', () => {
 // ── validatePrompt ─────────────────────────────────────────────────────────────
 
 describe('validatePrompt', () => {
-  test('rejects prompt over 25K chars', () => {
-    const result = validatePrompt('x'.repeat(25001))
+  // Production constant: PROMPT_MAX_CHARS = 25,300 (settings-schema.ts).
+  // Bumped from 12K → 25,300 after Tier-2 testing confirmed clean behavior
+  // on slot-composed prompts in the 15-25K range. See vault note
+  // 2026-06-04-matrix-test-findings-and-smart-promotion.md for rationale.
+  test('rejects prompt over PROMPT_MAX_CHARS (25,300)', () => {
+    const result = validatePrompt('x'.repeat(25301))
     assert.ok(!result.valid)
-    assert.ok(result.error!.includes('25,000'))
+    assert.ok(result.error!.includes('25,300'))
   })
 
-  test('warns about prompt over 15K chars', () => {
+  test('warns about prompt over PROMPT_WARN_CHARS (15,000)', () => {
     const result = validatePrompt('x'.repeat(15001))
     assert.ok(result.valid)
     assert.ok(result.warnings.some(w => w.field === 'length'))
