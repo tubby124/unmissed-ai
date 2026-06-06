@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import { Phone, Check, AlertCircle, Loader2, ChevronDown } from "lucide-react"
 import { CALL_ME_WIDGET_COPY } from "@/lib/marketing-content"
 import { trackEvent } from "@/lib/analytics"
+import Link from "next/link"
 
 interface CallMeNowWidgetProps {
   /** Pre-selected niche for the demo agent (default: auto_glass) */
@@ -357,6 +358,11 @@ export default function CallMeNowWidget({
         {isWindshield
           ? "The AI calls your phone, greets you by name, then walks through a real windshield-call demo."
           : compact ? CALL_ME_WIDGET_COPY.helperTextCompact : CALL_ME_WIDGET_COPY.helperTextFull}
+      </p>
+
+      <p className="text-[11px] leading-relaxed mt-2" style={{ color: "var(--color-text-3)" }}>
+        By submitting, you agree to receive a one-time demo call. Demo calls may be recorded and transcribed.{" "}
+        <Link href="/privacy" className="underline underline-offset-2">Privacy</Link>
       </p>
 
       {/* Proof line — compact/hero mode only */}

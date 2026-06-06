@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import StickyMobileCta from "@/components/StickyMobileCta";
 import HowItWorks from "@/components/HowItWorks";
-import NicheSelectorGrid from "@/components/NicheSelectorGrid";
-import DemoAudioPlayer from "@/components/DemoAudioPlayer";
 import PricingCards from "@/components/PricingCards";
 import FaqAccordion from "@/components/FaqAccordion";
 import TrustBar from "@/components/TrustBar";
@@ -18,6 +15,7 @@ import { TRIAL, PUBLIC_PLANS, getPlanDisplayMonthly } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 import { PRICING_SECTION, FINAL_CTA } from "@/lib/marketing-content";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 export const metadata: Metadata = {
   title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
@@ -79,22 +77,12 @@ export default async function HomePage() {
         {/* ── 2. TRUST BAR — Social proof stats ─────────────────── */}
         <TrustBar />
 
-        {/* ── 3. DEMO AUDIO PLAYER ──────────────────────────────── */}
-        <ErrorBoundary>
-          <DemoAudioPlayer />
-        </ErrorBoundary>
-
-        {/* ── 4. HOW IT WORKS ───────────────────────────────────── */}
+        {/* ── 3. HOW IT WORKS ───────────────────────────────────── */}
         <ErrorBoundary>
           <HowItWorks />
         </ErrorBoundary>
 
-        {/* ── 5. NICHE SELECTOR ─────────────────────────────────── */}
-        <ErrorBoundary>
-          <NicheSelectorGrid />
-        </ErrorBoundary>
-
-        {/* ── 6. PRICING ────────────────────────────────────────── */}
+        {/* ── 4. PRICING ────────────────────────────────────────── */}
         <section
           id="pricing"
           className="py-20 px-4"
@@ -136,12 +124,12 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ── 7. FAQ ────────────────────────────────────────────── */}
+        {/* ── 5. FAQ ────────────────────────────────────────────── */}
         <ErrorBoundary>
           <FaqAccordion />
         </ErrorBoundary>
 
-        {/* ── 8. FINAL CTA — Bookend with phone input ───────────── */}
+        {/* ── 6. FINAL CTA — Bookend with phone input ───────────── */}
         <section
           className="py-24 px-4 text-center"
           style={{ backgroundColor: "var(--color-surface)", borderTop: "1px solid var(--color-border)" }}
@@ -185,13 +173,13 @@ export default async function HomePage() {
             </div>
 
             <p className="mt-6">
-              <Link
-                href="/onboard"
+              <a
+                href={BOOK_WALKTHROUGH_HREF}
                 className="text-sm font-medium transition-colors"
                 style={{ color: "var(--color-primary)" }}
               >
                 {FINAL_CTA.signupLinkText}
-              </Link>
+              </a>
             </p>
           </div>
         </section>
