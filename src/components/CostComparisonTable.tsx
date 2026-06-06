@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "motion/react";
 import { BRAND_NAME } from "@/lib/brand";
 import { PUBLIC_PLANS } from "@/lib/pricing";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 const minPlan = PUBLIC_PLANS[0];
 const maxPlan = PUBLIC_PLANS[PUBLIC_PLANS.length - 1];
@@ -135,13 +135,13 @@ export default function CostComparisonTable() {
         </div>
 
         <div className="text-center mt-8">
-          <Link
-            href="/onboard"
+          <a
+            href={BOOK_WALKTHROUGH_HREF}
             className="inline-block px-8 py-3.5 rounded-xl text-white font-semibold text-sm transition-colors"
             style={{ backgroundColor: "var(--color-primary)" }}
           >
-            Get My Agent Set Up →
-          </Link>
+            Book a Walkthrough →
+          </a>
           <p className="text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
             No contracts · No hiring · No training
           </p>

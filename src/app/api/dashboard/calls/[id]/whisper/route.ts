@@ -18,6 +18,28 @@ export async function POST(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .order('role').limit(1).maybeSingle()
+
+  if (!cu) return NextResponse.json({ error: 'No client found' }, { status: 404 })
+
+  let callQuery = supabase
+    .from('call_logs')
+    .select('ultravox_call_id, client_id')
+    .eq('ultravox_call_id', id)
+
+  if (cu.role !== 'admin') {
+    callQuery = callQuery.eq('client_id', cu.client_id)
+  }
+
+  const { data: callLog } = await callQuery.limit(1).maybeSingle()
+  if (!callLog?.ultravox_call_id) {
+    return NextResponse.json({ error: 'Call not found' }, { status: 404 })
+  }
+
   const body = await req.json().catch(() => ({}))
   const text = typeof body.text === 'string' ? body.text.trim() : ''
   if (!text) return NextResponse.json({ error: 'text required' }, { status: 400 })
@@ -26,7 +48,7 @@ export async function POST(
   if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
   console.log(`[whisper] Injecting to callId=${id} textLen=${text.length}`)
-  const res = await fetch(`https://api.ultravox.ai/api/calls/${id}/messages`, {
+  const res = await fetch(`https://api.ultravox.ai/api/calls/${callLog.ultravox_call_id}/messages`, {
     method: 'POST',
     headers: { 'X-API-Key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -60,11 +82,33 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .order('role').limit(1).maybeSingle()
+
+  if (!cu) return NextResponse.json({ error: 'No client found' }, { status: 404 })
+
+  let callQuery = supabase
+    .from('call_logs')
+    .select('ultravox_call_id, client_id')
+    .eq('ultravox_call_id', id)
+
+  if (cu.role !== 'admin') {
+    callQuery = callQuery.eq('client_id', cu.client_id)
+  }
+
+  const { data: callLog } = await callQuery.limit(1).maybeSingle()
+  if (!callLog?.ultravox_call_id) {
+    return NextResponse.json({ error: 'Call not found' }, { status: 404 })
+  }
+
   const apiKey = process.env.ULTRAVOX_API_KEY
   if (!apiKey) return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
 
   console.log(`[end-call] Terminating callId=${id} userId=${user.id}`)
-  const res = await fetch(`https://api.ultravox.ai/api/calls/${id}`, {
+  const res = await fetch(`https://api.ultravox.ai/api/calls/${callLog.ultravox_call_id}`, {
     method: 'DELETE',
     headers: { 'X-API-Key': apiKey },
   })
