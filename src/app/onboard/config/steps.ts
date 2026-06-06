@@ -74,6 +74,7 @@ function hasOtherBusinessContext(data: OnboardingData): boolean {
 
 import Step1GBP from '../steps/step1-gbp'
 import StepNiche from '../steps/step-niche'
+import StepRouting from '../steps/step-routing'
 import StepPlan from '../steps/step-plan'
 import Step6Activate from '../steps/step4-activate'
 
@@ -109,6 +110,17 @@ export const STEP_DEFS: StepDef[] = [
         return !!data.ownerName?.trim() && !!(data.nicheAnswers?.afterHoursBehavior as string | undefined);
       }
       return true;
+    },
+  },
+  {
+    label: 'Call routing',
+    component: StepRouting,
+    // Carrier picker required when forwarding personal cell (so we can show
+    // the right dial codes on the launch screen). When business-only, no
+    // carrier is needed to proceed.
+    canAdvance: (d) => {
+      if (d.isForwardingPersonalCell === false) return true
+      return !!d.carrierId
     },
   },
   {

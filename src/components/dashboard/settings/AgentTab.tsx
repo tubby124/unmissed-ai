@@ -23,6 +23,7 @@ import BookingCard from '@/components/dashboard/settings/BookingCard'
 import StaffRosterCard from '@/components/dashboard/settings/StaffRosterCard'
 import CallRoutingCard from '@/components/dashboard/settings/CallRoutingCard'
 import CallHandlingModeCard from '@/components/dashboard/settings/CallHandlingModeCard'
+import DualModeCard from '@/components/dashboard/settings/DualModeCard'
 import AgentModeCard from '@/components/dashboard/settings/AgentModeCard'
 import TestCallCard from '@/components/dashboard/settings/TestCallCard'
 import SetupCard from '@/components/dashboard/settings/SetupCard'
@@ -560,6 +561,10 @@ export default function AgentTab({
           <a href="/dashboard/go-live" className="text-[12px] font-medium text-[var(--color-primary)] hover:opacity-75 transition-colors shrink-0">Go Live →</a>
         </div>
       )}
+
+      <div className="md:col-span-2 xl:col-span-3">
+        <DualModeCard client={client} isAdmin={isAdmin} previewMode={previewMode} />
+      </div>
 
       <div className="md:col-span-2 xl:col-span-3">
         <CallRoutingCard client={client} isAdmin={isAdmin} previewMode={previewMode} />

@@ -291,6 +291,12 @@ export function toIntakePayload(data: OnboardingData) {
     owner_phone: (data.callForwardingEnabled && data.emergencyPhone?.trim()) ? data.emergencyPhone.trim() : "",
     voice_id: data.voiceId || null,
 
+    // Wave 3 Layer C — dual-mode awareness. Default true (most clients forward
+    // their personal cell). Drives the universal PERSONAL / OFF-TOPIC FLOW
+    // section in prompt-slots.ts.
+    is_forwarding_personal_cell: data.isForwardingPersonalCell ?? true,
+    carrier_id: data.carrierId ?? null,
+
     pricing_policy: data.pricingPolicy || "",
     unknown_answer_behavior: data.unknownAnswerBehavior || "",
     // Phase E.6 Wave 3 — closes E.5 Wave 2 deferral. Fresh trial signups

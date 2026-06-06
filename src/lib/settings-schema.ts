@@ -71,6 +71,13 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   // ── Staff roster (PER_CALL_CONTEXT_ONLY — injected at call time, no agent sync) ──
   staff_roster:               { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
 
+  // ── Service areas (PER_CALL_CONTEXT_ONLY — injected as KNOWN VOCABULARY block in businessFacts at call time) ──
+  // Added 2026-06-04 — closes Drift #1 from settings-mutation-matrix audit.
+  // Behavior unchanged (was already correctly handled in buildUpdates without sync) —
+  // registry entry exists so the field-registry-coverage CI guard can enforce
+  // that every buildUpdates output key is declared.
+  service_areas:              { mutationClass: 'PER_CALL_CONTEXT_ONLY', triggersSync: false },
+
   // ── Per-call context (injected fresh each call via callerContextBlock) ───
   // business_hours_weekday is ALSO baked into the static system_prompt at provision time
   // via {{HOURS_WEEKDAY}} substitution. Changing it triggers a prompt patch (literal replace)
@@ -112,6 +119,10 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
   website_url:                   { mutationClass: 'DB_ONLY', triggersSync: false },
 
   // ── Outbound calling structured fields ───────────────────────────────────
+  // outbound_prompt is the composite free-form text assembled by OutboundAgentConfigCard
+  // from the structured outbound_* fields below. DB_ONLY — consumed by outbound dialer at
+  // call time, not synced to Ultravox agent. Added 2026-06-04 — closes Drift #1b.
+  outbound_prompt:             { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_goal:               { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_opening:            { mutationClass: 'DB_ONLY', triggersSync: false },
   outbound_vm_script:          { mutationClass: 'DB_ONLY', triggersSync: false },
@@ -146,6 +157,15 @@ export const FIELD_REGISTRY: Record<string, FieldDef> = {
 
   // Custom niche config override (admin-only, 'other' niche clients)
   custom_niche_config:     { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
+
+  // Wave 3 Layer C — dual-mode awareness.
+  // is_forwarding_personal_cell drives the universal PERSONAL flow gate in
+  // prompt-slots.ts buildConversationFlow(); flipping it requires a slot
+  // regen so the agent's stored prompt actually reflects the new behavior.
+  // carrier_id is operational metadata only (drives dashboard MobileSetup
+  // dial-code rendering) — no prompt impact.
+  is_forwarding_personal_cell: { mutationClass: 'DB_PLUS_PROMPT', triggersSync: false, triggersPatch: 'slot_regen' },
+  carrier_id:                  { mutationClass: 'DB_ONLY', triggersSync: false },
 
   // ── Admin-only DB fields ──────────────────────────────────────────────────
   calendar_beta_enabled:   { mutationClass: 'DB_ONLY', triggersSync: false, adminOnly: true },
@@ -343,6 +363,10 @@ export const settingsBodySchema = z.object({
     availability_note: z.string().optional(),
   })).optional(),
 
+  // Wave 3 Layer C — dual-mode awareness.
+  is_forwarding_personal_cell: z.boolean().optional(),
+  carrier_id: z.union([z.string(), z.null()]).optional(),
+
   // Audit trail (not a DB field, passed for prompt versioning)
   change_description: z.string().optional(),
 }).passthrough() // Allow unknown fields without failing — they'll be ignored by buildUpdates
@@ -355,7 +379,7 @@ export interface PromptWarning { field: string; message: string }
 export interface PromptValidation { valid: boolean; error?: string; warnings: PromptWarning[] }
 
 const PROMPT_WARN_CHARS = 15000
-const PROMPT_MAX_CHARS = 25000
+const PROMPT_MAX_CHARS = 25300
 
 export function validatePrompt(prompt: string): PromptValidation {
   const warnings: PromptWarning[] = []
@@ -420,6 +444,8 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
     'sms_enabled', 'booking_enabled', 'setup_complete', 'weekly_digest_enabled',
     'telegram_notifications_enabled', 'email_notifications_enabled', 'ivr_enabled',
     'sms_alerts_enabled', 'notification_filter_spam',
+    // Wave 3 Layer C — dual-mode awareness
+    'is_forwarding_personal_cell',
   ]
 
   // Enum/string fields — direct copy
@@ -611,6 +637,12 @@ export function buildUpdates(body: SettingsBody, role: string): Record<string, u
   // pending_loop_suggestion — any (nullable)
   if ('pending_loop_suggestion' in body) {
     updates.pending_loop_suggestion = body.pending_loop_suggestion ?? null
+  }
+
+  // carrier_id — nullable trimmed string (Wave 3 Layer C — operational metadata only)
+  if (body.carrier_id !== undefined) {
+    const v = typeof body.carrier_id === 'string' ? body.carrier_id.trim() : null
+    updates.carrier_id = v || null
   }
 
   // staff_roster — filter out entries with empty names (parseStaffRoster validation)

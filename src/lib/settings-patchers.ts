@@ -77,6 +77,9 @@ export const PATCH_TRIGGER_FIELDS = [
   'city',
   // Bug #3 (2026-05-21): display_name lands in slot_regen path — greeting picks it up
   'display_name',
+  // Wave 3 Layer C: dual-mode awareness — flipping triggers slot regen so the
+  // personal-flow section actually appears/disappears in the live prompt.
+  'is_forwarding_personal_cell',
 ] as const
 
 function needsPromptPatching(body: SettingsBody): boolean {

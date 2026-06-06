@@ -207,6 +207,11 @@ export function clientRowToIntake(
 
     // Niche custom variables (all niche_* overrides from intake review)
     niche_custom_variables: client.niche_custom_variables,
+
+    // Wave 3 Layer C — dual-mode awareness. NULL/undefined coerces to true so
+    // legacy rows (pre-migration) keep the universal personal flow.
+    is_forwarding_personal_cell: client.is_forwarding_personal_cell ?? true,
+    carrier_id: client.carrier_id ?? null,
   }
 
   // D302: Spread niche intake fields from niche_custom_variables back to top-level keys

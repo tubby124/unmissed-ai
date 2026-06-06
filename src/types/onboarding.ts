@@ -177,6 +177,19 @@ export interface OnboardingData {
   // D417: Business address — optional, displayed in agent context
   businessAddress?: string;
 
+  // Wave 3 Layer C — dual-mode awareness.
+  // When true (default), the prompt includes the universal PERSONAL / OFF-TOPIC
+  // MESSAGE FLOW trunk so callers who aren't asking about the niche (family,
+  // service providers, deliveries) get a warm message instead of a hostile
+  // hangup. Almost every solo realtor/contractor/dentist forwards their
+  // personal cell to their AI number, so this defaults on.
+  isForwardingPersonalCell: boolean;
+  // Owner's mobile carrier (Rogers / Bell / Telus / Fido / Koodo / etc.).
+  // Captured during onboarding so the dashboard MobileSetup card can show
+  // the right conditional-CF codes + carrier support number without making
+  // the operator re-pick. Matches CarrierId in src/types/carrier-compat.ts.
+  carrierId?: string;
+
   // Bug #3 fix (2026-05-21): caller-friendly brand reference used in agent greeting.
   // Operator-editable from dashboard Agent Identity card. Falls back to first word
   // of ownerName when blank.
@@ -251,5 +264,6 @@ export const defaultOnboardingData: OnboardingData = {
   callerFaqText: '',
   urgencyWords: '',
   priceRange: '',
+  isForwardingPersonalCell: true,
 };
 

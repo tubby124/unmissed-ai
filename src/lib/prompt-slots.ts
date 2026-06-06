@@ -120,6 +120,13 @@ export interface SlotContext {
   // Niche
   niche: string
 
+  // Wave 3 Layer C — dual-mode awareness. When true, the conversation flow
+  // emits the universal PERSONAL / OFF-TOPIC MESSAGE FLOW trunk between FILTER
+  // and TRIAGE. When false, off-topic callers fall back to the niche-intake
+  // funnel and only the softened WRONG NUMBER line survives.
+  isForwardingPersonalCell: boolean
+  carrierId: string
+
   // Phase E Wave 5 — free-form owner context. Both return '' when the column is null so
   // the slot emits nothing and the ordering collapses cleanly.
   todayUpdate: string
@@ -426,17 +433,59 @@ After collecting all three: "${ctx.closingLine}" then use hangUp tool.`
   // moved into the niche TRIAGE_DEEP (auto_glass only) — keeping it in the universal filter
   // was diluting the D1 happy-path flow without measurable gain on D4.
 
+  // Wave 3 Layer A: WRONG NUMBER softened. Most callers on a forwarded-cell
+  // setup are NOT explicit wrong-numbers; the accusatory niche-named hangup
+  // chases away every personal/family/service-provider caller. Now fires only
+  // on EXPLICIT phrasing or detected automated spam.
+  const wrongNumberLine = `WRONG NUMBER (only when the caller EXPLICITLY says "wrong number" or "I dialed the wrong number", or it is detected automated spam): "you've reached ${ctx.businessName} — might be a wrong number. take care!" then hangUp.`
+
+  // Wave 3 Layer C — branch the FILTER tail + section numbering on dual-mode:
+  //  - dual-mode (isForwardingPersonalCell=true, the default): ANYTHING ELSE
+  //    routes to the universal PERSONAL / OFF-TOPIC MESSAGE FLOW (section 3),
+  //    TRIAGE renumbers to 4, INFO 5, CLOSING 6.
+  //  - business-line-only (false): ANYTHING ELSE falls back to the legacy
+  //    niche-intake funnel, the personal-flow section is omitted, TRIAGE
+  //    stays at 3, INFO 4, CLOSING 5. WRONG NUMBER stays soft regardless.
+  const dual = ctx.isForwardingPersonalCell
+  const triageNum = dual ? 4 : 3
+  const infoNum = dual ? 5 : 4
+  const closingNum = dual ? 6 : 5
+  const anythingElseLine = dual
+    ? `ANYTHING ELSE (off-topic caller, family, friend, service provider, delivery, anyone calling for ${ctx.closePerson} personally, or reason unclear): go to PERSONAL / OFF-TOPIC MESSAGE FLOW (section 3).`
+    : `ANYTHING ELSE: "sounds good — lemme grab your ${ctx.infoLabel} quick and i'll have ${ctx.closePerson} call ya back. ${ctx.firstInfoQuestion}"`
+
   const filter = `## 2. FILTER
 
-WRONG NUMBER: "sorry, wrong number — this is a ${ctx.industry}." then hangUp.
+${wrongNumberLine}
 NON-ENGLISH (caller speaks Spanish, French, or any non-English language): "sorry — i only speak English. ${ctx.closePerson} can call ya back at this number — is that okay?" If caller confirms or stays silent, close. If caller continues in another language, hangUp after one repeat.
 SPAM / ROBOCALL (warranty, Medicare, press 9, sales pitch): "thanks, not interested." then hangUp.
 ${hoursLine}${ctx.afterHoursInstructions ? '\n' + ctx.afterHoursInstructions : ''}
 ${hiringLine}${servicesNotOfferedLine}CALLER ENDS CALL ("bye", "thanks that's all", "have a good one"): "talk soon!" then hangUp.
-${filterExtra}${ctx.primaryCallReason}: go to triage.
-ANYTHING ELSE: "sounds good — lemme grab your ${ctx.infoLabel} quick and i'll have ${ctx.closePerson} call ya back. ${ctx.firstInfoQuestion}"`
+${filterExtra}${ctx.primaryCallReason}: go to TRIAGE (section ${triageNum}).
+${anythingElseLine}`
 
-  const triage = `## 3. TRIAGE
+  // Wave 3 Layer A: universal trunk. Every non-voicemail niche with
+  // isForwardingPersonalCell=true now defaults to a warm message for
+  // off-topic callers because owners forward personal cells to their AI
+  // number. Layer C gates this on the per-client flag so business-only
+  // clients get the legacy funnel instead.
+  const personalMessageFlow = dual ? `## 3. PERSONAL / OFF-TOPIC MESSAGE FLOW
+
+For off-topic, personal, family member, friend, service provider, delivery, or anyone calling for ${ctx.closePerson} personally — take a warm message. DO NOT funnel into niche intake. NEVER end on "wrong number" unless the caller themselves said so.
+
+RELATIONSHIP SHORTCUT (CHECK THIS FIRST): if the caller identifies themselves by relationship — "his wife", "his son", "his brother", "his mom", "his dad", "his friend", "i'm his cousin" — that IS both the name AND the reason. Respond with exactly this shape and close: "hey! got it, i'll let ${ctx.closePerson} know you called. talk soon." then hangUp. Do NOT ask for a name. Do NOT ask "what's this about." Do NOT collect anything else.
+
+Otherwise (no relationship identifier yet):
+1. Lead with acknowledgment: "for sure — i'll get that to ${ctx.closePerson} right away."
+2. If name not given: "can i grab your name?"
+3. If reason not given: "and what's this about?"
+4. Once you have name + reason: "got it — i'll pass that along to ${ctx.closePerson}. take care!" then hangUp.
+
+NEVER ask for a phone number. CALLER PHONE is already in context.
+
+If the caller volunteers niche intent at any point (${ctx.primaryCallReason}) — switch to TRIAGE (section 4) and run the matching branch.` : ''
+
+  const triage = `## ${triageNum}. TRIAGE
 
 Acknowledge first ("got it", "sounds like a [X]"), then ask. Never jump straight to asking for their name.
 ${ctx.linguisticAnchors ? `Use these terms when they apply: ${ctx.linguisticAnchors}\n` : ''}${ctx.triageDeep}`
@@ -445,18 +494,18 @@ ${ctx.linguisticAnchors ? `Use these terms when they apply: ${ctx.linguisticAnch
 
   let infoCollection: string
   if (ctx.infoFlowOverride) {
-    infoCollection = `## 4. INFO COLLECTION\n\n${ctx.infoFlowOverride}`
+    infoCollection = `## ${infoNum}. INFO COLLECTION\n\n${ctx.infoFlowOverride}`
   } else {
-    infoCollection = `## 4. INFO COLLECTION
+    infoCollection = `## ${infoNum}. INFO COLLECTION
 
 "${ctx.firstInfoQuestion}" — then confirm back. Collect remaining fields (${ctx.infoToCollect}) one at a time. CALLER PHONE is already in context — do NOT ask for it.`
   }
 
   let closing: string
   if (ctx.closingOverride) {
-    closing = `## 5. CLOSING\n\n${ctx.closingOverride}`
+    closing = `## ${closingNum}. CLOSING\n\n${ctx.closingOverride}`
   } else {
-    closing = `## 5. CLOSING
+    closing = `## ${closingNum}. CLOSING
 
 COMPLETION CHECK: have you collected ${ctx.completionFields}? If anything is missing and the caller is still engaged, ask for it now. If the caller tries to hang up first: "one quick thing — ${ctx.firstInfoQuestion}"
 ${ctx.closingLine} then hangUp.`
@@ -465,13 +514,15 @@ ${ctx.closingLine} then hangUp.`
   const greetingBlock = ctx.recordingDisclosure
     ? `${ctx.greetingLine}\n${ctx.recordingDisclosure}`
     : ctx.greetingLine
+  // Personal flow section is omitted entirely (empty string + no surrounding
+  // blank lines) when isForwardingPersonalCell=false.
   const content = `# DYNAMIC CONVERSATION FLOW
 
 ## 1. GREETING
 
 ${greetingBlock}
 
-${filter}
+${filter}${personalMessageFlow ? '\n\n' + personalMessageFlow : ''}
 
 ${triage}${bookingNotes}
 
@@ -1590,6 +1641,10 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     smsBlock: getSmsBlock((intake.agent_mode as string) || null),
     forwardingNumber: (intake.forwarding_number as string)?.trim() || '',
     niche,
+    // Wave 3 Layer C — dual-mode awareness. NULL/undefined defaults to true so
+    // legacy intakes (pre-Layer-C provisioning) keep the universal personal flow.
+    isForwardingPersonalCell: intake.is_forwarding_personal_cell !== false,
+    carrierId: (intake.carrier_id as string) ?? '',
     linguisticAnchors: variables.LINGUISTIC_ANCHORS || '',
     // Phase E Wave 5 — free-form owner context. Read directly from intake so the provision,
     // dashboard edit, and regenerate-prompt paths all flow through the same slot plumbing.

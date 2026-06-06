@@ -153,6 +153,9 @@ export interface ClientConfig {
   // Go Live Tab Section 4 — carrier-chain forwarding verification status (DB_ONLY)
   forwarding_verified_at: string | null
   forwarding_self_attested: boolean | null
+  // Wave 3 Layer C — dual-mode awareness
+  is_forwarding_personal_cell: boolean | null
+  carrier_id: string | null
 }
 
 export default async function SettingsPage({
