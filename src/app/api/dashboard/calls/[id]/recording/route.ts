@@ -12,11 +12,24 @@ export async function GET(
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return new NextResponse('Unauthorized', { status: 401 })
 
-  const { data: call } = await supabase
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .order('role').limit(1).maybeSingle()
+
+  if (!cu) return new NextResponse('No client found', { status: 404 })
+
+  let callQuery = supabase
     .from('call_logs')
-    .select('ultravox_call_id, recording_url')
+    .select('ultravox_call_id, recording_url, client_id')
     .eq('ultravox_call_id', callId)
-    .single()
+
+  if (cu.role !== 'admin') {
+    callQuery = callQuery.eq('client_id', cu.client_id)
+  }
+
+  const { data: call } = await callQuery.limit(1).maybeSingle()
 
   if (!call) return new NextResponse('Not found', { status: 404 })
 

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { motion } from "motion/react";
 import { BRAND_NAME } from "@/lib/brand";
 import { PLANS } from "@/lib/pricing";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 function formatCurrency(n: number) {
   if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
@@ -183,7 +183,7 @@ export default function RoiCalculator() {
             >
               <div>
                 <p className="text-green-400 text-sm font-semibold">
-                  {BRAND_NAME} Pro Plan
+                  {BRAND_NAME} AI Receptionist
                 </p>
                 <p className="text-xs" style={{ color: "var(--color-text-2)" }}>${agentCost}/month</p>
               </div>
@@ -204,13 +204,13 @@ export default function RoiCalculator() {
           </div>
 
           <motion.div whileHover={{ scale: 1.02 }}>
-            <Link
-              href="/onboard"
+            <a
+              href={BOOK_WALKTHROUGH_HREF}
               className="block w-full text-center py-3.5 rounded-xl text-white font-semibold text-sm transition-colors"
               style={{ backgroundColor: "var(--color-primary)" }}
             >
-              Stop the bleeding — Get My Agent Set Up →
-            </Link>
+              Stop the bleeding — Book a Walkthrough →
+            </a>
           </motion.div>
           <p className="text-center text-xs mt-2" style={{ color: "var(--color-text-3)" }}>
             No contracts · Cancel anytime · Real AI number after checkout
@@ -226,7 +226,7 @@ export default function RoiCalculator() {
             <p className="text-sm" style={{ color: "var(--color-text-2)" }}>
               Example: 30 calls/week × 62% miss rate × $400/job ={" "}
               <strong className="text-red-400">$32,136/month lost</strong>.
-              Your agent costs $247/month. ROI: week 1.
+              Your agent costs ${agentCost}/month. ROI: week 1.
             </p>
           </div>
         </noscript>

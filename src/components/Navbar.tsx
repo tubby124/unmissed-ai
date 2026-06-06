@@ -1,38 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, ChevronDown } from "lucide-react";
+import { CalendarDays, Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import Logo from "./Logo";
-import { NAV_NICHES } from "@/lib/niches";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [industriesOpen, setIndustriesOpen] = useState(false);
-  const [mobileIndustriesOpen, setMobileIndustriesOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Close desktop dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIndustriesOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  function handleMouseEnter() {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setIndustriesOpen(true);
-  }
-
-  function handleMouseLeave() {
-    timeoutRef.current = setTimeout(() => setIndustriesOpen(false), 150);
-  }
 
   return (
     <nav
@@ -49,15 +25,24 @@ export default function Navbar() {
 
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-7">
           <Link
-            href="/#how-it-works"
+            href="/for-auto-glass"
             className="text-sm transition-colors"
             style={{ color: "var(--color-text-2)" }}
             onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
             onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
           >
-            How It Works
+            Auto Glass
+          </Link>
+          <Link
+            href="/try"
+            className="text-sm transition-colors"
+            style={{ color: "var(--color-text-2)" }}
+            onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
+            onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
+          >
+            Try Agent
           </Link>
           <Link
             href="/pricing"
@@ -68,59 +53,6 @@ export default function Navbar() {
           >
             Pricing
           </Link>
-
-          {/* Industries Dropdown */}
-          <div
-            ref={dropdownRef}
-            className="relative"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            <button
-              className="flex items-center gap-1 text-sm transition-colors cursor-pointer"
-              style={{ color: "var(--color-text-2)" }}
-              onMouseEnter={e => (e.currentTarget.style.color = "var(--color-text-1)")}
-              onMouseLeave={e => (e.currentTarget.style.color = "var(--color-text-2)")}
-              onClick={() => setIndustriesOpen(prev => !prev)}
-            >
-              Industries
-              <ChevronDown
-                size={14}
-                className={`transition-transform duration-200 ${industriesOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {industriesOpen && (
-              <div
-                className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 rounded-xl border shadow-lg py-2"
-                style={{
-                  backgroundColor: "var(--color-bg)",
-                  borderColor: "var(--color-nav-border)",
-                }}
-              >
-                {NAV_NICHES.map(item => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="block px-4 py-2 text-sm transition-colors"
-                    style={{ color: "var(--color-text-2)" }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.color = "var(--color-text-1)";
-                      e.currentTarget.style.backgroundColor = "var(--color-nav-border)";
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.color = "var(--color-text-2)";
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                    onClick={() => setIndustriesOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
         </div>
 
         {/* CTA */}
@@ -145,8 +77,8 @@ export default function Navbar() {
           >
             Log In
           </Link>
-          <Link
-            href="/onboard"
+          <a
+            href={BOOK_WALKTHROUGH_HREF}
             className="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-colors"
             style={{ backgroundColor: "var(--color-primary)" }}
             onMouseEnter={(e) =>
@@ -156,8 +88,11 @@ export default function Navbar() {
               ((e.currentTarget as HTMLElement).style.backgroundColor = "var(--color-primary)")
             }
           >
-            Get Your AI Number
-          </Link>
+            <span className="inline-flex items-center gap-2">
+              <CalendarDays size={15} />
+              Book Walkthrough
+            </span>
+          </a>
         </div>
 
         {/* Mobile hamburger */}
@@ -178,12 +113,20 @@ export default function Navbar() {
           style={{ backgroundColor: "var(--color-bg)", borderColor: "var(--color-nav-border)" }}
         >
           <Link
-            href="/#how-it-works"
+            href="/for-auto-glass"
             className="text-sm"
             style={{ color: "var(--color-text-2)" }}
             onClick={() => setOpen(false)}
           >
-            How It Works
+            Auto Glass
+          </Link>
+          <Link
+            href="/try"
+            className="text-sm"
+            style={{ color: "var(--color-text-2)" }}
+            onClick={() => setOpen(false)}
+          >
+            Try Agent
           </Link>
           <Link
             href="/pricing"
@@ -194,48 +137,15 @@ export default function Navbar() {
             Pricing
           </Link>
 
-          {/* Mobile Industries Accordion */}
-          <div>
-            <button
-              className="flex items-center gap-1 text-sm w-full"
-              style={{ color: "var(--color-text-2)" }}
-              onClick={() => setMobileIndustriesOpen(prev => !prev)}
-            >
-              Industries
-              <ChevronDown
-                size={14}
-                className={`transition-transform duration-200 ${mobileIndustriesOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-            {mobileIndustriesOpen && (
-              <div className="flex flex-col gap-2 pl-4 pt-2">
-                {NAV_NICHES.map(item => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-sm"
-                    style={{ color: "var(--color-text-2)" }}
-                    onClick={() => {
-                      setOpen(false);
-                      setMobileIndustriesOpen(false);
-                    }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
           <div className="border-t pt-3 flex flex-col gap-3" style={{ borderColor: "var(--color-nav-border)" }}>
-            <Link
-              href="/onboard"
+            <a
+              href={BOOK_WALKTHROUGH_HREF}
               className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white text-center"
               style={{ backgroundColor: "var(--color-primary)" }}
               onClick={() => setOpen(false)}
             >
-              Get Your AI Number
-            </Link>
+              Book 15-min Walkthrough
+            </a>
             <Link
               href="/login"
               className="px-5 py-2.5 rounded-lg text-sm font-semibold text-center border"
