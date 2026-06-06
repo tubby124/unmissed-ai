@@ -183,7 +183,7 @@ export interface OnboardingData {
   // service providers, deliveries) get a warm message instead of a hostile
   // hangup. Almost every solo realtor/contractor/dentist forwards their
   // personal cell to their AI number, so this defaults on.
-  isForwardingPersonalCell: boolean;
+  isForwardingPersonalCell?: boolean;
   // Owner's mobile carrier (Rogers / Bell / Telus / Fido / Koodo / etc.).
   // Captured during onboarding so the dashboard MobileSetup card can show
   // the right conditional-CF codes + carrier support number without making
