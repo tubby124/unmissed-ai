@@ -183,7 +183,7 @@ export default function RoiCalculator() {
             >
               <div>
                 <p className="text-green-400 text-sm font-semibold">
-                  {BRAND_NAME} Pro Plan
+                  {BRAND_NAME} AI Receptionist
                 </p>
                 <p className="text-xs" style={{ color: "var(--color-text-2)" }}>${agentCost}/month</p>
               </div>
@@ -226,7 +226,7 @@ export default function RoiCalculator() {
             <p className="text-sm" style={{ color: "var(--color-text-2)" }}>
               Example: 30 calls/week × 62% miss rate × $400/job ={" "}
               <strong className="text-red-400">$32,136/month lost</strong>.
-              Your agent costs $247/month. ROI: week 1.
+              Your agent costs ${agentCost}/month. ROI: week 1.
             </p>
           </div>
         </noscript>

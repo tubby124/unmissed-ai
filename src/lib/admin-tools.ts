@@ -14,6 +14,7 @@
  */
 
 import { AGENT_WEBHOOK_BASE } from '@/lib/app-url'
+import { checkToolSecret as checkSharedToolSecret } from '@/lib/tool-secret'
 
 interface ToolDef {
   modelToolName: string
@@ -148,8 +149,5 @@ export async function verifyAdminCall(callId: string | undefined): Promise<boole
  * Mirrors the gate used in every other tool route.
  */
 export function checkToolSecret(headerValue: string | null): string | null {
-  const secret = process.env.WEBHOOK_SIGNING_SECRET
-  if (!secret) return null  // dev — open
-  if (headerValue !== secret) return 'Forbidden'
-  return null
+  return checkSharedToolSecret(headerValue)
 }

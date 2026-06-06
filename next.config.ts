@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       // /admin/* consolidated into /dashboard/* (Mar 2026)
+      { source: '/for-trades', destination: '/for-auto-glass', permanent: true },
       { source: '/admin/costs', destination: '/dashboard/costs', permanent: true },
       { source: '/admin/numbers', destination: '/dashboard/numbers', permanent: true },
       { source: '/admin/prompt', destination: '/dashboard/prompt', permanent: true },

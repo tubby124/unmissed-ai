@@ -168,7 +168,7 @@ export default function ForAutoGlassPage() {
               </div>
 
               <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs lg:justify-start" style={{ color: "var(--color-text-3)" }}>
-                <span>First month free</span>
+                <span>30-day money-back guarantee</span>
                 <span>•</span>
                 <span>$119/mo after</span>
                 <span>•</span>

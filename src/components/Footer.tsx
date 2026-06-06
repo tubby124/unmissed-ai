@@ -1,24 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
 import Logo from "./Logo";
 import TrustPills from "./TrustPills";
-import { BRAND_NAME } from "@/lib/brand";
+import { BRAND_NAME, HELLO_EMAIL } from "@/lib/brand";
 import { NAV_NICHES } from "@/lib/niches";
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-
-  function handleSubscribe(e: FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-    // TODO: wire to Brevo or backend endpoint
-    setSubscribed(true);
-    setEmail("");
-  }
-
   return (
     <footer
       className="border-t mt-auto"
@@ -40,36 +28,15 @@ export default function Footer() {
             {/* Email capture */}
             <div className="mt-5 max-w-sm">
               <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-2)" }}>
-                Get notified about new features
+                Need help setting up?
               </p>
-              {subscribed ? (
-                <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
-                  Thanks! We&apos;ll keep you posted.
-                </p>
-              ) : (
-                <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    className="flex-1 px-3 py-2 rounded-lg text-sm border outline-none transition-colors"
-                    style={{
-                      backgroundColor: "var(--color-bg-raised)",
-                      borderColor: "var(--color-border)",
-                      color: "var(--color-text-1)",
-                    }}
-                  />
-                  <button
-                    type="submit"
-                    className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity hover:opacity-90 shrink-0"
-                    style={{ backgroundColor: "var(--color-primary)" }}
-                  >
-                    Subscribe
-                  </button>
-                </form>
-              )}
+              <Link
+                href={`mailto:${HELLO_EMAIL}`}
+                className="inline-flex rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--color-primary)" }}
+              >
+                Email {HELLO_EMAIL}
+              </Link>
             </div>
 
             <p className="text-xs mt-4" style={{ color: "var(--color-text-3)" }}>

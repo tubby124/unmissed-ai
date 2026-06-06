@@ -10,34 +10,37 @@ import { Phone, ArrowRight, CheckCircle2, Sparkles } from "lucide-react"
 const DEMOS = [
   {
     id: "voicemail_replacement",
-    label: "Default demo",
+    label: "Core demo",
+    onboardNiche: "voicemail",
     company: "Service Business",
     agent: "Zara",
     niche: "Voicemail replacement",
     description:
-      "The clean EndVoicemail demo: Zara probes for the missed-call problem, roleplays a real caller, reveals the owner summary, then offers the setup link.",
+      "Zara shows how a missed call becomes a clean callback summary instead of voicemail audio.",
     color: "#10B981",
     variant: "default" as const,
   },
   {
     id: "auto_glass",
-    label: "Industry example",
+    label: "Auto-glass example",
+    onboardNiche: "auto_glass",
     company: "Auto Glass Shop",
     agent: "Zara",
     niche: "Auto glass shop",
     description:
-      "Only use this if you want the windshield-shop version: vehicle, damage, ADAS, urgency, insurance/cash, and callback priority.",
+      "A windshield-shop version with vehicle, damage, ADAS, urgency, insurance/cash, and callback priority.",
     color: "#3B82F6",
     variant: "windshield" as const,
   },
   {
     id: "property_mgmt",
-    label: "Industry example",
+    label: "Property example",
+    onboardNiche: "property_management",
     company: "Property Management Office",
     agent: "Zara",
     niche: "Property management",
     description:
-      "Tenant/owner/prospect calls: issue, property, urgency, contact details, and a clean manager handoff.",
+      "Tenant, owner, and prospect calls become issue summaries, urgency notes, and clean manager handoffs.",
     color: "#8B5CF6",
     variant: "default" as const,
   },
@@ -83,7 +86,7 @@ export default function TryPage() {
                 Let Zara call you and prove voicemail is the wrong product.
               </h1>
               <p className="max-w-xl text-lg leading-relaxed" style={{ color: "var(--color-text-2)" }}>
-                The default demo is not a glass-shop script. It is the core EndVoicemail pitch: answer the missed caller, ask useful questions, show the owner summary, and make the next step obvious.
+                The default demo shows the core EndVoicemail promise: answer the missed caller, ask useful questions, show the owner summary, and make the next step obvious.
               </p>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -139,7 +142,7 @@ export default function TryPage() {
                   <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>What to do on the call</p>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>
-                  Answer like a real caller. Give short replies. If Zara barrels through without waiting or fails to reveal the owner summary, that is a bug — not the intended demo.
+                  Answer like a real missed caller. Give short replies and let Zara show how the callback summary comes together.
                 </p>
               </div>
             </div>
@@ -151,14 +154,14 @@ export default function TryPage() {
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--color-primary)" }}>
-                  Optional demo routes
+                  Demo paths
                 </p>
                 <h2 className="mt-1 text-2xl font-black" style={{ color: "var(--color-text-1)" }}>
-                  Pick a niche only when it matches the page.
+                  Pick the call type you want to hear.
                 </h2>
               </div>
               <p className="max-w-lg text-sm" style={{ color: "var(--color-text-3)" }}>
-                The main landing page should stay generic. Auto-glass belongs on the auto-glass page.
+                The core demo is voicemail replacement. Industry examples show how the same call-recovery flow adapts.
               </p>
             </div>
 
@@ -211,11 +214,11 @@ export default function TryPage() {
             Set up your AI number, forward missed/busy/after-hours calls, and stop losing callback context.
           </p>
           <Link
-            href={`/onboard?niche=${selectedDemo.id}`}
+            href={`/onboard?niche=${selectedDemo.onboardNiche}`}
             className="mt-6 inline-flex items-center gap-2 rounded-xl px-7 py-4 text-sm font-semibold text-white"
             style={{ backgroundColor: "var(--color-primary)" }}
           >
-            Set up my AI receptionist <ArrowRight size={16} />
+            Set up call recovery <ArrowRight size={16} />
           </Link>
         </section>
       </main>
