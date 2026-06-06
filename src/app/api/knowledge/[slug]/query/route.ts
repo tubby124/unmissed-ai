@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { embedText } from '@/lib/embeddings'
 import { parseCallState, setStateUpdate, knowledgeInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 import { recordToolInvocation } from '@/lib/tool-invocations'
+import { checkToolSecret } from '@/lib/tool-secret'
 
 const MATCH_COUNT = 5
 const RRF_MIN_SCORE = 0.005 // Minimum RRF score to return (filters out noise)
@@ -19,11 +20,8 @@ export async function POST(
   const start = Date.now()
 
   // ── Auth — X-Tool-Secret (same pattern as transfer/sms tools) ──────────────
-  const toolSecret = process.env.WEBHOOK_SIGNING_SECRET
-  const providedSecret = req.headers.get('X-Tool-Secret')
-  if (toolSecret && providedSecret !== toolSecret) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const secretError = checkToolSecret(req.headers.get('X-Tool-Secret'))
+  if (secretError) return NextResponse.json({ error: secretError }, { status: 403 })
 
   // B3: Read call state — header first (createCall), DB fallback (Agents API lacks initialState)
   let callState = parseCallState(req)

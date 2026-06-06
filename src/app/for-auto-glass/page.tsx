@@ -1,11 +1,12 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { ArrowRight, Bell, CheckCircle2, MessageSquareText, ShieldCheck, Sparkles, Wrench } from "lucide-react"
+import { Bell, CalendarDays, CheckCircle2, MessageSquareText, ShieldCheck, Sparkles, Wrench } from "lucide-react"
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import CallMeNowWidget from "@/components/CallMeNowWidget"
 import HeroCallMockup from "@/components/HeroCallMockup"
 import { BRAND_DOMAIN, BRAND_NAME } from "@/lib/brand"
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking"
 
 export const metadata: Metadata = {
   title: `Auto Glass Answering Service & AI Receptionist — ${BRAND_NAME}`,
@@ -168,7 +169,7 @@ export default function ForAutoGlassPage() {
               </div>
 
               <div className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs lg:justify-start" style={{ color: "var(--color-text-3)" }}>
-                <span>First month free</span>
+                <span>30-day money-back guarantee</span>
                 <span>•</span>
                 <span>$119/mo after</span>
                 <span>•</span>
@@ -191,9 +192,9 @@ export default function ForAutoGlassPage() {
                 </p>
                 <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] sm:text-3xl">A receptionist that knows auto-glass calls.</h2>
               </div>
-              <Link href="/onboard?niche=auto_glass" className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-primary)" }}>
-                Start setup <ArrowRight size={16} />
-              </Link>
+              <a href={BOOK_WALKTHROUGH_HREF} className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-primary)" }}>
+                Book walkthrough <CalendarDays size={16} />
+              </a>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -316,9 +317,9 @@ export default function ForAutoGlassPage() {
               <p className="text-sm leading-6" style={{ color: "var(--color-text-2)" }}>
                 Want the general missed-call AI receptionist instead? See the main <Link href="/" className="font-semibold underline" style={{ color: "var(--color-primary)" }}>End Voicemail service</Link>.
               </p>
-              <Link href="/onboard?niche=auto_glass" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-primary)" }}>
-                Start setup <ArrowRight size={16} />
-              </Link>
+              <a href={BOOK_WALKTHROUGH_HREF} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold text-white" style={{ backgroundColor: "var(--color-primary)" }}>
+                Book walkthrough <CalendarDays size={16} />
+              </a>
             </div>
           </div>
         </section>
