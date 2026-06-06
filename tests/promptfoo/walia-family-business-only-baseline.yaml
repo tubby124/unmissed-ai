@@ -1,0 +1,112 @@
+# Promptfoo regression net — Aman in BUSINESS-ONLY mode
+# (is_forwarding_personal_cell = false).
+#
+# Layer C contract: when the flag is false, the prompt must:
+#   - omit the PERSONAL / OFF-TOPIC MESSAGE FLOW section entirely
+#   - keep WRONG NUMBER soft (gentle informational, not accusatory)
+#   - fall back the FILTER ANYTHING ELSE line to the niche-intake funnel
+#     ("sounds good — lemme grab your property details quick…")
+#
+# Snapshot source: scripts/snapshot-business-only-walia.ts
+# Provider matches walia-family-wave3-baseline.yaml (gpt-oss-120b strict tier).
+
+description: Aman business-only mode — Layer C gate regression
+
+providers:
+  - id: groq:openai/gpt-oss-120b
+    config:
+      max_tokens: 400
+      temperature: 0
+      reasoning_effort: low
+      reasoning_format: hidden
+
+prompts:
+  - file://prompts/chat.json
+
+defaultTest:
+  options:
+    transform: "output.replace(/<think>[\\s\\S]*?<\\/think>/g, '').replace(/^Thinking:[\\s\\S]*?(?=\\n\\n)/m, '').replace(/\\u2019|\\u2018/g, \"'\").replace(/\\u201C|\\u201D/g, '\"').trim()"
+  vars:
+    system_prompt: "file://snapshots/walia-family-business-only-2026-06-06.txt"
+  assert:
+    # No phone-number ask
+    - type: javascript
+      value: "!/(what's|what is|can i get|need|grab|share).*(your).*(number|phone)|(your|a).*(phone|number).*(so|for|to) (i|we|aman|him|them)/i.test(output)"
+      threshold: 1
+    # VOICE LOCK — forbidden filler words
+    - type: not-icontains
+      value: "certainly"
+    - type: not-icontains
+      value: "absolutely"
+    - type: not-icontains
+      value: "of course"
+    # No markdown
+    - type: javascript
+      value: "!/\\*\\*|#{1,6}\\s|```|\\n-\\s|\\n\\d+\\.\\s/.test(output)"
+      threshold: 1
+    # KNOWLEDGE BOUNDARY — no quoted prices/rates
+    - type: javascript
+      value: "!/\\$\\d{2,}|\\d+\\s*%/.test(output)"
+      threshold: 1
+
+tests:
+  # ── Layer C structural gate ──────────────────────────────────────────────
+  - description: "Business-only mode: explicit wrong number gets a soft exit, not accusatory"
+    vars:
+      caller_message: "Wait — is this Dr. Singh's dental office? I think I dialed the wrong number."
+    assert:
+      # Must not use the legacy hostile WRONG NUMBER phrasing
+      - type: not-icontains
+        value: "sorry, wrong number — this is a real estate office"
+      # Soft exit acceptable
+      - type: icontains-any
+        value:
+          - "Walia Family"
+          - "Aman"
+          - "take care"
+          - "have a good"
+          - "no worries"
+          - "real estate"
+
+  - description: "Business-only mode: off-topic caller funnels into niche intake (not warm personal message)"
+    vars:
+      caller_message: "Hi, I need a plumber to fix a leak."
+    assert:
+      # The dual-mode "let Aman know / pass that along" personal flow should
+      # NOT fire (that's the Layer A path). Riley should pull toward niche intake.
+      - type: not-icontains
+        value: "I'll pass that along to Aman. take care"
+      # But still NOT a hostile wrong-number
+      - type: not-icontains
+        value: "wrong number"
+      # Acceptable: niche-funnel acknowledgment OR polite redirect
+      - type: icontains-any
+        value:
+          - "real estate"
+          - "Aman"
+          - "property"
+          - "what's"
+          - "name"
+
+  # ── Niche-intent caller still works ──────────────────────────────────────
+  - description: "Niche caller: buying intent routes to TRIAGE just like dual mode"
+    vars:
+      caller_message: "Hi, I'm looking to buy a house in Calgary."
+    assert:
+      - type: not-icontains
+        value: "wrong number"
+      - type: icontains-any
+        value:
+          - "area"
+          - "Calgary"
+          - "Aman"
+          - "what's"
+          - "looking"
+
+  - description: "Voice lock — short, conversational, no formal opener"
+    vars:
+      caller_message: "Hi, I'm thinking about selling my house."
+    assert:
+      - type: llm-rubric
+        value: "The response is short (1-2 sentences), conversational, starts with a quick acknowledgment — NOT with 'Thank you for calling' or a long formal opener."
+        provider: groq:openai/gpt-oss-120b

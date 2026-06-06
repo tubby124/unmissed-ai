@@ -35,8 +35,12 @@ prompts:
 defaultTest:
   # Strip leaked <think>...</think> or "Thinking: ..." prefix from output before
   # assertions run. Required for gpt-oss-120b on Groq even with reasoning_format=hidden.
+  # ALSO: normalize curly quotes (U+2019 / U+2018 / U+201C / U+201D) to their straight
+  # ASCII equivalents. gpt-oss-120b emits curly quotes by default; assertions like
+  # `icontains-any: ["what's", "I'll"]` (straight) fall through silently otherwise.
+  # Documented landmine — see Projects/unmissed/2026-06-06-wave-3-shipped-and-learnings.md.
   options:
-    transform: "output.replace(/<think>[\\s\\S]*?<\\/think>/g, '').replace(/^Thinking:[\\s\\S]*?(?=\\n\\n)/m, '').trim()"
+    transform: "output.replace(/<think>[\\s\\S]*?<\\/think>/g, '').replace(/^Thinking:[\\s\\S]*?(?=\\n\\n)/m, '').replace(/\\u2019|\\u2018/g, \"'\").replace(/\\u201C|\\u201D/g, '\"').trim()"
   vars:
     system_prompt: "file://snapshots/walia-family-wave3-2026-06-06.txt"
   assert:
