@@ -6,6 +6,7 @@ import { normalizeTime, toPreferredTime } from '@/lib/calendar-time'
 import { BRAND_NAME } from '@/lib/brand'
 import { sendSmsTracked } from '@/lib/twilio'
 import { recordToolInvocation } from '@/lib/tool-invocations'
+import { checkToolSecret } from '@/lib/tool-secret'
 
 export async function POST(
   req: NextRequest,
@@ -14,11 +15,8 @@ export async function POST(
   const startedAt = Date.now()
 
   // ── Auth — X-Tool-Secret ──────────────────────────────────────────────────
-  const toolSecret = process.env.WEBHOOK_SIGNING_SECRET
-  const providedSecret = req.headers.get('X-Tool-Secret')
-  if (toolSecret && providedSecret !== toolSecret) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const secretError = checkToolSecret(req.headers.get('X-Tool-Secret'))
+  if (secretError) return NextResponse.json({ error: secretError }, { status: 403 })
 
   // B3: Read call state — header first (createCall), DB fallback (Agents API lacks initialState)
   let callState = parseCallState(req)

@@ -1,16 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { checkToolSecret } from '@/lib/tool-secret'
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   // ── Auth — X-Tool-Secret ──────────────────────────────────────────────────
-  const toolSecret = process.env.WEBHOOK_SIGNING_SECRET
-  const providedSecret = req.headers.get('X-Tool-Secret')
-  if (toolSecret && providedSecret !== toolSecret) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const secretError = checkToolSecret(req.headers.get('X-Tool-Secret'))
+  if (secretError) return NextResponse.json({ error: secretError }, { status: 403 })
 
   const { slug } = await params
 

@@ -3,11 +3,12 @@
 import { useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'motion/react'
-import { ArrowRight, PhoneCall } from 'lucide-react'
+import { CalendarDays, PhoneCall } from 'lucide-react'
 import CallMeNowWidget from './CallMeNowWidget'
 import { TRIAL, PUBLIC_PLANS, getPlanDisplayMonthly } from '@/lib/pricing'
 import { HERO } from '@/lib/marketing-content'
 import { trackEvent } from '@/lib/analytics'
+import { BOOK_WALKTHROUGH_HREF } from '@/lib/booking'
 
 export default function HeroContent() {
   const ctaRef = useRef<HTMLDivElement>(null)
@@ -78,16 +79,16 @@ export default function HeroContent() {
         className="max-w-md mx-auto lg:mx-0 space-y-5"
       >
         <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-          <Link
-            href="/onboard"
+          <a
+            href={BOOK_WALKTHROUGH_HREF}
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-white font-semibold text-sm transition-colors"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
-            Get Your AI Number
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <a
-            href="#demo"
+            Book 15-min Walkthrough
+            <CalendarDays className="w-4 h-4" />
+          </a>
+          <Link
+            href="/try"
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border transition-colors"
             style={{
               color: 'var(--color-text-1)',
@@ -96,8 +97,8 @@ export default function HeroContent() {
             }}
           >
             <PhoneCall className="w-4 h-4" />
-            Hear a Demo Call
-          </a>
+            Try the Agent
+          </Link>
         </div>
         <p
           className="text-sm font-semibold"

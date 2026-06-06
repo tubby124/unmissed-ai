@@ -3,17 +3,15 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getAccessToken, listSlots } from '@/lib/google-calendar'
 import { parseCallState, setStateUpdate, slotInstruction, readCallStateFromDb, persistCallStateToDb } from '@/lib/call-state'
 import { requestedTimeMatchesSlot, toPreferredTime } from '@/lib/calendar-time'
+import { checkToolSecret } from '@/lib/tool-secret'
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   // ── Auth — X-Tool-Secret ──────────────────────────────────────────────────
-  const toolSecret = process.env.WEBHOOK_SIGNING_SECRET
-  const providedSecret = req.headers.get('X-Tool-Secret')
-  if (toolSecret && providedSecret !== toolSecret) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const secretError = checkToolSecret(req.headers.get('X-Tool-Secret'))
+  if (secretError) return NextResponse.json({ error: secretError }, { status: 403 })
 
   // B3: Read call state — header first (createCall), DB fallback (Agents API lacks initialState)
   let callState = parseCallState(req)
