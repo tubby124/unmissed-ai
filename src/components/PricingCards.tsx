@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { CircleCheck } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PUBLIC_PLANS, TRIAL, POLICIES, CURRENCY, FOUNDING_PROMO, getPlanDisplayMonthly } from "@/lib/pricing";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 export default function PricingCards({ compact = false }: { compact?: boolean }) {
   const isAnnual = false;
@@ -190,7 +190,7 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                         }
                   }
                 >
-                  <Link href={plan.href}>{plan.cta} →</Link>
+                  <a href={BOOK_WALKTHROUGH_HREF}>Book walkthrough →</a>
                 </Button>
                 <p
                   className="text-center text-xs mt-2"

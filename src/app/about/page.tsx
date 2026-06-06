@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { BRAND_NAME, BRAND_DOMAIN, SUPPORT_EMAIL } from "@/lib/brand";
 import { SITE_URL } from "@/lib/app-url";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 const PAGE_URL = `${SITE_URL}/about`;
 const DESCRIPTION =
@@ -167,9 +168,9 @@ export default function AboutPage() {
                   After enough lost deals he stopped looking for a better
                   voicemail greeting and started building the agent that should
                   have been answering in the first place. {BRAND_NAME} is what
-                  came out of that. It now answers calls for plumbers, realtors,
-                  auto glass shops, and property managers — businesses where the
-                  job goes to whoever picks up first.
+                  came out of that. The first vertical getting this treatment is
+                  auto glass, where a missed windshield quote often goes to the
+                  next shop that answers.
                 </p>
               </div>
 
@@ -257,7 +258,7 @@ export default function AboutPage() {
                   Get in touch
                 </h2>
                 <p>
-                  Want to see what the agent sounds like, or what it costs?
+                  Want to see what the agent sounds like on a real missed-call flow?
                 </p>
                 <div
                   className="mt-4 p-5 rounded-xl space-y-2"
@@ -267,6 +268,26 @@ export default function AboutPage() {
                   }}
                 >
                   <p className="text-gray-300">
+                    <span className="text-white font-semibold">Book a walkthrough:</span>{" "}
+                    <a
+                      href={BOOK_WALKTHROUGH_HREF}
+                      className="hover:text-white transition-colors"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      15 minutes with Hasan
+                    </a>
+                  </p>
+                  <p className="text-gray-300">
+                    <span className="text-white font-semibold">Try the agent:</span>{" "}
+                    <Link
+                      href="/try"
+                      className="hover:text-white transition-colors"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      {BRAND_DOMAIN}/try
+                    </Link>
+                  </p>
+                  <p className="text-gray-300">
                     <span className="text-white font-semibold">See pricing:</span>{" "}
                     <Link
                       href="/pricing"
@@ -274,16 +295,6 @@ export default function AboutPage() {
                       style={{ color: "var(--color-primary)" }}
                     >
                       {BRAND_DOMAIN}/pricing
-                    </Link>
-                  </p>
-                  <p className="text-gray-300">
-                    <span className="text-white font-semibold">Sign in:</span>{" "}
-                    <Link
-                      href="/login"
-                      className="hover:text-white transition-colors"
-                      style={{ color: "var(--color-primary)" }}
-                    >
-                      {BRAND_DOMAIN}/login
                     </Link>
                   </p>
                   <p className="text-gray-300">
