@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { BRAND_NAME, BRAND_DOMAIN } from '@/lib/brand'
+import { BOOK_WALKTHROUGH_HREF } from '@/lib/booking'
 
 export const metadata: Metadata = {
   title: `What Your AI Agent Won't Do — ${BRAND_NAME} Guardrails`,
@@ -104,13 +104,13 @@ export default function GuardrailsPage() {
 
         {/* CTA */}
         <section className="pb-20 px-4 text-center">
-          <Link
-            href="/onboard"
+          <a
+            href={BOOK_WALKTHROUGH_HREF}
             className="inline-block px-8 py-4 rounded-xl text-white font-semibold transition-opacity hover:opacity-90"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
-            Start with 50 activation minutes →
-          </Link>
+            Book a walkthrough →
+          </a>
           <p className="text-xs mt-3" style={{ color: 'var(--color-text-3)' }}>
             Listen to every call. Approve every change. Cancel anytime.
           </p>

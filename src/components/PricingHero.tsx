@@ -52,7 +52,7 @@ export default function PricingHero() {
           transition={{ ...spring, delay: 0.2 }}
         >
           AI Receptionist is $119/mo with 250 included minutes, business knowledge,
-          booking, and lead ranking.
+          missed-call intake, and callback-ready summaries.
         </motion.p>
         <motion.p
           className="text-white text-xl font-semibold mb-6"
