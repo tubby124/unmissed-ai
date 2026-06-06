@@ -32,64 +32,78 @@ export type EmbedResult = {
 
 // ── Embedding ──────────────────────────────────────────────────────────────────
 
-/**
- * Embed a single text string. Returns 1536-dim array or null on failure.
- * Prefers OPENAI_API_KEY direct; falls back to OPENROUTER_API_KEY.
- */
-export async function embedText(text: string): Promise<number[] | null> {
+type EmbedProvider = 'openai-direct' | 'openrouter'
+
+async function embedOnce(text: string, provider: EmbedProvider): Promise<{ embedding: number[] | null; status: number; tokens: number; latencyMs: number }> {
   const start = Date.now()
   const openaiKey = process.env.OPENAI_API_KEY
   const openrouterKey = process.env.OPENROUTER_API_KEY
-
-  let url: string
-  let headers: Record<string, string>
-  let body: Record<string, unknown>
-  let source: string
-
-  if (openaiKey) {
+  let url: string, headers: Record<string, string>, body: Record<string, unknown>
+  if (provider === 'openai-direct') {
+    if (!openaiKey) return { embedding: null, status: 0, tokens: 0, latencyMs: 0 }
     url = 'https://api.openai.com/v1/embeddings'
     headers = { 'Authorization': `Bearer ${openaiKey}`, 'Content-Type': 'application/json' }
     body = { model: 'text-embedding-3-small', input: text }
-    source = 'openai-direct'
-  } else if (openrouterKey) {
+  } else {
+    if (!openrouterKey) return { embedding: null, status: 0, tokens: 0, latencyMs: 0 }
     url = 'https://openrouter.ai/api/v1/embeddings'
     headers = { 'Authorization': `Bearer ${openrouterKey}`, 'Content-Type': 'application/json' }
     body = { model: 'openai/text-embedding-3-small', input: text }
-    source = 'openrouter'
-  } else {
-    console.error('[embeddings] No OPENAI_API_KEY or OPENROUTER_API_KEY set')
-    return null
   }
-
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    })
-
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
     if (!res.ok) {
       const err = await res.text().catch(() => '(unreadable)')
-      console.error(`[embeddings] ${source} HTTP ${res.status}: ${err.slice(0, 200)}`)
-      return null
+      console.error(`[embeddings] ${provider} HTTP ${res.status}: ${err.slice(0, 200)}`)
+      return { embedding: null, status: res.status, tokens: 0, latencyMs: Date.now() - start }
     }
-
     const data = await res.json()
     const embedding: number[] = data.data?.[0]?.embedding
     const tokens = data.usage?.total_tokens ?? 0
-    const latency = Date.now() - start
-
     if (!embedding || embedding.length !== 1536) {
-      console.error(`[embeddings] Unexpected embedding dimension: ${embedding?.length}`)
-      return null
+      console.error(`[embeddings] ${provider} unexpected embedding dimension: ${embedding?.length}`)
+      return { embedding: null, status: res.status, tokens, latencyMs: Date.now() - start }
     }
-
-    console.log(`[embeddings] model=text-embedding-3-small source=${source} tokens=${tokens} latency=${latency}ms`)
-    return embedding
+    return { embedding, status: res.status, tokens, latencyMs: Date.now() - start }
   } catch (err) {
-    console.error(`[embeddings] ${source} fetch error:`, err)
-    return null
+    console.error(`[embeddings] ${provider} fetch error:`, err)
+    return { embedding: null, status: 0, tokens: 0, latencyMs: Date.now() - start }
   }
+}
+
+/**
+ * Embed a single text string. Returns 1536-dim array or null on failure.
+ * Prefers OPENAI_API_KEY direct; falls back to OPENROUTER_API_KEY when:
+ *   - OPENAI_API_KEY is absent, OR
+ *   - OpenAI returns 429 (quota exceeded) OR 5xx (transient).
+ * Without 429-fallback, quota outages silently break onboarding reseed and the
+ * compile-time chunk pipeline (witnessed 2026-06-03 mid-reseed on Brian).
+ */
+export async function embedText(text: string): Promise<number[] | null> {
+  // Primary: OpenAI direct if key present, else OpenRouter
+  const openaiKey = process.env.OPENAI_API_KEY
+  const primaryProvider: EmbedProvider = openaiKey ? 'openai-direct' : 'openrouter'
+  const primary = await embedOnce(text, primaryProvider)
+
+  if (primary.embedding) {
+    console.log(`[embeddings] model=text-embedding-3-small source=${primaryProvider} tokens=${primary.tokens} latency=${primary.latencyMs}ms`)
+    return primary.embedding
+  }
+
+  // Fallback only triggers if primary was OpenAI AND a fallback-worthy status:
+  //   429 (quota), 5xx (transient), or 0 (network / no key)
+  if (primaryProvider !== 'openai-direct') return null
+  const shouldFallback = primary.status === 429 || (primary.status >= 500 && primary.status < 600) || primary.status === 0
+  if (!shouldFallback) return null
+  if (!process.env.OPENROUTER_API_KEY) return null
+
+  console.error(`[embeddings] openai-direct status=${primary.status} → falling back to openrouter`)
+  const fallback = await embedOnce(text, 'openrouter')
+  if (fallback.embedding) {
+    console.log(`[embeddings] model=text-embedding-3-small source=openrouter(fallback) tokens=${fallback.tokens} latency=${fallback.latencyMs}ms`)
+    return fallback.embedding
+  }
+  return null
 }
 
 /**

@@ -304,7 +304,7 @@ function StatusContent() {
         </p>
 
         <p className="text-xs text-muted-foreground/70">
-          No setup fee. Your first month is yours to prove it works, backed by the 30-day money-back guarantee. Secure checkout powered by Stripe.
+          No setup fee. Use the included activation minutes to prove the forwarding path works, backed by the 30-day money-back guarantee. Secure checkout powered by Stripe.
         </p>
       </div>
     );
