@@ -83,6 +83,33 @@ const fixtures: Array<{ name: string; intake: Record<string, unknown> }> = [
       agent_mode: 'appointment_booking',
     },
   },
+  // Added 2026-06-07 — Layer B regression coverage for dental + restaurant niches.
+  // The Layer-1 golden test re-reads these on every snapshot regen, so any
+  // unintended drift to NICHE_DEFAULTS for these niches surfaces immediately.
+  {
+    name: 'dental-baseline',
+    intake: {
+      business_name: 'Riverbend Family Dental',
+      agent_name: 'Casey',
+      niche: 'dental',
+      city: 'Saskatoon',
+      province: 'SK',
+      timezone: 'America/Regina',
+      call_handling_mode: 'triage',
+    },
+  },
+  {
+    name: 'restaurant-baseline',
+    intake: {
+      business_name: 'Bear Paw Bistro',
+      agent_name: 'Sam',
+      niche: 'restaurant',
+      city: 'Calgary',
+      province: 'AB',
+      timezone: 'America/Edmonton',
+      call_handling_mode: 'triage',
+    },
+  },
 ]
 
 for (const f of fixtures) {

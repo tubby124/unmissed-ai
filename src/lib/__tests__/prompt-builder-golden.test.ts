@@ -127,6 +127,35 @@ describe('Layer 1 — Stored snapshot equality', () => {
     }))
     assert.strictEqual(got, snap('plumbing-appointment-booking'), 'plumbing-appointment-booking snapshot diverged')
   })
+
+  // Added 2026-06-07 — Layer B regression coverage for dental + restaurant niches.
+  // Any unintended drift to NICHE_DEFAULTS.dental or NICHE_DEFAULTS.restaurant
+  // surfaces here as a snapshot diff.
+  test('dental-baseline matches snapshot', () => {
+    const got = norm(buildPromptFromIntake({
+      business_name: 'Riverbend Family Dental',
+      agent_name: 'Casey',
+      niche: 'dental',
+      city: 'Saskatoon',
+      province: 'SK',
+      timezone: 'America/Regina',
+      call_handling_mode: 'triage',
+    }))
+    assert.strictEqual(got, snap('dental-baseline'), 'dental-baseline snapshot diverged')
+  })
+
+  test('restaurant-baseline matches snapshot', () => {
+    const got = norm(buildPromptFromIntake({
+      business_name: 'Bear Paw Bistro',
+      agent_name: 'Sam',
+      niche: 'restaurant',
+      city: 'Calgary',
+      province: 'AB',
+      timezone: 'America/Edmonton',
+      call_handling_mode: 'triage',
+    }))
+    assert.strictEqual(got, snap('restaurant-baseline'), 'restaurant-baseline snapshot diverged')
+  })
 })
 
 // ══════════════════════════════════════════════════════════════════════════════
