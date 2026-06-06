@@ -333,7 +333,7 @@ export const LEGAL: NichePageData = {
 // ─── Real Estate ─────────────────────────────────────────────────────────────
 
 export const REALTY: NichePageData = {
-  nicheParam: "realty",
+  nicheParam: "real_estate",
   leadCardNiche: "realty",
   schema: {
     name: "Real Estate AI Receptionist",

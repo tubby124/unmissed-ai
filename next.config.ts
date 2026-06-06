@@ -20,6 +20,17 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       // /admin/* consolidated into /dashboard/* (Mar 2026)
+      { source: '/for-trades', destination: '/for-auto-glass', permanent: true },
+      { source: '/demo', destination: '/try', permanent: true },
+      { source: '/for-realtors', destination: '/', permanent: false },
+      { source: '/for-hvac', destination: '/', permanent: false },
+      { source: '/for-plumbing', destination: '/', permanent: false },
+      { source: '/for-dental', destination: '/', permanent: false },
+      { source: '/for-legal', destination: '/', permanent: false },
+      { source: '/for-electricians', destination: '/', permanent: false },
+      { source: '/for-vet', destination: '/', permanent: false },
+      { source: '/for-salon', destination: '/', permanent: false },
+      { source: '/for-clinics', destination: '/', permanent: false },
       { source: '/admin/costs', destination: '/dashboard/costs', permanent: true },
       { source: '/admin/numbers', destination: '/dashboard/numbers', permanent: true },
       { source: '/admin/prompt', destination: '/dashboard/prompt', permanent: true },
