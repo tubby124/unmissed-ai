@@ -19,13 +19,26 @@
  * conditional codes are universal GSM and never depend on the carrier.
  */
 
-import { CARRIER_CODES, type CarrierKey } from './carrier-codes'
+import { type CarrierKey } from './carrier-codes'
 
 export type ConciergeCarrierKey =
   | CarrierKey
   | 'rogers_business'
   | 'sasktel'
   | 'public_mobile'
+
+/**
+ * GSM unconditional-forwarding family codes. Used only by this builder when the
+ * concierge intentionally wants to register UNCONDITIONAL forwarding (every call
+ * to the AI, phone never rings the user). The Go Live UI never registers these
+ * — it uses conditional (busy/no-answer/unreachable) from ./carrier-codes only.
+ */
+const UNCONDITIONAL_CODES: Record<'cf004' | 'cf72', { enable: string; disable: string }> = {
+  // Rogers / Fido / Chatr / SaskTel family
+  cf004: { enable: '*21*{number}#', disable: '##21#' },
+  // Bell / Telus / Koodo / Virgin / Freedom / Public Mobile family
+  cf72:  { enable: '*72{number}',   disable: '*73' },
+}
 
 export type ForwardingCodes = {
   did: string                       // normalized digits-only, e.g. "13069887699"
@@ -69,20 +82,20 @@ const SUPPORT_NUMBERS: Record<ConciergeCarrierKey, string> = {
   other: 'unknown carrier — ask client',
 }
 
-// Map concierge carrier values to the 8-carrier GSM family in CARRIER_CODES.
-// Used only for the unconditional code (combo + conditional are universal GSM).
-const UNCONDITIONAL_FAMILY: Record<ConciergeCarrierKey, CarrierKey> = {
-  rogers: 'rogers',
-  rogers_business: 'rogers',  // Rogers GSM family
-  fido: 'fido',
-  bell: 'bell',
-  telus: 'telus',
-  koodo: 'koodo',
-  virgin: 'virgin',
-  freedom: 'freedom',
-  sasktel: 'rogers',          // SaskTel uses *21*<num># per memory
-  public_mobile: 'bell',       // Public Mobile is Telus prepaid → Bell/Telus family
-  other: 'other',
+// Map concierge carrier values to the UNCONDITIONAL forwarding family.
+// Conditional + combo (**004*) codes are universal GSM and never depend on the carrier.
+const UNCONDITIONAL_FAMILY: Record<ConciergeCarrierKey, 'cf004' | 'cf72' | null> = {
+  rogers: 'cf004',
+  rogers_business: 'cf004',
+  fido: 'cf004',
+  bell: 'cf72',
+  telus: 'cf72',
+  koodo: 'cf72',
+  virgin: 'cf72',
+  freedom: 'cf72',
+  sasktel: 'cf004',         // SaskTel uses *21*<num># per memory
+  public_mobile: 'cf72',     // Public Mobile is Telus prepaid → Bell/Telus family
+  other: null,
 }
 
 function isConciergeCarrier(value: string | null | undefined): value is ConciergeCarrierKey {
@@ -101,9 +114,9 @@ export function buildForwardingCodes(
   const carrierKey: ConciergeCarrierKey = isConciergeCarrier(carrier) ? carrier : 'other'
 
   const familyKey = UNCONDITIONAL_FAMILY[carrierKey]
-  const family = CARRIER_CODES[familyKey]
-  const enable = family.enable ? family.enable.replace('{number}', did) : null
-  const disable = family.disable ?? null
+  const family = familyKey ? UNCONDITIONAL_CODES[familyKey] : null
+  const enable = family ? family.enable.replace('{number}', did) : null
+  const disable = family ? family.disable : null
 
   return {
     did,

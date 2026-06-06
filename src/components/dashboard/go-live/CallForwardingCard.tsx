@@ -3,24 +3,26 @@
 /**
  * CallForwardingCard — Go Live "Forward your phone" section.
  *
- * Spec revised 2026-04-27:
- *   - Drop the Twilio verify-call flow from the UI. The verify endpoint
- *     was never tested end-to-end against a live carrier-forwarded call.
- *   - Lead with: pick carrier → show dial code → "Now call your business number
- *     to test" → user clicks "It worked — I heard the agent" → self-attest.
+ * Spec revised 2026-06-05:
+ *   - Switched from a single unconditional code (star-21 / star-72 family) to
+ *     THREE conditional codes per Canadian wireless GSM spec: no-answer (61),
+ *     busy (67), unreachable (62). Conditional forwarding = phone rings the
+ *     user first, forwards to AI only when they cannot pick up. Unconditional
+ *     was wrong for a voicemail-replacement product.
+ *   - Codes now live in lib/carrier-codes.ts under conditions.noAnswer / busy / unreachable.
+ *   - Voicemail-blocking warning tightened — Rogers explicitly states
+ *     conditional forwarding will not work while carrier voicemail is active.
  *
- * The self-attest endpoint stamps the owner-marked-done state. The final proof
- * is still a real missed-call summary in call logs.
- *
- * The verify TwiML + confirm endpoint stay on disk as deferred infra and
- * may be re-surfaced later (see CALLINGAGENTS/Tracker/forwarding-verify-twilio.md).
+ * Prior spec (2026-04-27): drop the Twilio verify-call flow from the UI; lead
+ * with carrier pick → dial codes → "I heard the agent" self-attest. That UX
+ * is preserved.
  *
  * Trial branch: when `twilioNumber` is null, render the unlock notice only.
  */
 
 import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { CARRIER_CODES, type CarrierKey } from '@/lib/carrier-codes'
+import { CARRIER_CODES, fillEnableCode, type CarrierKey } from '@/lib/carrier-codes'
 import { formatPhone } from '@/lib/format-phone'
 
 interface CallForwardingCardProps {
@@ -50,7 +52,6 @@ export default function CallForwardingCard({
   isAdmin,
 }: CallForwardingCardProps) {
   const verified = !!forwardingVerifiedAt || forwardingSelfAttested
-  // Hooks must run unconditionally — trial early-return comes AFTER all hooks.
   const [forceExpanded, setForceExpanded] = useState(false)
   const expanded = !verified || forceExpanded
 
@@ -140,17 +141,19 @@ function SetupForm({
   isAdmin?: boolean
 }) {
   const [attest, setAttest] = useState<AttestState>('idle')
-  const [copied, setCopied] = useState(false)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const inFlight = useRef(false)
 
-  const carrierEntry = CARRIER_CODES[carrier]
-  const enableCode = carrierEntry?.enable
-    ? carrierEntry.enable.replace('{number}', stripPlus(twilioNumber))
-    : null
-  const disableCode = carrierEntry?.disable ?? null
-  const isOtherCarrier = carrier === 'other'
+  const carrierEntry = CARRIER_CODES[carrier] ?? CARRIER_CODES.other
+  const conditions = carrierEntry.conditions
+  const carrierNote = carrierEntry.note
 
-  // Status pill — gray "Not set up yet" | green "Marked done ✓ {when}" | amber on submit error
+  const codes = [
+    { key: 'noAnswer',    cond: conditions.noAnswer },
+    { key: 'busy',        cond: conditions.busy },
+    { key: 'unreachable', cond: conditions.unreachable },
+  ] as const
+
   let statusPill: { tone: 'gray' | 'green' | 'amber'; text: string }
   if (attest === 'failed') {
     statusPill = { tone: 'amber', text: "Couldn't save — try again" }
@@ -161,13 +164,12 @@ function SetupForm({
     statusPill = { tone: 'gray', text: 'Not set up yet' }
   }
 
-  async function copyEnableCode() {
-    if (!enableCode) return
+  async function copyCode(key: string, code: string) {
     try {
-      await navigator.clipboard.writeText(enableCode)
+      await navigator.clipboard.writeText(code)
       navigator.vibrate?.(10)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(prev => (prev === key ? null : prev)), 1500)
     } catch {
       // Clipboard can fail in insecure contexts — degrade silently.
     }
@@ -178,9 +180,6 @@ function SetupForm({
     inFlight.current = true
     setAttest('submitting')
     try {
-      // Phase 3 Wave B: when admin scoped into another client, forward client_id
-      // so the self-attest stamps the right row. Edit-mode confirmation flows
-      // separately via the Acting As banner header (x-admin-edit-mode).
       const body: Record<string, unknown> = {}
       if (isAdmin && scopedClientId) body.client_id = scopedClientId
       const res = await fetch('/api/dashboard/forwarding-verify/self-attest', {
@@ -223,38 +222,54 @@ function SetupForm({
         </select>
       </div>
 
-      {/* Dial code (or fallback for "other") */}
-      {isOtherCarrier ? (
+      {carrierNote && (
         <div className="rounded-2xl bg-zinc-50 border border-zinc-100 px-5 py-4 text-sm text-zinc-700 leading-relaxed">
-          Most Canadian carriers use <span className="font-semibold text-zinc-900">*72&lt;your number&gt;</span> to forward
-          and <span className="font-semibold text-zinc-900">*73</span> to turn off. If that doesn&apos;t work, search
-          &ldquo;[your carrier] call forwarding&rdquo; or contact support.
+          {carrierNote}
         </div>
-      ) : (
-        enableCode && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-zinc-900">Dial this common carrier code on your phone:</p>
-            <button
-              type="button"
-              onClick={copyEnableCode}
-              className="w-full min-h-[120px] rounded-2xl bg-zinc-50 border border-zinc-200 px-5 py-6 text-center hover:bg-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 cursor-pointer"
-              aria-label={`Tap to copy dial code ${enableCode}`}
-            >
-              <span className="block text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 break-all">
-                {enableCode}
-              </span>
-              <span className="mt-3 inline-block text-xs text-zinc-500">
-                {copied ? 'Copied ✓' : 'Tap to copy'}
-              </span>
-            </button>
-            {disableCode && (
-              <p className="text-sm text-zinc-600 pt-2">
-                To turn it off later: <span className="font-semibold text-zinc-900">{disableCode}</span>
-              </p>
-            )}
-          </div>
-        )
       )}
+
+      {/* Three conditional dial codes — dial each one once, in any order */}
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-medium text-zinc-900">Dial these three codes on your phone — one at a time</p>
+          <p className="mt-1 text-xs text-zinc-600 leading-relaxed">
+            Each code covers one situation. Together they forward to your AI only when you can&apos;t pick up. Your phone still rings first.
+          </p>
+        </div>
+        <div className="space-y-2">
+          {codes.map(({ key, cond }, idx) => {
+            const enableCode = fillEnableCode(cond.enable, twilioNumber)
+            const isCopied = copiedKey === key
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => copyCode(key, enableCode)}
+                className="w-full rounded-2xl bg-zinc-50 border border-zinc-200 px-5 py-4 text-left hover:bg-zinc-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 cursor-pointer"
+                aria-label={`Tap to copy dial code ${enableCode} for ${cond.label}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="shrink-0 inline-flex w-6 h-6 rounded-full bg-zinc-200 text-zinc-700 items-center justify-center text-xs font-semibold">
+                    {idx + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-zinc-900">{cond.label}</p>
+                    <p className="text-xs text-zinc-600 mt-0.5">{cond.desc}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <span className="font-mono text-lg sm:text-xl font-semibold tracking-tight text-zinc-900 break-all">
+                    {enableCode}
+                  </span>
+                  <span className="shrink-0 text-xs text-zinc-500">
+                    {isCopied ? 'Copied ✓' : 'Tap to copy'}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
       {/* Three-step instructions + self-attest CTA */}
       <div className="space-y-4">
@@ -265,7 +280,7 @@ function SetupForm({
           </li>
           <li className="flex gap-3">
             <span className="shrink-0 inline-flex w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 items-center justify-center text-xs font-semibold">2</span>
-            <span className="pt-0.5">Paste the code and tap call.</span>
+            <span className="pt-0.5">Paste each of the 3 codes above and tap call. You&apos;ll get a short confirmation each time.</span>
           </li>
           <li className="flex gap-3">
             <span className="shrink-0 inline-flex w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 items-center justify-center text-xs font-semibold">3</span>
@@ -309,10 +324,10 @@ function SetupForm({
           </summary>
           <div className="mt-2 text-[11px] text-amber-900/85 leading-relaxed space-y-2">
             <p>
-              Your carrier voicemail is grabbing the call before the forward fires. You need to <strong>fully remove voicemail</strong> from this line at the carrier level — toggling Visual Voicemail off in iOS settings is not enough.
+              Your carrier voicemail is grabbing the call before the forward fires. Conditional forwarding will not work while carrier voicemail is active — you need to <strong>fully remove voicemail</strong> from this line at the carrier level. Toggling Visual Voicemail off in iOS settings is not enough.
             </p>
             <p>
-              <strong>Call your carrier and say:</strong> <em>&ldquo;Please fully remove voicemail from my line. I&apos;m using a third-party answering service and it&apos;s blocking my call forwarding.&rdquo;</em> Takes 5 min, free on postpaid. Once they confirm removal, your forward starts firing automatically — no need to re-dial the code.
+              <strong>Call your carrier and say:</strong> <em>&ldquo;Please fully remove voicemail from my line. I&apos;m using a third-party answering service and it&apos;s blocking my call forwarding.&rdquo;</em> Takes 5 min, free on postpaid. Once they confirm removal, your forwards start firing automatically — no need to re-dial the codes.
             </p>
             <p className="font-mono text-[10px] text-amber-900/70">
               Rogers 1-800-764-3771 · Bell 1-800-668-6878 · Telus 1-866-558-2273 · Fido 1-888-481-3436 · SaskTel 1-800-727-5835
@@ -322,11 +337,26 @@ function SetupForm({
 
         <details className="rounded-xl bg-zinc-50 border border-zinc-200 px-4 py-3">
           <summary className="cursor-pointer text-xs font-medium text-zinc-900 select-none list-none">
+            Turn forwarding off later
+          </summary>
+          <div className="mt-2 text-[11px] text-zinc-700 leading-relaxed space-y-2">
+            <p>Dial each disable code on your phone keypad and tap call:</p>
+            <ul className="space-y-1 font-mono text-[11px]">
+              <li><span className="text-zinc-900 font-semibold">{conditions.noAnswer.disable}</span> — stop no-answer forwarding</li>
+              <li><span className="text-zinc-900 font-semibold">{conditions.busy.disable}</span> — stop busy forwarding</li>
+              <li><span className="text-zinc-900 font-semibold">{conditions.unreachable.disable}</span> — stop unreachable forwarding</li>
+              <li><span className="text-zinc-900 font-semibold">##002#</span> — stop ALL forwarding at once (universal)</li>
+            </ul>
+          </div>
+        </details>
+
+        <details className="rounded-xl bg-zinc-50 border border-zinc-200 px-4 py-3">
+          <summary className="cursor-pointer text-xs font-medium text-zinc-900 select-none list-none">
             Test rang forever or code failed?
           </summary>
           <div className="mt-2 text-[11px] text-zinc-700 leading-relaxed space-y-2">
-            <p><strong>Rang forever:</strong> missed-call forwarding is not active yet. Re-dial the code, then wait for the carrier confirmation tone or success message.</p>
-            <p><strong>Code failed:</strong> your plan may need call forwarding enabled by carrier support. Ask them to enable conditional call forwarding to {formatPhone(twilioNumber)}.</p>
+            <p><strong>Rang forever:</strong> the no-answer forward isn&apos;t active yet. Re-dial code 1 (the *61 one), wait for the carrier confirmation tone, then test again.</p>
+            <p><strong>Code failed:</strong> your plan may need call forwarding enabled by carrier support. Ask them to enable conditional call forwarding (no-answer, busy, and unreachable) to {formatPhone(twilioNumber)}.</p>
             <p><strong>Agent answers only when calling the AI number directly:</strong> the agent is fine; the forwarding chain is the part still blocked.</p>
           </div>
         </details>
@@ -354,10 +384,6 @@ function StatusPill({ tone, text }: { tone: 'gray' | 'green' | 'amber'; text: st
       {text}
     </div>
   )
-}
-
-function stripPlus(num: string): string {
-  return num.startsWith('+') ? num.slice(1) : num
 }
 
 function formatRelative(iso: string): string {
