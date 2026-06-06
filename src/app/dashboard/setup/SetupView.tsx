@@ -162,6 +162,19 @@ export default function SetupView({
 
   const client = clients.find(c => c.id === selectedId) ?? clients[0]
 
+  // Auto-default carrier from clients.carrier_id (captured in onboarding step-routing)
+  // when the dropdown is empty AND the DB has a value. Local user edits (changing
+  // the dropdown in this session) win — the existing onCarrierChange handler
+  // updates localStorage but not the DB, so we only seed FROM the DB, never
+  // overwrite user intent. The "stop making owners re-pick their carrier" wire
+  // from Wave 3 Layer C follow-up.
+  useEffect(() => {
+    if (!carrier && client?.carrier_id) {
+      setCarrier(client.carrier_id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client?.id, client?.carrier_id])
+
   // Derive state before conditional returns (used in tracking effect)
   const activationState: ActivationState = client
     ? deriveActivationState(client)
@@ -373,7 +386,21 @@ export default function SetupView({
               rawNumber={rawNumber}
               displayNumber={displayNumber}
               carrier={carrier}
-              onCarrierChange={(id) => { setCarrier(id); setIsActive(false); localStorage.setItem(STORAGE_KEYS.SETUP, JSON.stringify({ lt: lineType, d: device, c: id })) }}
+              onCarrierChange={(id) => {
+                setCarrier(id)
+                setIsActive(false)
+                localStorage.setItem(STORAGE_KEYS.SETUP, JSON.stringify({ lt: lineType, d: device, c: id }))
+                // Persist carrier choice to clients.carrier_id so reloads + admin
+                // client-switching stay in sync with the dropdown. DB_ONLY field —
+                // no Ultravox sync needed. Fire-and-forget; UI is the source of truth.
+                if (client?.id) {
+                  fetch('/api/dashboard/settings', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ client_id: client.id, carrier_id: id || null }),
+                  }).catch(() => { /* non-blocking */ })
+                }
+              }}
               device={device}
               onDeviceChange={(d) => { setDevice(d); localStorage.setItem(STORAGE_KEYS.SETUP, JSON.stringify({ lt: lineType, d, c: carrier })) }}
               isActive={isActive}

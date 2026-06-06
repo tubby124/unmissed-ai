@@ -6,6 +6,7 @@ import { STORAGE_KEYS } from "@/lib/storage-keys";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { CallProvider } from "@/contexts/CallContext";
 import BrowserTestCall from "@/components/dashboard/BrowserTestCall";
+import ForwardingInstructionsPreview from "@/components/onboard/ForwardingInstructionsPreview";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,8 @@ interface AgentSnapshot {
   injectedNote: string | null;
   trialExpiresAt: string | null;
   hasLinguisticAnchors: boolean;
+  carrierId: string | null;
+  twilioNumber: string | null;
 }
 
 /** Returns "X days left" or "X hours left" string from an ISO date */
@@ -496,6 +499,16 @@ export function TrialSuccessScreen({
           liveCount={liveCount}
           telegramLink={telegramLink}
           agentName={agentName}
+        />
+      )}
+
+      {/* Forwarding instructions — only renders when carrier_id was captured in
+          onboarding AND the AI Twilio line is assigned. Hidden otherwise (no
+          card beats a half-card with placeholders). Wave 3 Layer C follow-up. */}
+      {snapshot?.carrierId && snapshot?.twilioNumber && (
+        <ForwardingInstructionsPreview
+          carrierId={snapshot.carrierId}
+          forwardingTarget={snapshot.twilioNumber}
         />
       )}
 

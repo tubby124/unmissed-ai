@@ -44,6 +44,8 @@ export async function GET(req: NextRequest) {
     niche: string | null
     injected_note: string | null
     trial_expires_at: string | null
+    carrier_id: string | null
+    twilio_number: string | null
   }
 
   const { data: rawClient } = await supa
@@ -51,7 +53,7 @@ export async function GET(req: NextRequest) {
     .select(
       'agent_name, services_offered, business_hours_weekday, business_hours_weekend, ' +
       'business_facts, extra_qa, website_scrape_status, website_url, status, niche, ' +
-      'injected_note, trial_expires_at'
+      'injected_note, trial_expires_at, carrier_id, twilio_number'
     )
     .eq('id', clientId)
     .in('status', ['active', 'setup'])
@@ -113,5 +115,7 @@ export async function GET(req: NextRequest) {
     injectedNote: client.injected_note?.trim() || null,  // current quick note (if any)
     trialExpiresAt: client.trial_expires_at || null,     // ISO string — trial end date
     hasLinguisticAnchors,                                // true if niche has voice anchor vocabulary
+    carrierId: client.carrier_id || null,                // owner's mobile carrier id (drives the forwarding-codes card)
+    twilioNumber: client.twilio_number || null,          // assigned AI line (the target of *61/*67/*62 forwarding)
   })
 }

@@ -17,6 +17,7 @@ export interface SetupClientConfig {
   business_hours_weekend: string | null
   after_hours_behavior: string | null
   after_hours_emergency_phone: string | null
+  carrier_id: string | null
 }
 
 export default async function SetupPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
@@ -37,7 +38,7 @@ export default async function SetupPage({ searchParams }: { searchParams: Promis
 
   const isAdmin = cu.role === 'admin'
 
-  const SELECT = 'id, slug, business_name, niche, twilio_number, status, subscription_status, setup_complete, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone'
+  const SELECT = 'id, slug, business_name, niche, twilio_number, status, subscription_status, setup_complete, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, carrier_id'
 
   if (isAdmin) {
     const { data: clients } = await supabase

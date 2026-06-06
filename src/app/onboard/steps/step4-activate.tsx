@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { getAgentMode } from "@/lib/capabilities";
 import { Shield, X, Check, Rocket, Brain, ChevronDown, Phone } from "lucide-react";
 import { normalize24hHours } from "@/lib/prompt-slots";
-import ForwardingInstructionsPreview from "@/components/onboard/ForwardingInstructionsPreview";
 
 interface Props {
   data: OnboardingData;
@@ -509,14 +508,6 @@ export default function Step6Activate({ data, onUpdate, onActivate, isSubmitting
           Real AI number after checkout · 50 activation minutes included
         </p>
       </div>
-
-      {/* Forwarding instructions preview — surfaces clients.carrier_id captured in
-          step-routing so the owner sees the exact dial codes they'll run after
-          activation, without having to re-pick their carrier on the dashboard.
-          Wave 3 Layer C follow-up — Projects/unmissed/NEXT-CHAT-wave-3-followup-2026-06-07.md */}
-      {data.carrierId && (
-        <ForwardingInstructionsPreview carrierId={data.carrierId} />
-      )}
 
       {/* Wave 1.5 — Recording consent acknowledgment.
           Why: every inbound call is recorded. Operator confirms they have authority
