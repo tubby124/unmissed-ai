@@ -5,7 +5,7 @@
 description: Windshield Hub STAGED slot-composed prompt — D445 migration validation
 
 providers:
-  - id: openrouter:anthropic/claude-haiku-4.5
+  - id: groq:llama-3.3-70b-versatile
     config:
       max_tokens: 300
       temperature: 0
@@ -14,8 +14,13 @@ prompts:
   - file://prompts/chat.json
 
 defaultTest:
+  # Normalize curly quotes (U+2019 / U+2018 / U+201C / U+201D) to straight ASCII so
+  # `icontains-any: ["what's"]` (straight) doesn't silently miss gpt-oss-120b output.
+  # Also strips leaked <think>...</think> blocks. See Projects/unmissed/2026-06-06-wave-3-shipped-and-learnings.md.
+  options:
+    transform: "output.replace(/<think>[\\s\\S]*?<\\/think>/g, '').replace(/^Thinking:[\\s\\S]*?(?=\\n\\n)/m, '').replace(/\\u2019|\\u2018/g, \"'\").replace(/\\u201C|\\u201D/g, '\"').trim()"
   vars:
-    system_prompt: file://../../clients/windshield-hub/SYSTEM_PROMPT.txt
+    system_prompt: file://snapshots/windshield-hub-current-2026-06-03.txt
   assert:
     # Agent must NEVER ask for callback number (any phrasing)
     - type: javascript
@@ -158,7 +163,7 @@ tests:
           - "what vehicle"
       - type: llm-rubric
         value: "The response tries to collect vehicle info (year, make, model) before letting the caller go, since the caller mentioned needing a windshield but did not provide vehicle details."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   - description: "Knowledge boundary — never quotes repair price when asked"
     vars:
@@ -166,7 +171,7 @@ tests:
     assert:
       - type: llm-rubric
         value: "The response does NOT quote a specific dollar amount or price range for the repair. It routes to Sabbir for pricing details."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
       - type: not-icontains
         value: "dollars"
       - type: not-icontains
@@ -188,7 +193,7 @@ tests:
           - "replacement"
       - type: llm-rubric
         value: "The response either confirms the vehicle details (year/make/model) OR asks about a lane assist camera/sensor. Both are valid next steps. It does NOT close the call or ask for a phone number."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   - description: "Insurance question — uses knowledge or routes to Sabbir, never commits to process"
     vars:
@@ -205,7 +210,7 @@ tests:
           - "claims"
       - type: llm-rubric
         value: "The response does NOT commit to a specific insurance process or guarantee coverage. It either looks up knowledge to give general info, or routes the question to Sabbir. Both are acceptable."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   # ── Job Inquiry — takes message instead of rejecting ──────────────────────
   - description: "Job inquiry — takes name and routes to Sabbir instead of rejecting"
@@ -222,7 +227,7 @@ tests:
         value: "not hiring"
       - type: llm-rubric
         value: "The response does NOT reject the caller or say 'not hiring'. Instead, it takes the caller's info so Sabbir can follow up."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   # ── VOICE LOCK Tests: catch personality/tone drift ────────────────────────
   - description: "Voice lock — short natural response, not formal or stiff"
@@ -231,7 +236,7 @@ tests:
     assert:
       - type: llm-rubric
         value: "The response is short (1-2 sentences), conversational, and sounds like a friendly shop assistant on the phone — NOT formal or corporate. It should acknowledge the situation and move toward collecting info."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   - description: "Voice lock — uses contractions not formal phrasing"
     vars:
@@ -287,7 +292,7 @@ tests:
     assert:
       - type: llm-rubric
         value: "The response either says the team/Sabbir is not available and offers a callback, or asks for vehicle info to pass along. It does NOT pretend to transfer the call."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
       - type: icontains-any
         value:
           - "call you back"
@@ -301,7 +306,7 @@ tests:
     assert:
       - type: llm-rubric
         value: "The response treats this as a repair (chip), not a full replacement. Acknowledges it sounds repairable."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
       - type: not-icontains
         value: "full replacement"
 
@@ -318,7 +323,7 @@ tests:
           - "what vehicle"
       - type: llm-rubric
         value: "The response attempts to collect vehicle info before letting the caller go, since the caller has not provided year/make/model yet."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   - description: "Lane assist confirmation — caller says yes camera"
     vars:
@@ -334,7 +339,7 @@ tests:
           - "perfect"
       - type: llm-rubric
         value: "The response acknowledges the lane assist camera and either says calibration is needed or moves to scheduling. It does NOT ignore the camera info."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   - description: "RV / commercial vehicle — should not refuse"
     vars:
@@ -342,7 +347,7 @@ tests:
     assert:
       - type: llm-rubric
         value: "The response confirms RV/heavy vehicle service is offered (or queries knowledge) and does not refuse outright."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
       - type: not-icontains
         value: "we don't"
 
@@ -360,7 +365,7 @@ tests:
           - "call you back"
       - type: llm-rubric
         value: "The response either references SGI/insurance assistance from knowledge OR routes the question for callback. It does NOT make up specific claim numbers or guarantee coverage."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   # ── REAL-CALL PATTERNS (mined from 20 production calls 2026-04-22 to 2026-05-05) ──
 
@@ -376,7 +381,7 @@ tests:
           - "someone will meet"
       - type: llm-rubric
         value: "The response routes the visitor to the back door or directs them where to go for delivery pickup. It does NOT try to collect vehicle info."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   - description: "Mobile service — caller wants service at their home"
     vars:
@@ -391,7 +396,7 @@ tests:
           - "happy to"
       - type: llm-rubric
         value: "The response confirms mobile service is available (we can come to you / mobile service) and progresses to collecting vehicle info. It does NOT refuse or say they have to bring it in."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
       - type: not-icontains
         value: "have to bring"
 
@@ -407,7 +412,7 @@ tests:
           - "wrong"
       - type: llm-rubric
         value: "The response declines or deflects the sales/vendor pitch. It does NOT promise Sabbir will call back, does NOT take a message, and does NOT engage with the Google Ads pitch."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
       - type: not-icontains
         value: "I'll let Sabbir know"
       - type: not-icontains
@@ -425,7 +430,7 @@ tests:
           - "model year"
       - type: llm-rubric
         value: "The response asks for the year because the caller only provided make and model. It does NOT invent or assume a year (e.g., does NOT say '2020 BMW X5' or '2000 BMW X5')."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
       - type: javascript
         value: "!/\\b(19|20)\\d{2}\\s*BMW\\b/i.test(output)"
         threshold: 1
@@ -442,4 +447,4 @@ tests:
         value: "can I get your number"
       - type: llm-rubric
         value: "The response acknowledges the booking request and progresses toward scheduling. It does NOT re-ask for the caller's phone number (already in context)."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile

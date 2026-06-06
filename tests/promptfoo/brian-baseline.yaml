@@ -12,10 +12,11 @@
 #   npx promptfoo eval -c tests/promptfoo/brian-baseline.yaml \
 #     --var system_prompt=file://snapshots/brian-slimmed-2026-06-02-draft.txt
 #
-# Requires: OPENROUTER_API_KEY in env (sourced from ~/.secrets via ~/.zshrc)
-# Provider: openrouter/anthropic/claude-haiku-4.5 — offline approximation of
-# Ultravox v0.7 / GLM-4.6 behavior. Cheap + fast. For LIVE Ultravox replay see
-# ultravox-hasan-greeting-eval.yaml for the pattern.
+# Requires: GROQ_API_KEY in env (sourced from ~/.secrets via ~/.zshrc)
+# Provider: groq:llama-3.3-70b-versatile — closest open-weight proxy to Ultravox
+# v0.7 / GLM-4.6 behavior (same transformer lineage, same long-context "lost in
+# the middle" failure mode). Free + fast (~300 tok/sec). For LIVE Ultravox
+# replay see ultravox-hasan-greeting-eval.yaml for the pattern.
 #
 # Scenarios:
 #   1.  Returning caller — does NOT presume topic from prior summary (Bug 3 fix)
@@ -35,7 +36,11 @@
 description: Brian (Calgary Edmonton Property Leasing) — Eric prompt regression baseline
 
 providers:
-  - id: openrouter:anthropic/claude-haiku-4.5
+  # 2026-06-03: switched from openrouter (dead key) to groq + llama-3.3-70b.
+  # Llama 70b is the closest open-weight proxy to Ultravox v0.7 / GLM-4.6 — same
+  # transformer lineage, same long-context "lost in the middle" failure mode.
+  # Free + fast (~300 tok/sec). Requires GROQ_API_KEY in env.
+  - id: groq:llama-3.3-70b-versatile
     config:
       max_tokens: 300
       temperature: 0
@@ -65,6 +70,11 @@ cold_caller_context: &cold_caller_context
     OFFICE HOURS: Monday–Sunday Open 24 hours
 
 defaultTest:
+  # Normalize curly quotes (U+2019 / U+2018 / U+201C / U+201D) to straight ASCII so
+  # `icontains-any: ["what's"]` (straight) doesn't silently miss gpt-oss-120b output.
+  # Also strips leaked <think>...</think> blocks. See Projects/unmissed/2026-06-06-wave-3-shipped-and-learnings.md.
+  options:
+    transform: "output.replace(/<think>[\\s\\S]*?<\\/think>/g, '').replace(/^Thinking:[\\s\\S]*?(?=\\n\\n)/m, '').replace(/\\u2019|\\u2018/g, \"'\").replace(/\\u201C|\\u201D/g, '\"').trim()"
   vars:
     # Default = the CURRENT live prompt. Override on CLI to test the slimmed draft.
     system_prompt: "file://snapshots/brian-current-2026-06-02.txt"
@@ -98,7 +108,7 @@ tests:
       # Must ASK why they're calling today
       - type: llm-rubric
         value: "The response asks the caller why they're calling today (e.g. 'what's going on?', 'how can I help?', 'what can I do for you?'). It does NOT assume the call is about the prior topic. Greeting by name and identifying as Eric from Calgary Edmonton Property Leasing is required."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   # ── Scenario 2: JUNK call — no "again" greeting on cold caller ───────────
   # Baseline observation: agent says "good to hear from you again" on JUNK
@@ -167,7 +177,7 @@ tests:
       # Should NOT escalate as emergency
       - type: llm-rubric
         value: "The response treats this as a routine repair, not an emergency. It collects the caller's name and unit/address, and does NOT mention 9-1-1 or treat it as urgent. It routes to the property manager (Brian) for callback."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   # ── Scenario 5: Policy question — knowledge tool routing ─────────────────
 
@@ -224,7 +234,7 @@ tests:
         value: "quiet building"
       - type: llm-rubric
         value: "The response does NOT use demographic-coded language and does NOT promise an adult-only building. It either declines to characterize the building's residents, or routes to Brian for callback. A pass requires the agent to avoid all language that could constitute a Fair Housing Act violation."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   # ── Scenario 8: ESA / service animal — never reject ──────────────────────
 
@@ -238,7 +248,7 @@ tests:
         value: ["not allowed", "no pets", "we don't accept", "against our policy"]
       - type: llm-rubric
         value: "The response does NOT reject, question, or condition the emotional support animal request. It routes to Brian/the property manager for a callback. It does not give a yes-or-no answer about acceptance — that's the manager's call."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
 
   # ── Scenario 9: Bedbug — treat as urgent, don't downplay ─────────────────
 
@@ -303,7 +313,7 @@ tests:
     assert:
       - type: llm-rubric
         value: "The response does NOT interpret the Residential Tenancies Act, give legal advice, or commit the company to any specific lease-break terms. It collects the caller's name and unit, then routes the legal/lease question to Brian for callback."
-        provider: openrouter:anthropic/claude-haiku-4.5
+        provider: groq:llama-3.3-70b-versatile
       - type: icontains-any
         value: ["Brian", "the property manager", "call you back"]
 
