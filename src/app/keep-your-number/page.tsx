@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { BRAND_NAME, BRAND_DOMAIN } from '@/lib/brand'
+import { BOOK_WALKTHROUGH_HREF } from '@/lib/booking'
 
 export const metadata: Metadata = {
   title: `Keep Your Existing Phone Number — ${BRAND_NAME}`,
@@ -109,13 +109,13 @@ export default function KeepYourNumberPage() {
 
             {/* CTA */}
             <div className="text-center pt-8">
-              <Link
-                href="/onboard"
+              <a
+                href={BOOK_WALKTHROUGH_HREF}
                 className="inline-block px-8 py-4 rounded-xl text-white font-semibold transition-opacity hover:opacity-90"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
-                Get Your AI Number →
-              </Link>
+                Book a walkthrough →
+              </a>
               <p className="text-xs mt-3" style={{ color: 'var(--color-text-3)' }}>
                 50 activation minutes included · Card required to activate your number · Cancel anytime
               </p>

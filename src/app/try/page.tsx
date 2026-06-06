@@ -1,45 +1,34 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer"
 import CallMeNowWidget from "@/components/CallMeNowWidget"
-import { Phone, ArrowRight, CheckCircle2, Sparkles } from "lucide-react"
+import { CalendarDays, Phone, CheckCircle2, Sparkles } from "lucide-react"
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking"
 
 const DEMOS = [
   {
     id: "voicemail_replacement",
-    label: "Default demo",
+    label: "Core demo",
     company: "Service Business",
     agent: "Zara",
     niche: "Voicemail replacement",
     description:
-      "The clean EndVoicemail demo: Zara probes for the missed-call problem, roleplays a real caller, reveals the owner summary, then offers the setup link.",
+      "Zara shows how a missed call becomes a clean callback summary instead of voicemail audio.",
     color: "#10B981",
     variant: "default" as const,
   },
   {
     id: "auto_glass",
-    label: "Industry example",
+    label: "Auto-glass example",
     company: "Auto Glass Shop",
     agent: "Zara",
     niche: "Auto glass shop",
     description:
-      "Only use this if you want the windshield-shop version: vehicle, damage, ADAS, urgency, insurance/cash, and callback priority.",
+      "A windshield-shop version with vehicle, damage, ADAS, urgency, insurance/cash, and callback priority.",
     color: "#3B82F6",
     variant: "windshield" as const,
-  },
-  {
-    id: "property_mgmt",
-    label: "Industry example",
-    company: "Property Management Office",
-    agent: "Zara",
-    niche: "Property management",
-    description:
-      "Tenant/owner/prospect calls: issue, property, urgency, contact details, and a clean manager handoff.",
-    color: "#8B5CF6",
-    variant: "default" as const,
   },
 ]
 
@@ -56,7 +45,7 @@ const FLOW = [
   ["01", "Opens with context", "Zara explains this is a short demo and asks what kind of missed call you want to test."],
   ["02", "Probes like a receptionist", "One question at a time. No monologue. She waits, then asks the next useful question."],
   ["03", "Reveals the owner view", "You hear what the business gets: lead status, caller intent, urgency, and callback action."],
-  ["04", "Asks for the next step", "$119/mo, 250 minutes, no setup fee, 30-day money-back guarantee — then offers the setup link."],
+  ["04", "Asks for the next step", "$119/mo, 250 minutes, no setup fee, 30-day money-back guarantee — then offers a walkthrough with Hasan."],
 ]
 
 export default function TryPage() {
@@ -83,7 +72,7 @@ export default function TryPage() {
                 Let Zara call you and prove voicemail is the wrong product.
               </h1>
               <p className="max-w-xl text-lg leading-relaxed" style={{ color: "var(--color-text-2)" }}>
-                The default demo is not a glass-shop script. It is the core EndVoicemail pitch: answer the missed caller, ask useful questions, show the owner summary, and make the next step obvious.
+                The default demo shows the core EndVoicemail promise: answer the missed caller, ask useful questions, show the owner summary, and make the next step obvious.
               </p>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -139,7 +128,7 @@ export default function TryPage() {
                   <p className="text-sm font-semibold" style={{ color: "var(--color-text-1)" }}>What to do on the call</p>
                 </div>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-2)" }}>
-                  Answer like a real caller. Give short replies. If Zara barrels through without waiting or fails to reveal the owner summary, that is a bug — not the intended demo.
+                  Answer like a real missed caller. Give short replies and let Zara show how the callback summary comes together.
                 </p>
               </div>
             </div>
@@ -151,18 +140,18 @@ export default function TryPage() {
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-mono uppercase tracking-widest" style={{ color: "var(--color-primary)" }}>
-                  Optional demo routes
+                  Demo paths
                 </p>
                 <h2 className="mt-1 text-2xl font-black" style={{ color: "var(--color-text-1)" }}>
-                  Pick a niche only when it matches the page.
+                  Pick the call type you want to hear.
                 </h2>
               </div>
               <p className="max-w-lg text-sm" style={{ color: "var(--color-text-3)" }}>
-                The main landing page should stay generic. Auto-glass belongs on the auto-glass page.
+                The core demo is voicemail replacement. The auto-glass example shows the Windshield Hub-style intake flow.
               </p>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2">
               {DEMOS.map((demo) => {
                 const active = demo.id === selectedDemo.id
                 return (
@@ -208,15 +197,15 @@ export default function TryPage() {
             Want this replacing your actual voicemail?
           </h2>
           <p className="mx-auto mt-3 max-w-xl" style={{ color: "var(--color-text-2)" }}>
-            Set up your AI number, forward missed/busy/after-hours calls, and stop losing callback context.
+            Book a short walkthrough and Hasan will show you the call flow, owner summary, and forwarding setup.
           </p>
-          <Link
-            href={`/onboard?niche=${selectedDemo.id}`}
+          <a
+            href={BOOK_WALKTHROUGH_HREF}
             className="mt-6 inline-flex items-center gap-2 rounded-xl px-7 py-4 text-sm font-semibold text-white"
             style={{ backgroundColor: "var(--color-primary)" }}
           >
-            Set up my AI receptionist <ArrowRight size={16} />
-          </Link>
+            Book 15-min walkthrough <CalendarDays size={16} />
+          </a>
         </section>
       </main>
 

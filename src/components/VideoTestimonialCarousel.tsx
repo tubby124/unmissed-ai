@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { BRAND_NAME } from "@/lib/brand";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 const outcomes = [
   {
@@ -73,13 +73,13 @@ export default function VideoTestimonialCarousel() {
                     <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--color-text-2)" }}>{o.intent}</p>
                     <p className="text-xs" style={{ color: "var(--color-text-3)" }}>{o.nextStep}</p>
                   </div>
-                  <Link
-                    href="/onboard"
+                  <a
+                    href={BOOK_WALKTHROUGH_HREF}
                     className="mt-4 block text-center py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
                     style={{ backgroundColor: "var(--color-primary)" }}
                   >
-                    Get Mine Set Up →
-                  </Link>
+                    Book Walkthrough →
+                  </a>
                 </div>
               );
             }
