@@ -16,13 +16,37 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const { data: cu } = await supabase
+    .from('client_users')
+    .select('client_id, role')
+    .eq('user_id', user.id)
+    .order('role').limit(1).maybeSingle()
+
+  if (!cu) {
+    return NextResponse.json({ error: 'No client found' }, { status: 404 })
+  }
+
+  let callQuery = supabase
+    .from('call_logs')
+    .select('ultravox_call_id, client_id')
+    .eq('ultravox_call_id', id)
+
+  if (cu.role !== 'admin') {
+    callQuery = callQuery.eq('client_id', cu.client_id)
+  }
+
+  const { data: callLog } = await callQuery.limit(1).maybeSingle()
+  if (!callLog?.ultravox_call_id) {
+    return NextResponse.json({ error: 'Call not found' }, { status: 404 })
+  }
+
   const apiKey = process.env.ULTRAVOX_API_KEY
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
   }
 
   const res = await fetch(
-    `https://api.ultravox.ai/api/calls/${id}/messages?pageSize=200`,
+    `https://api.ultravox.ai/api/calls/${callLog.ultravox_call_id}/messages?pageSize=200`,
     {
       headers: { 'X-API-Key': apiKey },
       cache: 'no-store',
