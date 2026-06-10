@@ -21,6 +21,7 @@ import { generateNicheConfig, CustomNicheConfig } from "@/lib/niche-generator";
 import { enrichWithSonar } from "@/lib/sonar-enrichment";
 import { getPlanEntitlements } from "@/lib/plan-entitlements";
 import { SlidingWindowRateLimiter } from "@/lib/rate-limiter";
+import { sendTrialWelcomeEmail } from "@/lib/email/trial-welcome";
 
 const trialRateLimiter = new SlidingWindowRateLimiter(3, 60 * 60 * 1000) // 3/hr/IP
 
@@ -482,6 +483,33 @@ export async function POST(req: NextRequest) {
   }
 
   // Telegram alert handled by activateClient() — no duplicate needed
+
+  // Trial welcome email — fire-and-forget. An email failure must NEVER fail or
+  // delay the provisioning response. Deliberately uses /login?email=... (built
+  // inside sendTrialWelcomeEmail), NOT result.setupUrl — that recovery link is
+  // single-use and already embedded in activateClient()'s setup email.
+  void (async () => {
+    try {
+      const emailResult = await sendTrialWelcomeEmail({
+        to: rawEmail,
+        contactName: data.ownerName || null,
+        businessName: displayName,
+        agentName: intakePayload.agent_name ?? null,
+        clientId,
+        clientSlug,
+        carrierId: intakePayload.carrier_id ?? null,
+        twilioNumber: null, // trial mode — no Twilio number provisioned yet
+        trialDays: 7,
+      });
+      if (emailResult.ok) {
+        console.log(`[provision/trial] Trial welcome email sent to ${rawEmail.replace(/(.{2}).+(@.+)/, '$1***$2')} for ${clientSlug} (id=${emailResult.id})`);
+      } else {
+        console.error(`[provision/trial] Trial welcome email failed for ${clientSlug} (non-fatal): ${emailResult.error}`);
+      }
+    } catch (err) {
+      console.error(`[provision/trial] Trial welcome email threw for ${clientSlug} (non-fatal):`, err);
+    }
+  })();
 
   // Phase 2.5: Non-blocking Sonar enrichment — fire-and-forget, never blocks activation
   const sonarBusinessName = data.businessName || '';

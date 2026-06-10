@@ -480,6 +480,11 @@ export function TrialSuccessScreen({
               {trialCountdown} — browser preview only
             </p>
           )}
+          {email && (
+            <p className="text-xs text-white/40">
+              We&apos;ve emailed these instructions to {email}.
+            </p>
+          )}
         </div>
       </div>
 
