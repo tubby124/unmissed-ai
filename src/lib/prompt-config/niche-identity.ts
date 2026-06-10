@@ -212,8 +212,14 @@ export function classifyQaTier(
 
 /**
  * Extracts all identity-tier Q&A pairs from a client's extra_qa array,
- * returning an array of `{label, answer, key}` records suitable for
- * rendering into the BUSINESS FACTS block.
+ * returning an array of `{label, question, answer, key}` records suitable
+ * for rendering into the BUSINESS FACTS block.
+ *
+ * `question` is preserved because many answers are not self-contained —
+ * "Q: Do you do chip repair? A: Yes, chips smaller than a quarter." loses
+ * its subject entirely if only the answer is rendered. (Bug found 2026-06-10
+ * via prompt-knowledge-separation.test.ts 'extra_qa from DB are available
+ * in KnowledgeSummary at call time'.)
  *
  * Deduplicates by `identityKey` — if multiple Q&A pairs match the same
  * identity key, only the first answer is kept. Empty answers are skipped.
@@ -221,14 +227,15 @@ export function classifyQaTier(
 export function extractIdentityFacts(
   extraQa: Array<{ q: string; a: string }> | null | undefined,
   niche: string | null | undefined,
-): Array<{ key: IdentityKey; label: string; answer: string }> {
+): Array<{ key: IdentityKey; label: string; question: string; answer: string }> {
   if (!Array.isArray(extraQa) || extraQa.length === 0) return []
 
   const seen = new Set<IdentityKey>()
-  const out: Array<{ key: IdentityKey; label: string; answer: string }> = []
+  const out: Array<{ key: IdentityKey; label: string; question: string; answer: string }> = []
 
   for (const pair of extraQa) {
     if (!pair?.q || !pair?.a) continue
+    const question = String(pair.q).trim()
     const answer = String(pair.a).trim()
     if (!answer) continue
 
@@ -237,7 +244,7 @@ export function extractIdentityFacts(
     if (seen.has(identityKey)) continue
 
     seen.add(identityKey)
-    out.push({ key: identityKey, label, answer })
+    out.push({ key: identityKey, label, question, answer })
   }
 
   return out

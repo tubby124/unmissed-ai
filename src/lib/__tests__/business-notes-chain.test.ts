@@ -85,11 +85,15 @@ describe('Phase E.7 — business_notes end-to-end chain', () => {
 
   test('3000-char business_notes stays under slot ceiling (guarded by slot-ceilings.test.ts)', () => {
     const prompt = buildPromptFromIntake(baseIntake({ business_notes: 'x'.repeat(3000) }))
-    // Full prompt must still fit under the niche ceiling (13,500 for auto_glass).
+    // Full prompt must still fit under the auto_glass total ceiling + notes block.
     // slot-ceilings.test.ts already asserts BUSINESS_NOTES slot specifically.
+    // 2026-06-10: bumped 17,000 → 21,800. Auto_glass baseline grew deliberately
+    // to 16,615 in the June 3-5 wave (1f18bee8 + 2275d12a + Layer A — see
+    // slot-ceilings.test.ts TOTAL_PROMPT_CEILING note); measured with 3000-char
+    // notes: 19,832 + ~10% headroom. Under PROMPT_MAX_CHARS 25,300 (2026-06-04 policy).
     assert.ok(
-      prompt.length < 17000,
-      `prompt with 3000-char business_notes is ${prompt.length} chars, expected < 17000`,
+      prompt.length < 21800,
+      `prompt with 3000-char business_notes is ${prompt.length} chars, expected < 21800`,
     )
   })
 })

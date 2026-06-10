@@ -539,8 +539,12 @@ describe('FORBIDDEN_EXTRA cap (Workstream B Phase 2a)', () => {
       out.includes('Fair Housing Act violations carry penalties up to $150,000'),
       'FHA sacred rule MUST survive the cap. If this fails, the cap is clipping the wrong end.',
     )
+    // ESA rule wording updated 2026-06-04 (commit 1f18bee8 prior-session WIP —
+    // "FAIR HOUSING — ESA/SERVICE ANIMAL/DISABILITY (OVERRIDES ALL)" rewrite,
+    // Tier-1.5 validated). Assert the current sacred wording, same intent.
     assert.ok(
-      out.includes('NEVER reject or question service animal or ESA'),
+      out.includes('FAIR HOUSING — ESA/SERVICE ANIMAL/DISABILITY (OVERRIDES ALL)')
+        && out.includes('NEVER ask qualifying questions'),
       'ESA sacred rule MUST survive the cap.',
     )
   })
@@ -574,8 +578,10 @@ describe('FORBIDDEN_EXTRA cap (Workstream B Phase 2a)', () => {
       out.includes('Fair Housing Act violations carry penalties up to $150,000'),
       'FHA sacred rule must survive in the no-bloat case.',
     )
+    // Current ESA sacred wording — see comment in the with-bloat test above.
     assert.ok(
-      out.includes('NEVER reject or question service animal or ESA'),
+      out.includes('FAIR HOUSING — ESA/SERVICE ANIMAL/DISABILITY (OVERRIDES ALL)')
+        && out.includes('NEVER ask qualifying questions'),
       'ESA sacred rule must survive in the no-bloat case.',
     )
     // Bedbug urgent-tier rule lives in the niche-defaults PEST rule.

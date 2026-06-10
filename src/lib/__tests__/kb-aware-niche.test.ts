@@ -102,7 +102,10 @@ const baseForbiddenCtx = {
 // Note: rules 9 (ANSWER-FIRST) and 10 (TOOL-LATENCY BRIDGE) are universal and mention
 // queryKnowledge by name. The KB-priming block is a separate paragraph appended after
 // the numbered rules — these tests assert that *paragraph* is absent, not the word.
-const KB_PRIMING_PHRASE = /call queryKnowledge first/i
+// Phrase updated 2026-06-10: the priming paragraph was rewritten by commit 1f18bee8
+// (2026-06-04, Tier-1.5 validated) — both stances now open with "DEFAULT for ...
+// factual question(s)" and use "bridge ... then queryKnowledge" phrasing.
+const KB_PRIMING_PHRASE = /DEFAULT for (ANY )?factual question/i
 
 test('FORBIDDEN_ACTIONS has no KB priming when KB empty', () => {
   const out = buildForbiddenActions(baseForbiddenCtx as never)
@@ -128,8 +131,10 @@ test('FORBIDDEN_ACTIONS emits KB-first priming when populated (permissive)', () 
   } as never)
   assert.ok(out.includes('queryKnowledge'),
     'KB priming must emit when chunks > 0')
-  assert.ok(/queryKnowledge first/i.test(out),
-    'permissive stance: should include "queryKnowledge first" phrasing')
+  // Phrase updated 2026-06-10 (1f18bee8 rewrite): permissive priming is now
+  // "DEFAULT for factual questions ..., bridge then queryKnowledge."
+  assert.ok(/bridge then queryKnowledge/i.test(out),
+    'permissive stance: should include "bridge then queryKnowledge" phrasing')
 })
 
 test('FORBIDDEN_ACTIONS emits KB-conditional priming when populated (strict)', () => {
@@ -151,7 +156,9 @@ test('FORBIDDEN_ACTIONS KB priming includes booking/emergency exclusion', () => 
     knowledgeBackend: 'pgvector',
     knowledgeChunkCount: 6,
   } as never)
-  assert.match(out, /Do NOT call queryKnowledge for greetings, emergencies, or booking/i,
+  // Phrase updated 2026-06-10 (1f18bee8 rewrite): exclusion line is now
+  // "No queryKnowledge for greetings, emergencies, or booking confirmations."
+  assert.match(out, /(Do NOT call|No) queryKnowledge for greetings, emergencies, or booking/i,
     'KB priming must exclude greetings/emergencies/booking from queryKnowledge calls')
 })
 
@@ -180,8 +187,11 @@ test('property_management FORBIDDEN_EXTRA SCOPE rule is KB-conditional, not blan
 
 test('property_management FORBIDDEN_EXTRA preserves legal-advice prohibition', () => {
   const fe = NICHE_DEFAULTS.property_management.FORBIDDEN_EXTRA
-  assert.match(fe, /NEVER give legal advice/i)
-  assert.match(fe, /RTA|eviction|landlord-rights/i)
+  // Phrase updated 2026-06-10: the 1f18bee8 rewrite turned "NEVER give legal
+  // advice" into an explicit refusal script ("I can't give legal advice on
+  // that") + NEVER bridge / NEVER queryKnowledge. Same prohibition, stronger form.
+  assert.match(fe, /NEVER give legal advice|can't give legal advice/i)
+  assert.match(fe, /RTA|eviction|landlord.tenant rights|landlord-rights/i)
 })
 
 test('property_management TRIAGE_DEEP RENTAL INQUIRY is KB-conditional', () => {
@@ -348,7 +358,10 @@ test('regression: every niche with blanket-route rules also has KB-first priming
     const lines = fe.split('\n')
     const blanketLines = lines.filter(l => /NEVER[^\n]*(always route|— route\b)/i.test(l))
     if (blanketLines.length === 0) continue
-    const hasKbFirst = /queryKnowledge first/i.test(fe)
+    // KB-first companion phrasing — accepts both the legacy "queryKnowledge
+    // first" form (still used by several niches) and the 2026-06-04 rewrite
+    // form "bridge ... then queryKnowledge" (1f18bee8, property_management).
+    const hasKbFirst = /queryKnowledge first|then queryKnowledge/i.test(fe)
     // For each blanket line, it must EITHER be an absolute carve-out OR be paired with a KB-first rule
     for (const line of blanketLines) {
       if (isAbsoluteCarveOut(line)) continue

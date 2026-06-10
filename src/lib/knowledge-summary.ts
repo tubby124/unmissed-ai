@@ -165,14 +165,17 @@ export function buildKnowledgeSummary(business: BusinessConfig): KnowledgeSummar
   // ── Build IDENTITY block ─────────────────────────────────────────────────
   // Rendered uncapped at the top. The instruction line is load-bearing — it
   // tells the agent these facts are baked identity, not lookup candidates.
+  // The question text is rendered alongside the answer — answers are often
+  // not self-contained ("Yes, chips smaller than a quarter." is meaningless
+  // without "Do you do chip repair?"). Fix 2026-06-10.
   let identityBlock = ''
   const identityIncluded: string[] = []
   if (identityFacts.length > 0) {
     identityBlock = '## Identity (instant answers — answer DIRECTLY, do NOT bridge or call queryKnowledge for these)\n'
     for (const f of identityFacts) {
-      const line = `- ${f.label}: ${f.answer}\n`
-      identityBlock += line
-      identityIncluded.push(`${f.label}: ${f.answer}`)
+      const rendered = `${f.label}: ${f.question} → ${f.answer}`
+      identityBlock += `- ${rendered}\n`
+      identityIncluded.push(rendered)
     }
   }
 

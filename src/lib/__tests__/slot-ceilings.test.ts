@@ -60,13 +60,13 @@ const AUTO_GLASS_INTAKE = {
 const SLOT_CEILINGS = {
   PERSONA_ANCHOR: 900,        // Phase D: 722
   SAFETY_PREAMBLE: 600,       // Phase D: 465
-  FORBIDDEN_ACTIONS: 2_400,   // Phase D: 1,661; +540 (2026-05-06) for universal rules 9 (ANSWER-FIRST) + 10 (TOOL-LATENCY BRIDGE) promoted from PM-only
+  FORBIDDEN_ACTIONS: 3_100,   // Phase D: 1,661; +540 (2026-05-06) universal rules 9+10; → 3,100 (2026-06-10): actual 2,822 after rule-8 anti-jailbreak expansion (1f18bee8, 2026-06-04, Tier-1.5 validated) + ~10% headroom. Within the 2026-06-04 cap policy (warn 15K / hard 25.3K per settings-schema.ts).
   VOICE_NATURALNESS: 700,     // Phase D: 523
   GRAMMAR: 500,               // Phase D: 342
   IDENTITY: 400,              // Phase D: 278
   TONE_AND_STYLE: 1_100,      // Phase D: 898
   GOAL: 650,                  // Phase D: 502
-  CONVERSATION_FLOW: 5_000,   // Phase D: 3,996 — includes niche triageDeep
+  CONVERSATION_FLOW: 7_400,   // Phase D: 3,996 — includes niche triageDeep; → 7,400 (2026-06-10): actual 6,732 after Layer-B UNCLEAR/VENDOR branches (2275d12a, 2026-06-05) + Wave 3 Layer A PERSONAL/OFF-TOPIC flow + ~10% headroom (2026-06-04 cap policy)
   ESCALATION_TRANSFER: 550,   // Phase D: 418
   INLINE_EXAMPLES: 1_400,     // Phase D: 1,084 — safety-preserving trim helper
   CALL_HANDLING_MODE: 450,    // Phase D: 207 — bumped for triage no-repeat-name guardrail (+113 chars)
@@ -89,7 +89,15 @@ const SLOT_CEILINGS = {
 // Bumped to 13,700 to absorb the deliberate gain. Phase 2a (FORBIDDEN_EXTRA cap,
 // targeting ~1,200 char savings) will recover this many times over — ceiling can drop
 // back to 13,500 after Phase 2a ships.
-const TOTAL_PROMPT_CEILING = 13_700
+// 2026-06-10: bumped 13,700 → 18,300. Actual baselines grew deliberately in the
+// June 3-5 wave: rule-8 anti-jailbreak expansion + strict/permissive kbPriming
+// rewrite + LIFE SAFETY additions (1f18bee8), Layer-B UNCLEAR/VENDOR triage
+// branches (2275d12a), Wave 3 Layer A universal PERSONAL/OFF-TOPIC flow
+// (baselines re-exported in a6ce8859). Measured: auto_glass 16,615 / hvac
+// 16,349 / plumbing 15,429 → max + ~10% headroom. Consistent with the
+// 2026-06-04 prompt-length policy (PROMPT_WARN_CHARS 15,000 / PROMPT_MAX_CHARS
+// 25,300 in settings-schema.ts — Tier-2 confirmed ~25K prompts run fine).
+const TOTAL_PROMPT_CEILING = 18_300
 
 describe('Phase D slot char ceilings (auto_glass baseline)', () => {
   const ctx = buildSlotContext(AUTO_GLASS_INTAKE)
@@ -125,9 +133,13 @@ describe('Phase D slot char ceilings (auto_glass baseline)', () => {
     // 2026-05-06) → 5,300 (INTERNAL TAGS rule 2026-05-06 PM). The INTERNAL TAGS rule
     // (~470 chars) bans speaking the routing labels P1/P2/P3 etc. — fixes the customer
     // -facing bracket-tag leak that was sending "P1 URGENT" into both speech and SMS.
-    // If this trips again, investigate FORBIDDEN_EXTRA bloat in property_management niche config.
-    assert.ok(out.length <= 5_300,
-      `FORBIDDEN_ACTIONS with strict KB priming exceeds 5300: ${out.length}`)
+    // → 7,900 (2026-06-10): actual 7,186 after the 2026-06-04 strict kbPriming
+    // rewrite (IDENTITY exception block, 1f18bee8) + PM Phase 1c FORBIDDEN_EXTRA
+    // rules (UTILITIES/APPLICATION/ESA carve-out/LEGAL refusal) + ~10% headroom
+    // (2026-06-04 cap policy). If this trips again, investigate FORBIDDEN_EXTRA
+    // bloat in property_management niche config.
+    assert.ok(out.length <= 7_900,
+      `FORBIDDEN_ACTIONS with strict KB priming exceeds 7900: ${out.length}`)
   })
 
   test('VOICE_NATURALNESS under ceiling', () => {
@@ -214,14 +226,14 @@ describe('Phase D slot char ceilings (auto_glass baseline)', () => {
 })
 
 describe('Phase D total prompt ceilings', () => {
-  test('auto_glass baseline total under 13,500 chars (ideal: 8K, practical: 12K)', () => {
+  test('auto_glass baseline total under 18,300 chars (ideal: 8K, practical: 12K)', () => {
     const prompt = buildPromptFromIntake(AUTO_GLASS_INTAKE)
     assert.ok(prompt.length <= TOTAL_PROMPT_CEILING,
       `auto_glass baseline prompt is ${prompt.length} chars, exceeds Phase D ceiling ${TOTAL_PROMPT_CEILING}. ` +
       `Investigate which slot grew via npx tsx scripts/b4-slot-breakdown.mjs`)
   })
 
-  test('hvac baseline total under 13,500 chars', () => {
+  test('hvac baseline total under 18,300 chars', () => {
     const prompt = buildPromptFromIntake({
       niche: 'hvac',
       business_name: 'Prairie HVAC',
@@ -240,7 +252,12 @@ describe('Phase D total prompt ceilings', () => {
   // + CLOSING_OVERRIDE + 7 NICHE_EXAMPLES. Same complexity tier as PM, same higher ceiling.
   // Raised 19,500 → 20,500 (2026-05-06) for universal FORBIDDEN rules 9 (ANSWER-FIRST) +
   // 10 (TOOL-LATENCY BRIDGE) promoted from PM-only into buildForbiddenActions baseRules.
-  test('real_estate baseline under 20,500 chars (niche-specific higher ceiling — Wave 4 + universal rules)', () => {
+  // Raised 20,500 → 25,300 (2026-06-10): actual 24,241 after real_estate Layer B
+  // (92c2aedb FAST-CONFIRM + VENDOR/UNCLEAR), rule-8 expansion + kbPriming rewrite
+  // (1f18bee8), Wave 3 Layer A flow. Ceiling clamped to PROMPT_MAX_CHARS (25,300,
+  // 2026-06-04 policy, settings-schema.ts) rather than actual+10% — the hard cap
+  // is the binding constraint; any further growth must come with compression.
+  test('real_estate baseline under 25,300 chars (niche-specific higher ceiling — Wave 4 + universal rules)', () => {
     const prompt = buildPromptFromIntake({
       niche: 'real_estate',
       business_name: 'Sharif Realty',
@@ -251,11 +268,11 @@ describe('Phase D total prompt ceilings', () => {
       call_handling_mode: 'triage',
       callback_phone: '+17805550000',
     })
-    assert.ok(prompt.length <= 20_500,
-      `real_estate baseline is ${prompt.length} chars, exceeds Wave 4 ceiling 20,500`)
+    assert.ok(prompt.length <= 25_300,
+      `real_estate baseline is ${prompt.length} chars, exceeds PROMPT_MAX_CHARS-aligned ceiling 25,300`)
   })
 
-  test('plumbing baseline total under 13,500 chars', () => {
+  test('plumbing baseline total under 18,300 chars', () => {
     const prompt = buildPromptFromIntake({
       niche: 'plumbing',
       business_name: 'Prairie Plumbing',
@@ -277,7 +294,12 @@ describe('Phase D total prompt ceilings', () => {
   // showed the agent reading "[P1 URGENT]" out loud + putting it in the SMS confirmation.
   // PM still keeps: 10-branch TRIAGE_DEEP, INFO_FLOW_OVERRIDE, CLOSING_OVERRIDE, all FHA/ESA/
   // bedbug/closure-anti-hallucination guardrails.
-  test('property_management baseline under 19,500 chars (post INTERNAL TAGS)', () => {
+  // Raised 19,500 → 25,300 (2026-06-10): actual 23,271 after PM Phase 1c rules +
+  // ESA/LEGAL rewrite + kbPriming rewrite (1f18bee8) + Layer A/B triage growth.
+  // Actual+10% would be 25,598 — clamped to PROMPT_MAX_CHARS (25,300, 2026-06-04
+  // policy). PM is the closest niche to the hard cap; D460 Phase 2d compression
+  // is the planned recovery.
+  test('property_management baseline under 25,300 chars (post INTERNAL TAGS)', () => {
     const prompt = buildPromptFromIntake({
       niche: 'property_management',
       business_name: 'Urban Vibe Properties',
@@ -288,7 +310,7 @@ describe('Phase D total prompt ceilings', () => {
       call_handling_mode: 'triage',
       owner_name: 'Ray',
     })
-    assert.ok(prompt.length <= 19_500,
-      `property_management baseline is ${prompt.length} chars, exceeds post-INTERNAL-TAGS ceiling 19,500`)
+    assert.ok(prompt.length <= 25_300,
+      `property_management baseline is ${prompt.length} chars, exceeds PROMPT_MAX_CHARS-aligned ceiling 25,300`)
   })
 })

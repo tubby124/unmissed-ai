@@ -86,6 +86,12 @@ export interface SlotContext {
 
   // Forbidden extras (numbered rules after rule 9)
   forbiddenExtraRules: string[] // pre-numbered lines like '10. NEVER ...'
+  // Count of leading forbiddenExtraRules that are sacred (niche-defaults
+  // guardrails — FHA/ESA/legal/pest etc.). Sacred rules are exempt from the
+  // FORBIDDEN_EXTRA cap: truncation drops discretionary (AI/scrape-derived)
+  // rules first, never safety rules. Optional — defaults to 0 (legacy
+  // head-first cap behavior) for hand-built test contexts.
+  forbiddenExtraSacredCount?: number
 
   // FAQ / Knowledge
   faqPairs: string
@@ -276,9 +282,24 @@ export function buildForbiddenActions(ctx: SlotContext): string {
   const FORBIDDEN_EXTRA_MAX = 4500
   let extraJoined = ctx.forbiddenExtraRules.length > 0 ? ctx.forbiddenExtraRules.join('\n') : ''
   if (extraJoined.length > FORBIDDEN_EXTRA_MAX) {
+    // 2026-06-10 hardening: sacred niche-defaults rules (the first
+    // forbiddenExtraSacredCount entries) are exempt from the cap — they are
+    // ALWAYS included, even if they alone exceed FORBIDDEN_EXTRA_MAX. Only
+    // discretionary rules (AI/scrape-derived customs, mode extras, owner
+    // restrictions) compete for the remaining budget, in order. Previously the
+    // cap was order-dependent: it happened to preserve sacred rules only
+    // because they sat at the head of the array. If niche-defaults ever grow
+    // past the cap, this guarantees safety rules survive and the
+    // slot-ceilings/prompt-knowledge-separation regression tests trip loudly
+    // instead of safety content being dropped silently.
+    const sacredCount = ctx.forbiddenExtraSacredCount ?? 0
     const truncated: string[] = []
     let running = 0
-    for (const rule of ctx.forbiddenExtraRules) {
+    for (const rule of ctx.forbiddenExtraRules.slice(0, sacredCount)) {
+      truncated.push(rule)
+      running += rule.length + 1
+    }
+    for (const rule of ctx.forbiddenExtraRules.slice(sacredCount)) {
       if (running + rule.length + 1 > FORBIDDEN_EXTRA_MAX) break
       truncated.push(rule)
       running += rule.length + 1
@@ -1465,6 +1486,23 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     }
   }
 
+  // Sacred-rule provenance for the FORBIDDEN_EXTRA cap (2026-06-10).
+  // Niche-defaults guardrails (FHA/ESA/legal/pest etc.) + the niche restriction
+  // line sit at the head of effectiveRestrictions. Count the leading run of
+  // rules that originate from those sources so buildForbiddenActions can exempt
+  // them from cap truncation — discretionary (AI/scrape/custom) rules drop first.
+  const sacredLineSet = new Set<string>([
+    ...(nicheRestriction ? [nicheRestriction.trim()] : []),
+    ...((baseVars.FORBIDDEN_EXTRA || '').split('\n').map(l => l.trim()).filter(Boolean)),
+  ])
+  let forbiddenExtraSacredCount = 0
+  for (const line of effectiveRestrictions.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed) continue
+    if (sacredLineSet.has(trimmed)) forbiddenExtraSacredCount++
+    else break
+  }
+
   // Resolve variables in forbidden extra rules (dental niche defaults contain {{CLOSE_PERSON}})
   const resolveVarsEarly = (text: string): string => {
     return text.replace(
@@ -1620,6 +1658,7 @@ export function buildSlotContext(intake: Record<string, unknown>): SlotContext {
     triageDeep: resolveVars(triageDeep),
     filterExtra: resolveVars(variables.FILTER_EXTRA || ''),
     forbiddenExtraRules,
+    forbiddenExtraSacredCount,
     pricingPolicy: pricingPolicy,
     kbStance: getKbStance(intake.niche as string | undefined),
     faqPairs: variables.FAQ_PAIRS || 'No FAQ pairs configured yet.',

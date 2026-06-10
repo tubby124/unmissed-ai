@@ -216,9 +216,13 @@ describe('Phase 1 — PM hero niche', () => {
       niche: 'property_management',
       callerType: 'prospect',
       intentSummary: 'Caller asks if pets are allowed',
+      // Fragments updated 2026-06-10: SCOPE rule reworded by the 2026-06-04
+      // PM niche-defaults rewrite (commit 1f18bee8, Tier-1.5 validated, live on
+      // Velly) — "general building policies"/"queryKnowledge first" became
+      // "building-level POLICIES" + "bridge phrase FIRST, then queryKnowledge".
       expectedContains: [
-        'general building policies',
-        'queryKnowledge first',
+        'building-level POLICIES',
+        'then queryKnowledge',
       ],
     },
     {
@@ -236,8 +240,12 @@ describe('Phase 1 — PM hero niche', () => {
       niche: 'property_management',
       callerType: 'prospect',
       intentSummary: 'Caller says they have a service dog',
+      // Fragments updated 2026-06-10: ESA rule strengthened by the 2026-06-04
+      // rewrite (commit 1f18bee8) — old "NEVER reject or question service
+      // animal or ESA requests" became the OVERRIDES-ALL carve-out below.
       expectedContains: [
-        'NEVER reject or question service animal or ESA requests',
+        'FAIR HOUSING — ESA/SERVICE ANIMAL/DISABILITY (OVERRIDES ALL)',
+        'NEVER ask qualifying questions',
       ],
     },
     {
@@ -295,8 +303,12 @@ describe('Phase 1 — PM hero niche', () => {
       niche: 'property_management',
       callerType: 'tenant',
       intentSummary: 'Tenant asks if they can be evicted for late rent',
+      // Fragment updated 2026-06-10: LEGAL ADVICE rule reworded by the
+      // 2026-06-04 rewrite (commit 1f18bee8) — refusal is now an explicit
+      // spoken response ("I can't give legal advice on that") + NEVER bridge /
+      // NEVER queryKnowledge, instead of the old "NEVER give legal advice".
       expectedContains: [
-        'NEVER give legal advice',
+        "can't give legal advice",
         'RTA',
       ],
     },
@@ -330,9 +342,10 @@ describe('Phase 2 — PM field-empty variants', () => {
       callerType: 'prospect',
       intentSummary: 'Pet policy question — client never filled in deposit amount',
       intakeOverrides: { niche_petPolicy: 'cats_dogs', niche_petDepositAmount: undefined },
+      // Fragments updated 2026-06-10 — same SCOPE rewording as pm-07 above.
       expectedContains: [
-        'general building policies',
-        'queryKnowledge first',
+        'building-level POLICIES',
+        'then queryKnowledge',
       ],
       mustNotContain: [
         'Pet deposit:',   // no deposit amount → not injected
