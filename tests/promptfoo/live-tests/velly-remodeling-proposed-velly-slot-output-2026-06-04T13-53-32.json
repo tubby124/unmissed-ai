@@ -1,0 +1,374 @@
+{
+  "slug": "velly-remodeling",
+  "promptSource": {
+    "type": "file",
+    "path": "/tmp/velly-slot-output.txt"
+  },
+  "callId": "fee92a0b-a724-4263-aa85-fe4d837b16f7",
+  "startedAt": "2026-06-04T13:51:35.043Z",
+  "durationSeconds": 118,
+  "systemPromptChars": 19487,
+  "voice": "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",
+  "toolsCount": 6,
+  "markers": [
+    "Sutherland",
+    "Nutana",
+    "Riversdale",
+    "$200/sqft",
+    "per square foot",
+    "$15,000",
+    "$20,000"
+  ],
+  "metrics": {
+    "bridgePhraseHits": 1,
+    "toolInvocations": 2,
+    "queryKnowledgeFires": 2,
+    "markersHit": []
+  },
+  "transcript": [
+    "[MESSAGE_ROLE_USER] (New Call) Respond as if you are answering the phone.",
+    "[MESSAGE_ROLE_AGENT] \nThanks for calling Velly Remodeling, this is Samantha. We do renovations, new builds, basement suites, kitchens and bathrooms — what are you looking to get done?",
+    "[MESSAGE_ROLE_USER]  I'm just wondering how long have you guys been in business?",
+    "[MESSAGE_ROLE_AGENT] \nlet me check that one for you... one sec.\n",
+    "[MESSAGE_ROLE_TOOL_CALL] {\"query\": \"how long has Velly Remodeling been in business\"}",
+    "[MESSAGE_ROLE_TOOL_RESULT] {\"results\":[{\"content\":\"Velly Remodeling is located at 4-216 33rd Street West, Saskatoon, SK.\",\"chunk_type\":\"fact\",\"source\":\"website_scrape\",\"similarity\":0.624484500843778,\"source_run_id\":\"website-scrape-1779811143053\",\"rrf_score\":0.0196078431372549,\"trust_tier\":\"medium\"},{\"content\":\"The company specializes in kitchen remodeling, bathroom renovation, basement refinishing, and general remodeling.\",\"chunk_type\":\"fact\",\"source\":\"website_scrape\",\"similarity\":0.454903592485002,\"source_run_id\":\"website-scrape-1779811143053\",\"rrf_score\":0.0192307692307692,\"trust_tier\":\"medium\"}],\"count\":2,\"query_id\":\"6085cf59-b1a9-417e-9945-45d7adc0578c\",\"_instruction\":\"Found: Velly Remodeling is located at 4-216 33rd Street West, Saskatoon, SK.. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.\"}",
+    "[MESSAGE_ROLE_AGENT] \ngotcha... i don't have that info handy, but i can have someone from our team call you back with the details. are you thinking about a project you'd like to discuss?",
+    "[MESSAGE_ROLE_USER]  Yeah, exactly. I'm looking to get my kitchen remodeled.",
+    "[MESSAGE_ROLE_AGENT] \nawesome — are you thinking full gut, or more of a refresh on cabinets and countertops?",
+    "[MESSAGE_ROLE_USER]  Yeah, I think like the whole thing. The whole thing.",
+    "[MESSAGE_ROLE_AGENT] \ngot it — what's your name and address?",
+    "[MESSAGE_ROLE_USER]  - Name's Joseph, 306, 222 Copland Crescent.",
+    "[MESSAGE_ROLE_AGENT] \nperfect — and any rough timing you've got in mind for when you'd like the work done?",
+    "[MESSAGE_ROLE_USER]  Like yesterday?",
+    "[MESSAGE_ROLE_AGENT] \nhaha, i get it — i'll flag this as urgent so our project manager calls you back today to take a look. what's a good budget range you're working with?",
+    "[MESSAGE_ROLE_USER]  65,000",
+    "[MESSAGE_ROLE_AGENT] \nalright, i've got everything i need — our project manager will call you back today at the number",
+    "[MESSAGE_ROLE_USER]  You don't even have my name.",
+    "[MESSAGE_ROLE_AGENT] \noh sorry, joseph — i've got your name and address. our",
+    "[MESSAGE_ROLE_USER]  Oh, you do?",
+    "[MESSAGE_ROLE_AGENT] \nyeah, joseph at three oh six two two two copland crescent. our project"
+  ],
+  "rawMessages": [
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": "(New Call) Respond as if you are answering the phone.",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "callStageMessageIndex": 0
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nThanks for calling Velly Remodeling, this is Samantha. We do renovations, new builds, basement suites, kitchens and bathrooms — what are you looking to get done?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 1,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "0.620s",
+        "end": "11.390s"
+      },
+      "wallClockTimespan": {
+        "start": "1.294525s",
+        "end": "12.070237s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " I'm just wondering how long have you guys been in business?",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 2,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "12.576s",
+        "end": "14.944s"
+      },
+      "wallClockTimespan": {
+        "start": "13.282822s",
+        "end": "15.624007s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nlet me check that one for you... one sec.\n",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 3,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "16.350s",
+        "end": "19.510s"
+      },
+      "wallClockTimespan": {
+        "start": "17.028261s",
+        "end": "20.187003s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_CALL",
+      "text": "{\"query\": \"how long has Velly Remodeling been in business\"}",
+      "invocationId": "chatcmpl-tool-9e5abee9686d6cf3",
+      "toolName": "queryKnowledge",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 4,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "19.510s",
+        "end": "19.510s"
+      },
+      "wallClockTimespan": {
+        "start": "20.190741s",
+        "end": "21.862952s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_RESULT",
+      "text": "{\"results\":[{\"content\":\"Velly Remodeling is located at 4-216 33rd Street West, Saskatoon, SK.\",\"chunk_type\":\"fact\",\"source\":\"website_scrape\",\"similarity\":0.624484500843778,\"source_run_id\":\"website-scrape-1779811143053\",\"rrf_score\":0.0196078431372549,\"trust_tier\":\"medium\"},{\"content\":\"The company specializes in kitchen remodeling, bathroom renovation, basement refinishing, and general remodeling.\",\"chunk_type\":\"fact\",\"source\":\"website_scrape\",\"similarity\":0.454903592485002,\"source_run_id\":\"website-scrape-1779811143053\",\"rrf_score\":0.0192307692307692,\"trust_tier\":\"medium\"}],\"count\":2,\"query_id\":\"6085cf59-b1a9-417e-9945-45d7adc0578c\",\"_instruction\":\"Found: Velly Remodeling is located at 4-216 33rd Street West, Saskatoon, SK.. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.\"}",
+      "invocationId": "chatcmpl-tool-9e5abee9686d6cf3",
+      "toolName": "queryKnowledge",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 5,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "callState": {
+        "knowledgeQueries": 1,
+        "lastToolOutcome": "knowledge_found"
+      },
+      "timespan": {
+        "start": "19.510s",
+        "end": "21.180s"
+      },
+      "wallClockTimespan": {
+        "start": "21.862952s",
+        "end": "21.863486s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\ngotcha... i don't have that info handy, but i can have someone from our team call you back with the details. are you thinking about a project you'd like to discuss?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 6,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "21.860s",
+        "end": "31.060s"
+      },
+      "wallClockTimespan": {
+        "start": "22.536347s",
+        "end": "31.733175s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Yeah, exactly. I'm looking to get my kitchen remodeled.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 7,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "32.416s",
+        "end": "37.024s"
+      },
+      "wallClockTimespan": {
+        "start": "33.128871s",
+        "end": "37.706161s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nawesome — are you thinking full gut, or more of a refresh on cabinets and countertops?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 8,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "37.680s",
+        "end": "42.100s"
+      },
+      "wallClockTimespan": {
+        "start": "38.360737s",
+        "end": "42.772802s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Yeah, I think like the whole thing. The whole thing.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 9,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "43.264s",
+        "end": "54.368s"
+      },
+      "wallClockTimespan": {
+        "start": "43.975292s",
+        "end": "55.043225s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\ngot it — what's your name and address?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 10,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "55.110s",
+        "end": "58.270s"
+      },
+      "wallClockTimespan": {
+        "start": "55.783293s",
+        "end": "58.942679s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " - Name's Joseph, 306, 222 Copland Crescent.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 11,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "59.552s",
+        "end": "64.256s"
+      },
+      "wallClockTimespan": {
+        "start": "60.264437s",
+        "end": "64.938029s"
+      },
+      "metadata": {
+        "ultravox.text_annotation": "<numbers>306222</numbers>"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nperfect — and any rough timing you've got in mind for when you'd like the work done?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 12,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "65.560s",
+        "end": "69.570s"
+      },
+      "wallClockTimespan": {
+        "start": "66.239383s",
+        "end": "70.247043s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Like yesterday?",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 13,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "71.264s",
+        "end": "72.256s"
+      },
+      "wallClockTimespan": {
+        "start": "71.976425s",
+        "end": "72.938525s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nhaha, i get it — i'll flag this as urgent so our project manager calls you back today to take a look. what's a good budget range you're working with?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 14,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "73.150s",
+        "end": "82.250s"
+      },
+      "wallClockTimespan": {
+        "start": "73.827502s",
+        "end": "82.930740s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " 65,000",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 15,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "84.064s",
+        "end": "85.152s"
+      },
+      "wallClockTimespan": {
+        "start": "84.773574s",
+        "end": "85.835359s"
+      },
+      "metadata": {
+        "ultravox.text_annotation": "<numbers>65000</numbers>"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nalright, i've got everything i need — our project manager will call you back today at the number",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 16,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "86.620s",
+        "end": "94.210s"
+      },
+      "wallClockTimespan": {
+        "start": "87.300240s",
+        "end": "94.884990s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " You don't even have my name.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 17,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "92.800s",
+        "end": "95.296s"
+      },
+      "wallClockTimespan": {
+        "start": "93.515218s",
+        "end": "95.978308s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\noh sorry, joseph — i've got your name and address. our",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 18,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "96.320s",
+        "end": "100.100s"
+      },
+      "wallClockTimespan": {
+        "start": "96.999459s",
+        "end": "100.779195s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Oh, you do?",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 19,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "99.808s",
+        "end": "100.256s"
+      },
+      "wallClockTimespan": {
+        "start": "100.519574s",
+        "end": "100.940622s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nyeah, joseph at three oh six two two two copland crescent. our project",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 20,
+      "callStageId": "2e4bd0eb-6398-44f5-ba41-49959545ee1a",
+      "timespan": {
+        "start": "101.510s",
+        "end": "105.770s"
+      },
+      "wallClockTimespan": {
+        "start": "102.192049s",
+        "end": "106.460227s"
+      }
+    }
+  ]
+}

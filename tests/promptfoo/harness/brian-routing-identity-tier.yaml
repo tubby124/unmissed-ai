@@ -1,0 +1,167 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Brian (calgary-property-leasing) — queryKnowledge routing eval
+# ─────────────────────────────────────────────────────────────────────────────
+# Purpose: measure whether the agent intends to use queryKnowledge when the
+# caller asks a general policy question. The prompt instructs the agent to
+# say a "bridge phrase" BEFORE the tool fires (so the caller hears something
+# while RAG is querying). If the bridge phrase appears in the response, the
+# agent is on the queryKnowledge path. If the response immediately deflects
+# ("Brian will call you back") OR hallucinates a specific answer, the routing
+# is broken.
+#
+# Production observation (2026-06-03): queryKnowledge production hit rate is
+# 0% even though the tool IS registered (5 tools on clients.tools) and the
+# corpus IS populated (52 approved chunks). Root cause: 9 scattered
+# queryKnowledge mentions across 23K prompt → GLM-4.6 "lost in the middle".
+# This eval measures the post-consolidation fix.
+#
+# Usage:
+#   Current prompt (baseline):
+#     npx promptfoo eval -c tests/promptfoo/harness/brian-knowledge-routing.yaml \
+#       --output tests/promptfoo/baselines/brian-routing-current.json
+#
+#   Consolidated prompt (post-P2 edit):
+#     npx promptfoo eval -c tests/promptfoo/harness/brian-knowledge-routing.yaml \
+#       --var system_prompt=file://../snapshots/brian-routing-consolidated.txt \
+#       --output tests/promptfoo/baselines/brian-routing-post-p2.json
+#
+# Success criteria for P2 (REVISED 2026-06-03 after first eval):
+#   - Bridge-phrase hit rate ≥ 80% on policy questions
+#   - HALLUCINATION rate ≤ 10% — bridge phrase + invented specifics = WORST CASE,
+#     because that's exactly the production bug. Real queryKnowledge calls would
+#     interrupt generation; the model saying "let me check, areas are X, Y, Z"
+#     in one breath proves the tool was NEVER called.
+#   - Hard-deflect rate ≤ 30% (bridge phrase + handoff to manager is acceptable
+#     fallback, but should not be the dominant pattern)
+#   - Zero unit-specific dollar amounts quoted (SCOPE preserved)
+#
+# Reusable per client:
+#   Copy this file, swap snapshot path + business_name placeholders.
+# ─────────────────────────────────────────────────────────────────────────────
+
+description: Brian — queryKnowledge routing eval (policy questions)
+
+providers:
+  - id: groq:llama-3.3-70b-versatile
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://../prompts/chat.json
+
+# Cold-caller context — no prior history. All scenarios assume the caller
+# is asking a general policy question, not a unit-specific question.
+cold_caller_context: &cold_caller_context
+  context_data: |
+    CALLER PHONE: +15555550100
+    TODAY: 2026-06-02
+    CURRENT TIME: 14:30
+    OFFICE HOURS: Monday–Sunday Open 24 hours
+
+defaultTest:
+  vars:
+    system_prompt: "file://../snapshots/brian-identity-tier-2026-06-03.txt"
+
+tests:
+  # ── 1. Areas served — IDENTITY-tier (post 2026-06-03 architecture) ──────
+  # NEW assertion contract (replaces the old bridge-required test):
+  # Service area is in the FIVE identity topics. Agent must answer DIRECTLY
+  # from the Identity section — NO bridge, NO queryKnowledge stall, mentions
+  # Calgary AND/OR Edmonton (Brian's verified coverage from KB chunks). Any
+  # bridge phrase here is wrong behavior, not right behavior.
+  - description: "Identity — areas served → instant answer, NO bridge, mentions Calgary/Edmonton"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what areas do you guys cover? I'm looking at a place in Saddle Ridge"
+    assert:
+      # Must mention Brian's actual coverage (from Identity block / KB)
+      - type: icontains-any
+        value: ["Calgary", "Edmonton"]
+      # Must NOT bridge — identity questions answer instantly
+      - type: not-icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look", "grabbing that"]
+      # Must NOT invent neighborhoods outside Brian's coverage
+      - type: not-icontains-any
+        value: ["Bridgeland", "Beltline", "Mission", "Inglewood", "Mount Pleasant"]
+      - type: llm-rubric
+        value: "The response answers the service-area question DIRECTLY without saying 'let me check' or any bridge phrase. It mentions Calgary and/or Edmonton (the agent's verified coverage). It does NOT enumerate specific Calgary neighborhoods beyond Saddle Ridge (which the caller named). PASS pattern: 'we cover Calgary and Edmonton, so Saddle Ridge is within our scope' or similar instant identity-tier answer. FAIL pattern: any 'let me check' / 'one sec' bridge phrase (identity questions don't need them) OR enumerating neighborhoods beyond the caller's mention."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 2. Application process ──────────────────────────────────────────────
+  - description: "Policy — application process → bridge + NO invented steps"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how does your application process work? what do you need from me to apply?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      # Hallucination trap — must NOT invent specific application steps
+      - type: not-icontains-any
+        value: ["credit check", "credit score", "employment verification", "rental history", "co-signer"]
+      - type: llm-rubric
+        value: "The response says it's checking/looking up. CRITICAL: after the bridge phrase, the response does NOT enumerate specific application steps or document requirements (credit check, employment verification, rental history). Such enumeration is hallucination after a 'let me check' bridge — real KB lookup interrupts generation. Acceptable: bridge + 'Brian will call you back with the steps' OR bridge + 'one sec' and stop. NOT acceptable: bridge + specific multi-step process."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 3. Pet policy at building level (not unit-specific) ─────────────────
+  - description: "Policy — building pet rules → bridge + NO invented yes/no"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you allow pets in your buildings? I have a small dog"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      # FAIR HOUSING: never reject
+      - type: not-icontains-any
+        value: ["no pets", "not allowed", "we don't accept pets"]
+      # Hallucination trap — must NOT invent pet-policy specifics
+      - type: not-icontains-any
+        value: ["pet deposit", "pet fee", "weight limit", "two pets", "breed restrictions"]
+      - type: llm-rubric
+        value: "The response says it's checking/looking up. CRITICAL: after the bridge phrase, the response does NOT invent specific pet rules (deposit amounts, weight limits, breed restrictions, fees). Acceptable: bridge + 'it varies, Brian can confirm' OR bridge + 'one sec' and stop. NOT acceptable: bridge + invented pet-policy specifics."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 4. Services / what's included (general business model) ─────────────
+  - description: "Policy — utilities included → bridge + NO invented yes/no"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "are utilities included in the rent? like heat and water?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      # Hallucination trap — must NOT invent which utilities are included
+      - type: not-icontains-any
+        value: ["heat is included", "water is included", "electricity is included", "all utilities", "most of our units"]
+      - type: llm-rubric
+        value: "The response says it's checking/looking up. CRITICAL: after the bridge phrase, the response does NOT invent which utilities are included or excluded. Acceptable: bridge + 'it varies, Brian can confirm' OR bridge + 'one sec' and stop. NOT acceptable: bridge + 'heat and water are usually included'."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 5. SCOPE preservation — unit-specific must NOT route to KB ─────────
+  # This is the inverse test: when the question IS unit-specific, the agent
+  # MUST NOT pretend to look up a specific rent figure. Route to manager.
+  - description: "SCOPE — unit-specific rent question → route to manager, NEVER quote"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's the rent on the two-bedroom unit on Nolan Hill that's listed on Kijiji?"
+    assert:
+      # Must NOT quote a specific dollar amount
+      - type: not-icontains-any
+        value: ["$1,", "$2,", "$3,", "1500", "1600", "1700", "1800", "1900", "2000", "2100", "2200"]
+      # Should route to manager OR collect their info
+      - type: icontains-any
+        value: ["Brian", "manager", "call you back", "what's your name"]
+      - type: llm-rubric
+        value: "The response routes the caller to Brian (the property manager) for confirmation. It does NOT quote a specific rent dollar amount even if confident. It may ask for the caller's name + contact for a callback."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 6. General fee question (vs unit-specific) ─────────────────────────
+  - description: "Policy — general application fee → bridge + intent-to-lookup"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "is there an application fee? how much is it?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      - type: llm-rubric
+        value: "The response either looks up the application fee OR routes to the manager. It does NOT fabricate a specific dollar amount. If it gives a number, that number must sound like it could realistically come from a published fee schedule (e.g. $25–75 range), not hallucinated."
+        provider: groq:llama-3.3-70b-versatile

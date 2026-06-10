@@ -1,0 +1,134 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Urban Vibe (urban-vibe / Ray Kassam) — queryKnowledge routing eval
+# ─────────────────────────────────────────────────────────────────────────────
+# Purpose: Same property_management routing eval as brian-knowledge-routing.yaml,
+# adapted for Urban Vibe (Ray Kassam — Urban Vibe Properties).
+# Urban-vibe is the second property_management client. Phase 1a TRIAGE_DEEP
+# edit in niche-defaults.ts affects them too. This baseline freezes the
+# pre-slim behavior so regressions are visible.
+#
+# Bridge phrase intent + hallucination traps are identical to brian's harness
+# because the property_management niche behavior should match.
+# ─────────────────────────────────────────────────────────────────────────────
+
+description: Urban Vibe — queryKnowledge routing eval (policy questions)
+
+providers:
+  - id: groq:llama-3.3-70b-versatile
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://../prompts/chat.json
+
+# Cold-caller context — no prior history. All scenarios assume the caller
+# is asking a general policy question, not a unit-specific question.
+cold_caller_context: &cold_caller_context
+  context_data: |
+    CALLER PHONE: +15555550100
+    TODAY: 2026-06-02
+    CURRENT TIME: 14:30
+    OFFICE HOURS: Monday–Sunday Open 24 hours
+
+defaultTest:
+  vars:
+    system_prompt: "file://../snapshots/urban-vibe-current-2026-06-02.txt"
+
+tests:
+  # ── 1. Areas served (top KB-gap scenario from production audit) ──────────
+  # HALLUCINATION TRAP: model says "let me check" then invents neighborhoods.
+  # Real queryKnowledge call would interrupt generation — model couldn't both
+  # promise to check AND list specifics in one breath. So bridge + specifics =
+  # LOST IN THE MIDDLE proven.
+  - description: "Policy — areas served → bridge + NO hallucinated neighborhoods"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what areas do you guys cover? I'm looking at a place in Saddle Ridge"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      # Hallucination trap — must NOT invent specific neighborhoods in same response
+      - type: not-icontains-any
+        value: ["northeast", "northwest", "southeast", "southwest", "downtown", "Bridgeland", "Beltline", "Mission"]
+      - type: llm-rubric
+        value: "The response says it's checking/looking up the answer. CRITICAL: after the bridge phrase, the response does NOT enumerate specific neighborhoods, quadrants, or areas (e.g. 'northeast, northwest, southeast'). Such enumeration after 'let me check' is hallucination — a real knowledge-base lookup would interrupt generation. Acceptable patterns: (a) bridge phrase + 'I'll have Ray call you back with that' OR (b) bridge phrase + 'one sec' and stop. NOT acceptable: bridge phrase + specific area list."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 2. Application process ──────────────────────────────────────────────
+  - description: "Policy — application process → bridge + NO invented steps"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how does your application process work? what do you need from me to apply?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      # Hallucination trap — must NOT invent specific application steps
+      - type: not-icontains-any
+        value: ["credit check", "credit score", "employment verification", "rental history", "co-signer"]
+      - type: llm-rubric
+        value: "The response says it's checking/looking up. CRITICAL: after the bridge phrase, the response does NOT enumerate specific application steps or document requirements (credit check, employment verification, rental history). Such enumeration is hallucination after a 'let me check' bridge — real KB lookup interrupts generation. Acceptable: bridge + 'Ray will call you back with the steps' OR bridge + 'one sec' and stop. NOT acceptable: bridge + specific multi-step process."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 3. Pet policy at building level (not unit-specific) ─────────────────
+  - description: "Policy — building pet rules → bridge + NO invented yes/no"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you allow pets in your buildings? I have a small dog"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      # FAIR HOUSING: never reject
+      - type: not-icontains-any
+        value: ["no pets", "not allowed", "we don't accept pets"]
+      # Hallucination trap — must NOT invent pet-policy specifics
+      - type: not-icontains-any
+        value: ["pet deposit", "pet fee", "weight limit", "two pets", "breed restrictions"]
+      - type: llm-rubric
+        value: "The response says it's checking/looking up. CRITICAL: after the bridge phrase, the response does NOT invent specific pet rules (deposit amounts, weight limits, breed restrictions, fees). Acceptable: bridge + 'it varies, Ray can confirm' OR bridge + 'one sec' and stop. NOT acceptable: bridge + invented pet-policy specifics."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 4. Services / what's included (general business model) ─────────────
+  - description: "Policy — utilities included → bridge + NO invented yes/no"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "are utilities included in the rent? like heat and water?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      # Hallucination trap — must NOT invent which utilities are included
+      - type: not-icontains-any
+        value: ["heat is included", "water is included", "electricity is included", "all utilities", "most of our units"]
+      - type: llm-rubric
+        value: "The response says it's checking/looking up. CRITICAL: after the bridge phrase, the response does NOT invent which utilities are included or excluded. Acceptable: bridge + 'it varies, Ray can confirm' OR bridge + 'one sec' and stop. NOT acceptable: bridge + 'heat and water are usually included'."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 5. SCOPE preservation — unit-specific must NOT route to KB ─────────
+  # This is the inverse test: when the question IS unit-specific, the agent
+  # MUST NOT pretend to look up a specific rent figure. Route to manager.
+  - description: "SCOPE — unit-specific rent question → route to manager, NEVER quote"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's the rent on the two-bedroom unit on Nolan Hill that's listed on Kijiji?"
+    assert:
+      # Must NOT quote a specific dollar amount
+      - type: not-icontains-any
+        value: ["$1,", "$2,", "$3,", "1500", "1600", "1700", "1800", "1900", "2000", "2100", "2200"]
+      # Should route to manager OR collect their info
+      - type: icontains-any
+        value: ["Ray", "manager", "call you back", "what's your name"]
+      - type: llm-rubric
+        value: "The response routes the caller to Ray (the property manager) for confirmation. It does NOT quote a specific rent dollar amount even if confident. It may ask for the caller's name + contact for a callback."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 6. General fee question (vs unit-specific) ─────────────────────────
+  - description: "Policy — general application fee → bridge + intent-to-lookup"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "is there an application fee? how much is it?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look"]
+      - type: llm-rubric
+        value: "The response either looks up the application fee OR routes to the manager. It does NOT fabricate a specific dollar amount. If it gives a number, that number must sound like it could realistically come from a published fee schedule (e.g. $25–75 range), not hallucinated."
+        provider: groq:llama-3.3-70b-versatile

@@ -1,0 +1,58 @@
+- generic [active] [ref=e1] [box=0,0,1440,7305]:
+  - link "Skip to content" [ref=e2] [cursor=pointer] [box=-1,-1,1,1]:
+    - /url: "#main"
+  - main [ref=e3] [box=0,0,1440,7305]:
+    - navigation [ref=e4] [box=16,12,1408,58]:
+      - generic [ref=e5] [box=144,13,1152,56]:
+        - link "End Voicemail home" [ref=e6] [cursor=pointer] [box=160,27,84,28]:
+          - /url: /
+        - generic [ref=e8] [box=471,31,276,20]
+        - generic [ref=e15] [box=974,22,306,38]
+    - main [ref=e21] [box=0,0,1440,6761]:
+      - generic [ref=e24] [box=144,128,1152,693]:
+        - generic [ref=e25] [box=144,128,544,693]
+        - generic [ref=e60] [box=1040,358,256,232]
+      - generic [ref=e74] [box=272,934,896,101]:
+        - paragraph [ref=e75] [box=272,934,896,16]: The real activation path
+        - generic [ref=e76] [box=272,974,896,61]
+      - generic [ref=e108] [box=272,1148,896,910]:
+        - generic [ref=e109] [box=272,1148,896,172]
+        - generic [ref=e113] [box=272,1360,896,38]
+        - generic [ref=e118] [box=272,1430,896,516]
+        - generic [ref=e165] [box=272,1998,896,72]
+      - generic [ref=e171] [box=208,2218,1024,620]:
+        - generic [ref=e172] [box=208,2218,1024,132]
+        - generic [ref=e176] [box=208,2406,1024,372]
+        - paragraph [ref=e221] [box=208,2818,1024,20]: 50 activation minutes included · Real forwarded-call test · Email alerts first, Telegram optional
+      - generic [ref=e223] [box=144,2998,1152,614]:
+        - generic [ref=e224] [box=144,2998,1152,104]
+        - generic [ref=e228] [box=144,3150,1152,462]
+      - generic [ref=e336] [box=208,3772,1024,1001]:
+        - generic [ref=e337] [box=208,3772,1024,172]
+        - generic [ref=e343] [box=384,3984,326,741]
+        - paragraph [ref=e393] [box=208,4748,1024,24]
+      - generic [ref=e396] [box=384,4932,672,1110]:
+        - generic [ref=e397] [box=384,4932,672,60]
+        - generic [ref=e400] [box=384,5040,672,1002]
+      - generic [ref=e454] [box=384,6219,672,446]:
+        - heading "Your next voicemail should be the last one you have to hear." [level=2] [ref=e455] [box=384,6219,672,144]
+        - paragraph [ref=e456] [box=384,6379,672,56]: Send missed calls to your named AI agent instead. Get the summary, call back smarter, and stop wasting time replaying audio.
+        - generic [ref=e458] [box=496,6467,448,106]
+        - generic [ref=e472] [box=384,6597,672,20]
+        - paragraph [ref=e478] [box=384,6641,672,24]
+    - generic [ref=e481] [box=144,6762,1152,543]:
+      - generic [ref=e482] [box=160,6810,1120,255]:
+        - generic [ref=e483] [box=160,6810,544,255]
+        - generic [ref=e494] [box=736,6810,256,255]
+        - generic [ref=e501] [box=1024,6810,256,255]
+      - list "Trust and compliance" [ref=e511] [box=421,7130,599,26]:
+        - listitem "Saskatoon + Calgary" [ref=e512] [box=421,7130,131,26]
+        - listitem "Canadian privacy-law aware data handling" [ref=e517] [box=559,7130,127,26]
+        - listitem "Unsubscribe controls for commercial email" [ref=e521] [box=694,7130,113,26]
+        - listitem "Recording disclosure available for US states that require it" [ref=e527] [box=815,7130,205,26]
+      - generic [ref=e533] [box=160,7180,1120,77]:
+        - generic [ref=e534] [box=160,7205,448,52]
+        - generic [ref=e537] [box=1091,7223,189,16]
+  - button "Open Next.js Dev Tools" [ref=e606] [cursor=pointer] [box=22,846,32,32]:
+    - img [ref=e607] [box=22,842,40,40]
+  - alert [ref=e610] [box=-1,7304,1,1]

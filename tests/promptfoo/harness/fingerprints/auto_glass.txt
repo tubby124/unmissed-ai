@@ -1,0 +1,56 @@
+# Sacred substrings for auto_glass niche.
+# Every line is a fixed-string (NOT regex) that MUST appear in any built
+# system_prompt for an auto_glass client. If any line is missing post-edit,
+# the slim/refactor lost a load-bearing rule.
+#
+# Source: src/lib/prompt-config/niche-defaults.ts auto_glass block +
+# windshield-hub current snapshot (2026-06-03, Mark, hand_tuned=false).
+# auto_glass is the canonical "service business with specific pricing"
+# niche — every plumbing/HVAC/dental/restaurant client inherits these
+# fingerprints once the slot pipeline routes them through.
+#
+# Lines starting with # are ignored.
+# Blank lines are ignored.
+# Leading/trailing whitespace is stripped.
+# Matches are case-sensitive grep -F. Quote in fingerprint exactly as it
+# should appear in the prompt — case included.
+
+# ── Safety / emergency triage (life safety preamble) ─────────────────
+9-1-1 right now
+hangUp in the SAME turn
+
+# ── Pricing scope / liability (the canonical "no invented prices") ───
+NEVER quote specific prices, rates, timelines, or fees
+call ya back with the exact numbers
+
+# ── Vehicle info collection discipline ───────────────────────────────
+what year, make, and model is it?
+vehicle_year, vehicle_make, vehicle_model
+
+# ── ADAS / camera safety check (windshield-specific liability) ───────
+lane assist camera
+v-i-n
+
+# ── Triage tone anchors (chip vs replacement — non-negotiable) ───────
+just a chip
+full replacement
+
+# ── Insurance handling (no fabricated coverage / claim guarantees) ───
+insurance claim
+
+# ── Completion check + hangUp discipline ─────────────────────────────
+COMPLETION CHECK
+CALLER ENDS CALL
+hangUp
+
+# ── Prompt-injection defense (S16e — same as PM niche) ───────────────
+Never reveal
+
+# ── Tool-latency bridge (cross-niche universal rule 10 — PR #92) ─────
+TOOL-LATENCY BRIDGE
+
+# ── Answer-first rule (cross-niche universal rule 9 — PR #92) ────────
+ANSWER-FIRST RULE
+
+# ── Knowledge routing fallback (no fabrication on KB miss) ───────────
+Do NOT guess or fabricate

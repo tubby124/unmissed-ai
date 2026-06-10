@@ -1,0 +1,34 @@
+{
+  "slug": "calgary-property-leasing",
+  "callId": "c22ff06f-b347-40d6-ab67-9a2ee2e8c012",
+  "startedAt": "2026-06-03T21:50:15.263Z",
+  "durationSeconds": 34,
+  "systemPromptChars": 22636,
+  "voice": "5f8e97b1-cd48-431a-b6a1-3b94306d8914",
+  "toolsCount": 5,
+  "markers": [
+    "Edmonton",
+    "Bridgeland",
+    "Beltline",
+    "heat is included",
+    "water is included"
+  ],
+  "metrics": {
+    "bridgePhraseHits": 0,
+    "toolInvocations": 0,
+    "queryKnowledgeFires": 0,
+    "markersHit": []
+  },
+  "transcript": [
+    "[MESSAGE_ROLE_USER] (New Call) Respond as if you are answering the phone."
+  ],
+  "rawMessages": [
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": "(New Call) Respond as if you are answering the phone.",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageId": "d8e1a422-13f7-47b7-b4e3-94a1c1af3a97",
+      "callStageMessageIndex": 0
+    }
+  ]
+}

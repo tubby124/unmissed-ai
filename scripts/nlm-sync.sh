@@ -3,9 +3,9 @@
 # Usage: bash scripts/nlm-sync.sh
 #        bash scripts/nlm-sync.sh --check   (dry run — show what changed, don't copy)
 
-PROJECT_ROOT="/Users/owner/Downloads/CALLING AGENTs"
+PROJECT_ROOT="/Users/owner/Downloads/Repos/CALLING AGENTs"
 REGISTRY="$PROJECT_ROOT/scripts/nlm-registry.txt"
-DEST="$HOME/Downloads/unmissed-notebooklm"
+DEST="$HOME/Downloads/Businesses/Unmissed/unmissed-notebooklm"
 CHECK_ONLY=false
 MANIFEST="$DEST/.nlm-manifest"
 

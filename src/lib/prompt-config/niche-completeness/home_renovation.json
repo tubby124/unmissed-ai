@@ -1,0 +1,186 @@
+{
+  "niche": "home_renovation",
+  "version": 1,
+  "_meta": {
+    "created": "2026-06-04",
+    "source": "Derived from tests/promptfoo/niche-templates/home_renovation.yaml + Velly deep study + real reno-contractor configs",
+    "spec": "docs/architecture/niche-completeness-profile.md"
+  },
+
+  "required": [
+    {
+      "field": "business_name",
+      "display_name": "Business name",
+      "why": "Agent identifies itself with this on every call.",
+      "priority": 1
+    },
+    {
+      "field": "agent_name",
+      "display_name": "Agent name",
+      "why": "Voice agent needs a name to introduce itself.",
+      "example_value": "Sarah",
+      "priority": 1
+    },
+    {
+      "field": "owner_name",
+      "display_name": "Owner / main contact (CLOSE_PERSON)",
+      "why": "Every routed call needs a human to route to. Agent says 'I'll have <owner> call you back'.",
+      "example_value": "Eric",
+      "priority": 1
+    },
+    {
+      "field": "service_areas",
+      "display_name": "Service area cities",
+      "why": "Agent confirms 'do you cover X?' instantly without routing. Identity-tier answer.",
+      "example_value": "Calgary, Airdrie, Cochrane",
+      "priority": 1
+    },
+    {
+      "field": "business_hours_weekday",
+      "display_name": "Weekday hours",
+      "why": "Identity-tier answer. Also drives after-hours detection at call time.",
+      "example_value": "Monday-Friday 8am-5pm",
+      "priority": 1
+    },
+    {
+      "field": "forwarding_number",
+      "display_name": "Forwarding number",
+      "why": "Required for transferCall tool. Without it, the agent can't escalate live calls.",
+      "priority": 1
+    }
+  ],
+
+  "recommended": [
+    {
+      "field": "pricing_policy",
+      "display_name": "Pricing policy",
+      "why": "Most home_renovation owners tell their agent how to handle 'how much does it cost?' calls. Without this set, the agent defaults to 'let me check' on every pricing call.",
+      "example_value": "quote_range",
+      "priority": 2
+    },
+    {
+      "field": "services_offered",
+      "display_name": "Top services list",
+      "why": "Helps the agent cleanly answer 'what do you guys do?' and 'do you handle X?' questions.",
+      "example_value": "Kitchen remodels, bathroom remodels, basement finishing, whole-home renovations, additions",
+      "priority": 2
+    },
+    {
+      "field": "after_hours_behavior",
+      "display_name": "After-hours behavior",
+      "why": "Reno emergencies (active leak, structural collapse) happen off-hours. Sets what the agent says after business hours.",
+      "example_value": "route_emergency",
+      "priority": 2
+    },
+    {
+      "field": "after_hours_emergency_phone",
+      "display_name": "After-hours emergency phone",
+      "why": "If after_hours_behavior=route_emergency, the agent gives this number for urgent calls.",
+      "priority": 3
+    },
+    {
+      "field": "unknown_answer_behavior",
+      "display_name": "What to do when the agent doesn't know",
+      "why": "Defines the agent's fallback when KB returns nothing. take_message vs transfer vs find_out_callback.",
+      "example_value": "find_out_callback",
+      "priority": 2
+    },
+    {
+      "field": "fields_to_collect",
+      "display_name": "Fields to collect from caller",
+      "why": "Reno leads need address + scope at minimum. Determines what the agent asks before routing.",
+      "example_value": "name, phone, project_type, address, timeline, budget_range",
+      "priority": 2
+    }
+  ],
+
+  "recommended_kb_topics": [
+    {
+      "topic_key": "warranty_policy",
+      "display_name": "Warranty policy",
+      "why": "Asked on ~40% of reno calls. Without a KB entry, the agent must always route.",
+      "example_question": "What kind of warranty do you offer on your work?",
+      "example_answer_template": "Most owners say: 'We offer X years on labor, Y years on materials. <owner_name> can walk you through the specifics.'"
+    },
+    {
+      "topic_key": "permit_policy",
+      "display_name": "Do you handle permits?",
+      "why": "Common question for kitchen/bathroom/basement renos involving structural or electrical changes.",
+      "example_question": "Do you guys pull the building permits for me?",
+      "example_answer_template": "Most owners say: 'Permits are handled as part of the project scope. <owner_name> can confirm whether your specific job needs one.'"
+    },
+    {
+      "topic_key": "financing_options",
+      "display_name": "Financing / payment options",
+      "why": "Asked on most pricing calls. Better to have a canned answer than route every time.",
+      "example_question": "Do you guys offer financing or payment plans?",
+      "example_answer_template": "Most owners say: 'We work with a few financing partners. <owner_name> can walk you through the options that fit your project.'"
+    },
+    {
+      "topic_key": "insurance_coverage_summary",
+      "display_name": "Insurance coverage",
+      "why": "Cautious callers ask this. WCB/liability/property coverage.",
+      "example_question": "Are you guys fully insured?",
+      "example_answer_template": "Most owners say: 'Yes — we carry full liability and WCB coverage. <owner_name> can email you the certificates.'"
+    },
+    {
+      "topic_key": "design_consult_process",
+      "display_name": "Design consultation process",
+      "why": "Most clients want to know if there's a designer involved before they call back.",
+      "example_question": "Do you guys do the design or do I need to bring my own?",
+      "example_answer_template": "Most owners say: 'Most projects start with a design consult — <owner_name> can walk you through how that works.'"
+    },
+    {
+      "topic_key": "payment_schedule",
+      "display_name": "Deposit + payment schedule",
+      "why": "Asked on most quote calls. Better to have a canned answer than route every time.",
+      "example_question": "How do you structure payments? Deposit upfront?",
+      "example_answer_template": "Most owners say: 'It varies by project size. <owner_name> can walk you through the schedule when he discusses the quote.'"
+    }
+  ],
+
+  "recommended_business_facts": [
+    {
+      "fact_key": "years_in_business",
+      "display_name": "Years in business",
+      "why": "Common trust-building question. Identity-tier answer.",
+      "example_value": "Family-owned since 2009 — over 400 completed renovations in the Calgary area."
+    },
+    {
+      "fact_key": "core_service_summary",
+      "display_name": "Core service summary",
+      "why": "Helps the agent answer 'what do you guys do?' with personality, not just a list.",
+      "example_value": "We're a full-service residential renovation contractor — kitchens, bathrooms, basements, and whole-home renos in Calgary and surrounding areas."
+    },
+    {
+      "fact_key": "typical_project_size",
+      "display_name": "Typical project size",
+      "why": "Helps the agent qualify scope-out calls (e.g. caller mentions $5K powder room — let's see if that fits).",
+      "example_value": "Most projects fall between $25K-$150K. We focus on mid-to-high-end residential."
+    }
+  ],
+
+  "niche_variables": [
+    {
+      "variable_key": "GREETING_LINE",
+      "display_name": "Greeting opening line",
+      "why": "First thing every caller hears. Sets tone.",
+      "default_value": "Hi, thanks for calling {{BUSINESS_NAME}} — this is {{AGENT_NAME}}, how can I help you today?",
+      "affects_slots": ["greeting"]
+    },
+    {
+      "variable_key": "ROUTING_SIGNATURE",
+      "display_name": "Routing close phrase",
+      "why": "What the agent says when handing off to <owner>. Repeated frequently.",
+      "default_value": "I'll have {{CLOSE_PERSON}} call you back as soon as he can — usually within a couple hours during business days.",
+      "affects_slots": ["goal", "closing"]
+    },
+    {
+      "variable_key": "URGENT_PROJECT_CUES",
+      "display_name": "Cues for urgent reno calls",
+      "why": "Tells the agent which words/phrases mean 'flag this as urgent' (active leak, structural, etc.).",
+      "default_value": "water leak, sewage, structural, collapse, fire damage, post-storm, gas leak, mold spreading",
+      "affects_slots": ["triage_flow"]
+    }
+  ]
+}

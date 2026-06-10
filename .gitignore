@@ -76,3 +76,4 @@ supabase/.temp/
 # Concierge onboarding trace files — contain temp passwords + telegram registration tokens.
 # Keep local for inspection; never commit secrets to git history.
 CALLINGAGENTS/00-Inbox/onboard-*-trace/
+pilots/supertonic-pilot/supertonic-py/

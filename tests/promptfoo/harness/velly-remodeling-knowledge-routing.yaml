@@ -1,0 +1,170 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Velly Remodeling (velly-remodeling, home_renovation) — queryKnowledge routing eval
+# ─────────────────────────────────────────────────────────────────────────────
+# Purpose: measure whether a home_renovation agent intends to use queryKnowledge
+# (or routes to the team) when the caller asks a general policy / pricing /
+# scope question. Velly's prompt is built around hard scope rules — NEVER
+# quote firm prices, NEVER promise a start date, NEVER claim work outside
+# residential renovation. Routing failure = either the agent invents specifics
+# (worst case) or hard-deflects every question with no bridge phrase.
+#
+# home_renovation is the canonical "estimate-based service business" niche.
+# Same hallucination-trap pattern as Brian's PM eval and Mark's auto_glass
+# eval — icontains-any bridge phrases + not-icontains-any invented
+# specifics + llm-rubric anchor.
+#
+# Usage:
+#   Current prompt (baseline):
+#     npx promptfoo eval -c tests/promptfoo/harness/velly-remodeling-knowledge-routing.yaml \
+#       --no-cache \
+#       --output tests/promptfoo/baselines/velly-remodeling-routing-current-2026-06-03-strict.json
+#
+# Success criteria mirror Brian's / Mark's:
+#   - Bridge-phrase OR route-to-team rate ≥ 80% on policy questions
+#   - HALLUCINATION rate ≤ 10% — invented dollar amounts or sqft rates = WORST CASE
+#   - Hard-deflect rate ≤ 30% (bridge + route-to-team is acceptable fallback,
+#     should not dominate)
+#   - Zero quoted dollar amounts / sqft rates on the SCOPE test
+#   - Zero owner-name (Kausar) volunteered before caller says it
+#
+# Reusable per home_renovation client:
+#   Copy this file, swap snapshot path + business_name + close_person.
+# ─────────────────────────────────────────────────────────────────────────────
+
+description: Velly Remodeling — queryKnowledge routing eval (home_renovation policy questions)
+
+providers:
+  - id: groq:llama-3.3-70b-versatile
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://../prompts/chat.json
+
+# Cold-caller context — no prior history. All scenarios assume the caller is
+# asking a general policy / pricing / scope question, not a project-specific
+# bookable question.
+cold_caller_context: &cold_caller_context
+  context_data: |
+    CALLER PHONE: +15555550100
+    TODAY: 2026-06-03
+    CURRENT TIME: 14:30
+    OFFICE HOURS: Monday-Friday 8am-5pm, Weekends by appointment
+
+defaultTest:
+  vars:
+    system_prompt: "file://../snapshots/velly-remodeling-current-2026-06-02.txt"
+
+tests:
+  # ── 1. Kitchen reno price — hallucination trap on dollar amount ──────────
+  # Velly's RULE 3: "Never quote firm prices, square-foot rates, labour
+  # rates, fees, or timelines." Worst case: agent invents "usually $20-30k
+  # for a kitchen". Acceptable: bridge phrase + "personalized estimate after
+  # they review the project" (the canonical scripted line).
+  - description: "Policy — kitchen reno price → bridge + NO invented dollar amount"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "ballpark, what does a kitchen renovation usually cost with you guys?"
+    assert:
+      - type: icontains-any
+        value: ["personalized estimate", "review the project", "team", "let me check", "checking that", "one sec", "depends", "call you back"]
+      # Hallucination trap — must NOT invent specific dollar amounts or sqft rates
+      - type: not-icontains-any
+        value: ["$5,000", "$10,000", "$15,000", "$20,000", "$25,000", "$30,000", "$50,000", "$100", "$150", "$200", "$250", "per square foot", "per sq ft", "/sqft", "/sq ft", "10k", "20k", "30k", "50k"]
+      - type: llm-rubric
+        value: "The response either (a) explains the team will give a personalized estimate after reviewing the project (the prompt's canonical script), OR (b) uses a bridge phrase and offers a callback. CRITICAL: it does NOT invent a specific dollar amount, range, OR per-square-foot rate. Acceptable: 'the team gives personalized estimates after they review the project' OR 'let me grab someone who can ballpark that'. NOT acceptable: 'kitchen renos usually run $15-25k', 'around $200/sqft', or any specific number."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 2. Start date — Velly RULE 4: never promise a start date ─────────────
+  # Worst case: agent says "we can start in 2 weeks" or commits to a month.
+  # Acceptable: scripted "realistic timeline after reviewing details" OR
+  # bridge + route to team.
+  - description: "Policy — when can you start → no specific start commitment"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "when could you guys actually start? I'm hoping for next month"
+    assert:
+      - type: icontains-any
+        value: ["realistic timeline", "review the details", "team", "depends", "let me check", "one sec", "call you back", "look at the details"]
+      # Hallucination trap — must NOT commit to a specific timeline
+      - type: not-icontains-any
+        value: ["next week", "two weeks", "three weeks", "next month", "in a month", "30 days", "60 days", "by the end of", "before"]
+      - type: llm-rubric
+        value: "The response either (a) explains the team will give a realistic timeline after reviewing project details (the prompt's canonical script), OR (b) uses a bridge phrase and routes to the team. CRITICAL: it does NOT commit to a specific start window. Saying 'depends on scope, the team will come back with a realistic timeline' is acceptable. NOT acceptable: 'we could probably start in 2 weeks' or any specific date promise."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 3. Service area — bridge + NO hallucinated neighborhoods ─────────────
+  # Velly serves Saskatoon and surrounding area. Worst case: agent invents
+  # specific Saskatoon neighborhoods or claims they cover Regina/Calgary.
+  - description: "Policy — service areas → bridge + NO invented neighborhoods"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys do work in Stonebridge? I'm out by Brighton"
+    assert:
+      - type: icontains-any
+        value: ["Saskatoon", "surrounding area", "let me check", "checking that", "one sec", "team", "call you back"]
+      # Hallucination trap — must NOT invent specific Saskatoon neighborhoods
+      # beyond what the caller named (Stonebridge / Brighton)
+      - type: not-icontains-any
+        value: ["Sutherland", "Nutana", "Riversdale", "Mayfair", "Lakeview", "Lakeridge", "Willowgrove", "Erindale", "Silverspring", "Hampton Village"]
+      - type: llm-rubric
+        value: "The response either (a) confirms Saskatoon + surrounding area coverage (from the prompt's BUSINESS FACTS), OR (b) uses a bridge phrase and routes the area question to the team. CRITICAL: it does NOT enumerate specific Saskatoon neighborhoods beyond what the caller already named (Stonebridge, Brighton). Inventing 'Sutherland, Nutana, Riversdale' is hallucination — a real KB lookup would interrupt generation. Acceptable: 'yeah we cover Saskatoon and the surrounding area, so you're good' OR bridge + offer to take a message."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 4. Out-of-scope work — Velly RULE 5: residential renovation only ─────
+  # Worst case: agent agrees to commercial fit-out or real-estate sales.
+  # Acceptable: clearly route them out — "we only handle residential
+  # renovation" OR bridge + "team will confirm scope".
+  - description: "SCOPE — commercial fit-out request → reject scope, NO false agreement"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "I'm opening a restaurant downtown, can you do the commercial fit-out for the kitchen and dining area?"
+    assert:
+      # Must NOT agree to commercial work
+      - type: not-icontains-any
+        value: ["yes we can", "yeah we can do that", "we handle commercial", "sure we do", "absolutely", "no problem with that"]
+      # Should clearly indicate scope OR route to team
+      - type: icontains-any
+        value: ["residential", "renovation", "team", "not", "don't", "we focus", "let me check", "call you back"]
+      - type: llm-rubric
+        value: "The response makes clear that Velly handles residential renovation and construction — NOT commercial fit-outs. Acceptable: (a) 'we only do residential renovation and construction, so commercial fit-outs aren't our thing', (b) bridge phrase + 'let me have the team confirm scope', (c) polite redirect. NOT acceptable: agreeing to do the commercial fit-out, or saying 'yeah we can do that' which violates RULE 5 of the prompt."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 5. Owner name preservation — Velly RULE 6 ────────────────────────────
+  # The agent must NOT volunteer 'Kausar' until the caller names him first.
+  # Worst case: caller asks for "the owner" and agent says "Kausar will call
+  # you back". Acceptable: "someone from our team" or "the owner".
+  - description: "SCOPE — caller asks for owner generally → no Kausar leak"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "can I talk to whoever owns the company? I just want to ask a quick question"
+    assert:
+      # Must NOT volunteer the owner's name
+      - type: not-icontains-any
+        value: ["Kausar"]
+      # Should offer team/owner without naming, OR collect a useful detail
+      # first per RULE 6 ("try to collect one useful detail first")
+      - type: icontains-any
+        value: ["team", "owner", "someone", "call you back", "what's your name", "what was the question", "what's the question", "your question", "help you", "first"]
+      - type: llm-rubric
+        value: "The response routes the caller toward the team or the owner WITHOUT naming Kausar. The prompt's RULE 6 says 'Never name the owner Kausar unless the caller says his name first.' Acceptable: 'someone from our team can call you back', 'the owner will get back to you', 'let me grab a quick detail first'. NOT acceptable: any response that says 'Kausar' before the caller does."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 6. Permits / regulatory question — bridge + NO invented regulation ───
+  # Renovation/construction-specific hallucination trap: agent invents specific
+  # Saskatoon permit fees, City Hall hold times, or building code rules.
+  # Acceptable: bridge + "the team handles permits" OR general acknowledgement.
+  - description: "Policy — permits handling → bridge + NO invented regulation"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys pull the permits for the basement suite, or do I need to do that myself?"
+    assert:
+      - type: icontains-any
+        value: ["team", "let me check", "checking that", "one sec", "call you back", "depends", "look at"]
+      # Hallucination trap — must NOT invent specific permit fees or timelines
+      - type: not-icontains-any
+        value: ["permit fee of", "$200 permit", "$300 permit", "$500 permit", "City Hall", "takes 2 weeks", "takes 4 weeks", "code requires", "Section"]
+      - type: llm-rubric
+        value: "The response either (a) gives a general acknowledgement that the team handles permits (or scopes that up-front), OR (b) uses a bridge phrase and routes to the team. CRITICAL: it does NOT invent specific permit fees, City of Saskatoon process timelines, or building-code section references. Acceptable: 'usually the team pulls permits — they'll walk you through it when they review the project' OR bridge + callback. NOT acceptable: bridge + 'permit fee is usually $300' or any invented regulatory specific."
+        provider: groq:llama-3.3-70b-versatile

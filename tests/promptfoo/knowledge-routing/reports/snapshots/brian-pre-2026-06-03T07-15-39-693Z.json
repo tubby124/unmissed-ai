@@ -1,0 +1,269 @@
+{
+  "capturedAt": "2026-06-03T07:15:40.260Z",
+  "client": {
+    "id": "2c186f70-84cc-4253-a3ab-6cd0e9064d39",
+    "slug": "calgary-property-leasing",
+    "business_facts": [
+      "Calgary Edmonton Property Leasing operates in Calgary and Edmonton, Alberta.",
+      "The company acts as the tenant for property owners rather than operating as a traditional management company. They sign the lease, then sublet to screened subtenants.",
+      "Rent guarantee program: We pay property owners approximately 90% of market rental value every month, regardless of whether the unit is occupied or who is living in it. This is the rent guarantee — guaranteed monthly rent for the property owner.",
+      "No fees: There are no management fees, administration fees, membership fees, or any hidden charges to property owners.",
+      "Tenant screening: We conduct comprehensive background checks on subtenants throughout the lease term — not just at move-in.",
+      "Compliance: The company respects the Residential Tenancies Act of Alberta in all leasing and subletting arrangements.",
+      "The company offers services to property owners, realtors, and works with qualified tenants seeking rentals in Calgary and Edmonton.",
+      "Calgary/Edmonton Property Leasing manages residential rental properties for owners in Calgary and Edmonton.",
+      "The company has over 15 years of experience in real estate, property management, and tenant relations.",
+      "Bryan Mitrovic is the proprietor and founder of the company.",
+      "The company was established in 2009.",
+      "They manage properties of all sizes, from one-bedroom apartments to mansions.",
+      "The company implements a thorough and effective tenant qualification process.",
+      "The company's business values are based on trust, honesty, loyalty, and respect.",
+      "Most properties under management have been sourced through client referrals.",
+      "The proprietor has experience handling significant legal matters, including organizing investors in a successful lawsuit against Concrete Equities...",
+      "Calgary/Edmonton Property Leasing operates in Calgary and Edmonton.",
+      "Management services charge $0 in fees to owners.",
+      "Advertising fees are $0 and not transferred to owners.",
+      "Administration fees are $0 and not transferred to owners.",
+      "The company provides tenant vetting services.",
+      "Collections and legal services are provided at no cost to owners.",
+      "The company maintains a presence on Facebook.",
+      "Calgary/Edmonton Property Leasing manages residential rental properties in Calgary and Edmonton.",
+      "The company has over 15 years of experience in real estate investment and property management.",
+      "The company was formally launched in 2009.",
+      "Services include tenant qualification, property maintenance coordination, and tenant dispute resolution.",
+      "Most of the properties they manage come from client referrals.",
+      "Core business values include trust, honesty, loyalty, and respect."
+    ],
+    "extra_qa": [
+      {
+        "a": "You can call the company or send an email. They are also active on Facebook.",
+        "q": "How can I contact you?"
+      },
+      {
+        "a": "Calgary and Edmonton, Alberta.",
+        "q": "What areas do you serve?"
+      },
+      {
+        "a": "The company pays property owners approximately 90% of the market rental value every month — for example, $2,700 on a $3,000 market rental property. No additional management, administration, or membership fees are charged.",
+        "q": "What is your pricing?"
+      },
+      {
+        "a": "We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We then sublet to screened subtenants. No fees to you.",
+        "q": "How does the rent guarantee program work?"
+      },
+      {
+        "a": "Yes. We conduct comprehensive background checks on subtenants throughout the lease term, not just at move-in.",
+        "q": "Do you screen tenants?"
+      },
+      {
+        "a": "Property management services for residential rental properties, including tenant qualification, rent collection, property maintenance oversight, and tenant dispute resolution. The company acts as the tenant for property owners, handling payment responsibility and ensuring on-time rent collection.",
+        "q": "What services do you offer?"
+      },
+      {
+        "a": "No management fees, no advertising fees, and no administration fees charged to owners, compared to competitors who charge 10-15% of rent plus half the first month and transfer additional costs.",
+        "q": "What makes you different from competitors?"
+      }
+    ],
+    "knowledge_backend": "pgvector",
+    "hand_tuned": false,
+    "updated_at": "2026-06-03T02:49:18.787222+00:00"
+  },
+  "chunkCount": 17,
+  "chunksBySource": {
+    "website_scrape": 17
+  },
+  "chunksByStatus": {
+    "approved": 16,
+    "archived": 1
+  },
+  "chunks": [
+    {
+      "id": "4a313bb9-cbd1-4e61-88d0-5207c708a695",
+      "content": "Calgary/Edmonton Property Leasing manages residential rental properties in Calgary and Edmonton.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:02.26845+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "4775cb1c-f3e3-43ba-bf69-bd9af5e5602d",
+      "content": "The company has over 15 years of experience in real estate investment and property management.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:02.594176+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "094c7044-8bda-4458-9a92-f45f24516957",
+      "content": "Brian Mitrovic is the proprietor and founder of the company.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:03.011647+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "3256c0b6-c4ce-4a79-a825-c8603f30955f",
+      "content": "The company was formally launched in 2009.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:03.323445+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "b71e7e37-a9e5-4035-8ccb-ce6e2559c977",
+      "content": "They manage properties of all sizes, from one-bedroom apartments to mansions.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:03.710381+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "7ca426a9-5d69-404a-82f5-927e016eeefd",
+      "content": "Services include tenant qualification, property maintenance coordination, and tenant dispute resolution.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:03.987187+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "3d0c2be2-ec0d-4b4a-8670-da0b126e925d",
+      "content": "Most of the properties they manage come from client referrals.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:04.372124+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "a2683b06-caba-4020-b40b-2c77205a0f16",
+      "content": "Core business values include trust, honesty, loyalty, and respect.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:04.722843+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "be0fd507-ec46-451f-b3ee-38f200d68ad3",
+      "content": "Q: What services do you offer?\nA: Property leasing and management for residential rental properties, tenant screening and qualification, property maintenance coordination, and tenant dispute resolution.",
+      "source": "website_scrape",
+      "chunk_type": "qa",
+      "status": "archived",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:05.177928+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "710c27e4-1987-4ba8-a5f4-62a58c3dddf7",
+      "content": "Q: What areas do you serve?\nA: Calgary and Edmonton, Alberta",
+      "source": "website_scrape",
+      "chunk_type": "qa",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:05.460788+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "0cd282f1-e90e-4762-bed0-9fc4ff279baa",
+      "content": "Services offered: property management, tenant screening, rent guarantee, residential leasing, maintenance coordination, tenant dispute resolution",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-04-26T05:44:05.831847+00:00",
+      "metadata": {}
+    },
+    {
+      "id": "134a8674-0ce5-4d37-8454-60576296d635",
+      "content": "Q: Do you offer parking? A: Street parking only — no assigned stalls. Brian can confirm if you're asking about a specific property.",
+      "source": "website_scrape",
+      "chunk_type": "qa",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-05-05T21:26:18.258627+00:00",
+      "metadata": {
+        "added_by": "kb-tier-test-2026-05-05",
+        "manual_curation": true
+      }
+    },
+    {
+      "id": "da4d5b6c-3701-43f4-92e1-0b6c834bafbc",
+      "content": "Q: How are rental rates set? A: We aim around 90% of market value, but rates vary by property and time — Brian has the exact number on the callback.",
+      "source": "website_scrape",
+      "chunk_type": "qa",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-05-05T21:26:19.363904+00:00",
+      "metadata": {
+        "added_by": "kb-tier-test-2026-05-05",
+        "manual_curation": true
+      }
+    },
+    {
+      "id": "3e2ac89c-3819-4d32-afca-1d5ba8533327",
+      "content": "Q: What's your background check process? A: Comprehensive background check on every applicant — Brian can walk you through specifics on the callback.",
+      "source": "website_scrape",
+      "chunk_type": "qa",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-05-05T21:26:20.167098+00:00",
+      "metadata": {
+        "added_by": "kb-tier-test-2026-05-05",
+        "manual_curation": true
+      }
+    },
+    {
+      "id": "bdac4489-781b-478d-8b3e-5d70331ea9b5",
+      "content": "Q: Do you handle commercial properties? A: Residential only. We can refer you elsewhere — Brian will call you back to point you in the right direction.",
+      "source": "website_scrape",
+      "chunk_type": "qa",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-05-05T21:26:20.803625+00:00",
+      "metadata": {
+        "added_by": "kb-tier-test-2026-05-05",
+        "manual_curation": true
+      }
+    },
+    {
+      "id": "9b02c7c8-b63c-4324-8784-6c4fa61610ee",
+      "content": "Q: What areas do you serve? A: Calgary and Edmonton, Alberta. We don't operate outside those two markets.",
+      "source": "website_scrape",
+      "chunk_type": "qa",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-05-05T21:26:21.503017+00:00",
+      "metadata": {
+        "added_by": "kb-tier-test-2026-05-05",
+        "manual_curation": true
+      }
+    },
+    {
+      "id": "80d1bd7d-357f-420f-a903-0a37bdb9a822",
+      "content": "P1 emergency triggers handled by this property management company: flooding, water damage, no heat in winter, sparking or electrical hazard, no hot water, break-in, gas smell, fire or smoke. Everything else is P2 or P3.",
+      "source": "website_scrape",
+      "chunk_type": "fact",
+      "status": "approved",
+      "trust_tier": "medium",
+      "created_at": "2026-05-05T21:26:22.154407+00:00",
+      "metadata": {
+        "added_by": "kb-tier-test-2026-05-05",
+        "manual_curation": true
+      }
+    }
+  ]
+}

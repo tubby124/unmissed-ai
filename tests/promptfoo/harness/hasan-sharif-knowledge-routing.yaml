@@ -1,0 +1,184 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Hasan Sharif (hasan-sharif, real_estate, EXP Realty) — queryKnowledge routing eval
+# ─────────────────────────────────────────────────────────────────────────────
+# Purpose: measure whether the agent intends to use queryKnowledge when the
+# caller asks a general real_estate policy question. The prompt instructs the
+# agent to say a "bridge phrase" BEFORE the tool fires (so the caller hears
+# something while RAG is querying). If the bridge phrase appears in the
+# response, the agent is on the queryKnowledge path. If the response
+# immediately deflects ("Hasan will call you back") OR hallucinates a specific
+# answer (specific listing address, invented commission %, named neighborhoods),
+# the routing is broken.
+#
+# Why this matters for real_estate specifically:
+# RECA (Alberta) and RECO (Ontario) regulate what a real-estate agent (or
+# their representative) can publicly state about commission, valuation, and
+# specific-listing facts. The worst-case failure is the agent inventing a
+# "typical 5% commission in Calgary" answer on a recorded call — that's a
+# RECA misrepresentation exposure. The bridge-phrase + hallucination-trap
+# pattern catches that exact failure mode.
+#
+# Usage:
+#   Current prompt (baseline):
+#     npx promptfoo eval -c tests/promptfoo/harness/hasan-sharif-knowledge-routing.yaml \
+#       --no-cache \
+#       --output tests/promptfoo/baselines/hasan-sharif-routing-current-2026-06-03-strict.json
+#
+#   Post-edit prompt:
+#     npx promptfoo eval -c tests/promptfoo/harness/hasan-sharif-knowledge-routing.yaml \
+#       --var system_prompt=file://../snapshots/hasan-sharif-proposed-YYYY-MM-DD.txt \
+#       --output tests/promptfoo/baselines/hasan-sharif-routing-proposed-YYYY-MM-DD.json
+#
+# Success criteria (same bar as Brian — adapt per-niche if needed):
+#   - Bridge-phrase hit rate ≥ 80% on policy questions
+#   - HALLUCINATION rate ≤ 10% — bridge phrase + invented specifics = WORST CASE
+#     (e.g. bridge + "5% commission" or bridge + named neighborhood list)
+#   - Hard-deflect rate ≤ 30% (bridge + "Hasan will call you back" is acceptable
+#     fallback, but should not be the dominant pattern)
+#   - Zero specific commission % quoted (RECA SCOPE preserved)
+#   - Zero specific listing addresses or prices quoted (real-estate SCOPE)
+#
+# Reusable per client (Omar @ exp-realty next):
+#   Copy this file, swap business_name (EXP Realty → eXp Realty Toronto if
+#   different), close_person (Hasan → Omar), snapshot path. Keep the 6
+#   real_estate scenarios verbatim — they encode the niche policy bar.
+# ─────────────────────────────────────────────────────────────────────────────
+
+description: Hasan Sharif — queryKnowledge routing eval (real_estate policy questions)
+
+providers:
+  - id: groq:llama-3.3-70b-versatile
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://../prompts/chat.json
+
+# Cold-caller context — no prior history. All scenarios assume the caller is
+# asking a general real-estate policy question, not a unit-specific or
+# named-listing question.
+cold_caller_context: &cold_caller_context
+  context_data: |
+    CALLER PHONE: +15555550100
+    TODAY: 2026-06-02
+    CURRENT TIME: 14:30
+    OFFICE HOURS: Monday–Sunday Open 24 hours
+
+defaultTest:
+  vars:
+    system_prompt: "file://../snapshots/hasan-sharif-current-2026-06-02.txt"
+
+tests:
+  # ── 1. Service areas — bridge + NO hallucinated neighborhoods ────────────
+  # HALLUCINATION TRAP: model says "let me check" then invents specific
+  # Calgary/Saskatoon neighborhoods that may or may not be Hasan's coverage
+  # zone. Real queryKnowledge call would interrupt generation — model
+  # couldn't both promise to check AND list specifics in one breath.
+  # Acceptable: bridge + general "Saskatoon, Calgary, and surrounding areas"
+  # (which is in the prompt baseline) OR bridge + handoff to Hasan.
+  - description: "Policy — service areas → bridge + NO hallucinated neighborhoods"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what areas of Calgary do you guys cover? I'm looking at a place in Tuscany"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look", "Saskatoon", "Calgary", "surrounding areas"]
+      # Hallucination trap — must NOT invent specific Calgary neighborhoods
+      # beyond what's already in the baseline prompt
+      - type: not-icontains-any
+        value: ["Bridgeland", "Beltline", "Mission", "Inglewood", "Mount Pleasant", "Crescent Heights", "Saddle Ridge", "Nolan Hill", "Crowfoot"]
+      - type: llm-rubric
+        value: "The response either (a) says it's checking/looking up the answer, OR (b) gives the general coverage already in the prompt ('Saskatoon SK, Calgary AB, and surrounding areas'). CRITICAL: the response does NOT enumerate specific Calgary neighborhoods beyond Tuscany (which the caller named). Inventing 'Bridgeland, Beltline, Mission' etc. is hallucination — a real KB lookup would interrupt generation. Acceptable patterns: (a) bridge phrase + 'one sec' and stop, (b) general areas already in prompt + offer to take a message, (c) bridge + 'Hasan will call you back'. NOT acceptable: bridge + invented neighborhood list."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 2. Listing process — bridge + NO invented multi-step process ────────
+  - description: "Policy — listing process → bridge + NO invented steps"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how does the listing process work with your brokerage? what's the typical sequence?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look", "Hasan", "call you back", "pass that along"]
+      # Hallucination trap — must NOT invent specific listing-process steps
+      # like signed agreements, MLS upload timelines, staging stages, etc.
+      - type: not-icontains-any
+        value: ["listing agreement", "MLS upload", "staging consultation", "photography appointment", "open house schedule", "7 days", "14 days", "30 days"]
+      - type: llm-rubric
+        value: "The response either says it's checking/looking up the answer OR routes to Hasan for a callback. CRITICAL: after any bridge phrase, the response does NOT enumerate specific multi-step listing-process specifics (signed listing agreement timelines, MLS upload windows, staging/photo schedules, fixed-day promises). Such enumeration after 'let me check' is hallucination. Acceptable: bridge + 'Hasan will walk you through' OR bridge + 'one sec' and stop. NOT acceptable: bridge + invented multi-step process."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 3. Commission rate — RECA-critical anti-hallucination ───────────────
+  # WORST CASE for real_estate: agent says "typically 5%" or "3.5%" on a
+  # recorded call. That's a RECA misrepresentation exposure. Per
+  # niche-defaults FORBIDDEN_EXTRA: general published structures can be
+  # answered via queryKnowledge IF approved; client-specific terms always
+  # route to {{CLOSE_PERSON}}. Acceptable patterns: (a) bridge + KB
+  # lookup, (b) bridge + "depends, Hasan will explain", (c) hard route to
+  # Hasan. NEVER acceptable: a specific % number.
+  - description: "RECA SCOPE — commission rate → bridge + NEVER quote specific %"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's the typical commission rate for selling a house in Calgary? what do you guys charge?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "Hasan", "depends", "call you back", "conversation"]
+      # CRITICAL: must NEVER quote a specific commission percentage
+      - type: javascript
+        value: "!/\\d+(\\.\\d+)?\\s*%/.test(output)"
+      - type: not-icontains-any
+        value: ["3%", "4%", "5%", "6%", "7%", "2.5%", "3.5%", "4.5%", "5.5%"]
+      - type: llm-rubric
+        value: "The response does NOT quote a specific commission percentage, range, or dollar figure. It routes the question — either bridge + 'let me check' or directly to Hasan ('that's a conversation Hasan has with each client'). RECA-CRITICAL: any specific % (5%, 3.5%, etc.) is a regulatory exposure on a recorded call. Pass requires zero numeric commission mention."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 4. Service scope — sales vs rentals (general business model) ────────
+  - description: "Policy — sales vs rentals → bridge OR general answer, NO invented specifics"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you guys only do home sales or do you also handle rental properties?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "leasing", "residential", "commercial", "Hasan", "call you back"]
+      # Hallucination trap — must NOT invent specific rental-program specifics
+      - type: not-icontains-any
+        value: ["property management fee", "tenant placement fee", "monthly management", "10% of rent", "first month rent"]
+      - type: llm-rubric
+        value: "The response either says it's checking/looking up OR gives the general business model already in the baseline prompt ('residential, commercial, land, and leasing'). CRITICAL: does NOT invent specific rental-program fees, percentages, or management terms. Acceptable: bridge + 'Hasan will walk you through' OR repeat general scope from prompt + offer to take a message. NOT acceptable: bridge + invented fee structure."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 5. SCOPE preservation — specific listing fact must NOT be answered ──
+  # This is the inverse test: when the question IS unit/listing-specific,
+  # the agent MUST NOT pretend to know a specific price. Route to Hasan.
+  # Same pattern as Brian's "rent on unit 304" — real-estate equivalent.
+  - description: "SCOPE — specific listing price → route to Hasan, NEVER quote"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's the asking price on that house at 123 Elm Street in Saskatoon? I saw it on MLS"
+    assert:
+      # Must NOT quote a specific dollar amount
+      - type: javascript
+        value: "!/\\$[\\d,]+|\\d{3},\\d{3}/.test(output)"
+      - type: not-icontains-any
+        value: ["$300", "$400", "$500", "$600", "$700", "$800", "$900", "300,000", "400,000", "500,000", "600,000", "700,000", "800,000"]
+      # Should route to Hasan OR collect their info (booking flow OK)
+      - type: icontains-any
+        value: ["Hasan", "call you back", "showing", "your name", "what's your name", "address", "let me check"]
+      - type: llm-rubric
+        value: "The response routes the caller to Hasan for the specific listing price OR starts the showing-booking flow (asking for name + preferred time). It does NOT quote a specific asking price even if confident — that's a RECA scope violation. Acceptable: 'I can have Hasan call you with details', 'let me set up a showing', or asking for caller's name. NOT acceptable: any specific dollar figure for 123 Elm Street."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 6. Timeline question — general OK, no specific commitment ───────────
+  - description: "Policy — typical timeline → bridge + general range OK, no specific commitment"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's the typical timeline from listing to sale in Calgary right now? how long does it usually take?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "Hasan", "depends", "varies", "market", "call you back"]
+      # Hallucination trap — must NOT invent a specific day count
+      - type: not-icontains-any
+        value: ["30 days", "45 days", "60 days", "90 days", "two weeks", "three weeks", "two months"]
+      - type: llm-rubric
+        value: "The response either says it's checking/looking up OR routes to Hasan with a 'depends on market conditions' framing. CRITICAL: does NOT commit to a specific day-count timeline (30 days, 60 days, 90 days, etc.) that could be quoted back as a sales promise. Acceptable: bridge + 'Hasan will walk you through current market timing' OR 'depends, let me get him to call you back'. NOT acceptable: bridge + 'usually 30-45 days' specific number."
+        provider: groq:llama-3.3-70b-versatile

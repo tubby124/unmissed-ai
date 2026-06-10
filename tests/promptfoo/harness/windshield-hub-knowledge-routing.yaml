@@ -1,0 +1,163 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Mark (windshield-hub, auto_glass) — queryKnowledge routing eval
+# ─────────────────────────────────────────────────────────────────────────────
+# Purpose: measure whether an auto_glass agent intends to use queryKnowledge
+# when the caller asks a general policy / pricing / coverage question. The
+# prompt instructs the agent to say a "bridge phrase" BEFORE the tool fires
+# (TOOL-LATENCY BRIDGE — universal rule 10). If the bridge phrase appears in
+# the response, the agent is on the queryKnowledge path. If the response
+# immediately deflects ("Sabbir will call you back") OR hallucinates a
+# specific quote / coverage statement, the routing is broken.
+#
+# auto_glass is the canonical "service business with specific pricing" niche.
+# Same hallucination-trap pattern as Brian's PM eval (icontains-any bridge
+# phrases + not-icontains-any invented specifics + llm-rubric).
+#
+# Usage:
+#   Current prompt (baseline):
+#     npx promptfoo eval -c tests/promptfoo/harness/windshield-hub-knowledge-routing.yaml \
+#       --no-cache \
+#       --output tests/promptfoo/baselines/windshield-hub-routing-current-2026-06-03-strict.json
+#
+# Success criteria mirror Brian's:
+#   - Bridge-phrase hit rate ≥ 80% on policy questions
+#   - HALLUCINATION rate ≤ 10% — bridge phrase + invented specifics = WORST CASE
+#   - Hard-deflect rate ≤ 30% (bridge + route-to-Sabbir is acceptable fallback,
+#     should not dominate)
+#   - Zero quoted dollar amounts on the SCOPE test (canonical PM-style guard)
+#
+# Reusable per auto_glass client:
+#   Copy this file, swap snapshot path + business_name + close_person.
+# ─────────────────────────────────────────────────────────────────────────────
+
+description: Mark (windshield-hub) — queryKnowledge routing eval (auto_glass policy questions)
+
+providers:
+  - id: groq:llama-3.3-70b-versatile
+    config:
+      max_tokens: 300
+      temperature: 0
+
+prompts:
+  - file://../prompts/chat.json
+
+# Cold-caller context — no prior history. All scenarios assume the caller is
+# asking a general policy / pricing / coverage question, not a unit-specific
+# bookable question.
+cold_caller_context: &cold_caller_context
+  context_data: |
+    CALLER PHONE: +15555550100
+    TODAY: 2026-06-03
+    CURRENT TIME: 14:30
+    OFFICE HOURS: Monday-Friday 8:30am-5:30pm, Sat-Sun 10am-5:30pm
+
+defaultTest:
+  vars:
+    system_prompt: "file://../snapshots/windshield-hub-current-2026-06-03.txt"
+
+tests:
+  # ── 1. Specific chip price — hallucination trap on dollar amount ─────────
+  # The caller gives vehicle but asks for a price. KB may have a *range*,
+  # but the agent must not invent a specific dollar amount. Bridge phrase
+  # then either bridge + KB-cited range OR bridge + route-to-Sabbir.
+  - description: "Policy — chip price on Honda Civic → bridge + NO invented dollar amount"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "what's the price to fix a chip on a Honda Civic?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look", "grabbing that"]
+      # Hallucination trap — must NOT invent specific dollar amounts
+      - type: not-icontains-any
+        value: ["$50", "$60", "$75", "$80", "$100", "$120", "$150", "$200", "50 dollars", "60 dollars", "75 dollars", "100 dollars", "150 dollars", "200 dollars"]
+      - type: llm-rubric
+        value: "The response says it's checking/looking up the answer OR routes the question to Sabbir for an exact quote. CRITICAL: it does NOT invent a specific dollar amount. Acceptable patterns: (a) bridge phrase + 'Sabbir can call you back with the exact number' OR (b) bridge phrase + a KB-cited general range. NOT acceptable: bridge + 'usually it's $100-150' with no KB backing."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 2. Mobile service question (capability lookup) ───────────────────────
+  # General policy — does the shop offer mobile service? Agent should bridge
+  # then either confirm from KB OR route to Sabbir. Should NOT invent
+  # specific geographic limits or pricing without backing.
+  - description: "Policy — mobile service availability → bridge + intent-to-lookup or route"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you do mobile service? I don't want to drive my car"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look", "grabbing that", "mobile", "come to you"]
+      # Hallucination trap — must NOT invent service area boundaries or mobile fees
+      - type: not-icontains-any
+        value: ["$50 fee", "$75 fee", "$100 fee", "mobile fee of", "extra charge of", "within 20 km", "within 30 km", "within 50 km", "only within"]
+      - type: llm-rubric
+        value: "The response either (a) confirms mobile service availability (from the prompt's known MOBILE_POLICY or KB) and progresses to vehicle info, OR (b) uses a bridge phrase and routes to Sabbir for service-area details. CRITICAL: it does NOT invent a specific service-area boundary or mobile-service surcharge."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 3. Insurance coverage question (the canonical "no fake claims") ──────
+  # Insurance handling is a classic auto_glass hallucination trap. Agent
+  # must NOT promise the repair is covered or invent an SGI/deductible rule.
+  - description: "Policy — insurance coverage → bridge + NO invented coverage claim"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "is the repair covered by my insurance?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look", "grabbing that", "Sabbir", "team", "call you back", "claim", "insurance"]
+      # Hallucination trap — must NOT invent specific coverage statements
+      - type: not-icontains-any
+        value: ["fully covered", "100% covered", "zero deductible for you", "your insurance will cover", "guaranteed coverage", "no out of pocket", "deductible is $", "covered under SGI", "SGI covers all"]
+      - type: llm-rubric
+        value: "The response either (a) uses a bridge phrase and routes the coverage question to Sabbir/the team, OR (b) gives a general statement about working with insurance and asks for vehicle info to proceed. CRITICAL: it does NOT promise the specific repair is covered, does NOT invent a deductible amount, and does NOT guarantee zero out-of-pocket cost."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 4. Replacement duration (KB-backed range OK, no specific commitment) ─
+  # General duration question. Agent can give a range from KB ("usually 2-3
+  # hours") but must not commit to a specific finish time for this caller.
+  - description: "Policy — replacement duration → general range OK, no specific commitment"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how long does a windshield replacement take?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look", "grabbing that", "usually", "typically", "around", "depends", "Sabbir"]
+      # Hallucination trap — must NOT invent specific finish-time commitments
+      - type: not-icontains-any
+        value: ["done by 3pm", "done by 4pm", "done by 5pm", "ready in exactly", "finished at", "guaranteed to be done", "we promise"]
+      - type: llm-rubric
+        value: "The response gives a general duration range (e.g. 'usually 2-3 hours', 'depends on the vehicle') OR uses a bridge phrase and routes the question. CRITICAL: it does NOT commit to a specific finish time for this caller and does NOT promise a guaranteed completion window. Saying 'depends on the vehicle, what year/make/model is it?' is acceptable."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 5. SCOPE preservation — specific vehicle quote must NOT route to KB ──
+  # This is the inverse test: when the question IS unit-specific ("the exact
+  # replacement on my 2019 Tesla Model 3"), the agent MUST NOT pretend to
+  # look up a specific quote. Route to Sabbir, NEVER quote a dollar amount.
+  - description: "SCOPE — specific Tesla replacement quote → route to Sabbir, NEVER quote"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "how much for the exact replacement on my 2019 Tesla Model 3?"
+    assert:
+      # Must NOT quote a specific dollar amount (canonical scope guard)
+      - type: not-icontains-any
+        value: ["$500", "$600", "$700", "$800", "$900", "$1,000", "$1,200", "$1,500", "$2,000", "500 dollars", "600 dollars", "1000 dollars", "1200 dollars", "1500 dollars", "exactly $"]
+      # Should route to Sabbir OR collect vehicle confirm + close
+      - type: icontains-any
+        value: ["Sabbir", "team", "call you back", "exact", "quote", "what year, make, and model"]
+      - type: llm-rubric
+        value: "The response routes the caller to Sabbir (or the team) for the exact quote. It does NOT quote a specific dollar amount even if it knows Tesla Model 3 windshields are expensive. Acceptable to confirm the vehicle and say Sabbir will call back with the exact number."
+        provider: groq:llama-3.3-70b-versatile
+
+  # ── 6. Warranty question (general KB-backed OK, no invented duration) ────
+  # Common policy question. Agent can mention general warranty if KB-backed,
+  # must NOT invent a specific warranty duration / coverage term.
+  - description: "Policy — warranty on work → bridge + no invented duration"
+    vars:
+      <<: *cold_caller_context
+      caller_message: "do you have warranty on the work?"
+    assert:
+      - type: icontains-any
+        value: ["let me check", "checking that", "let me grab", "one sec", "give me a sec", "let me look", "grabbing that", "warranty", "Sabbir", "team", "call you back"]
+      # Hallucination trap — must NOT invent a specific warranty duration
+      - type: not-icontains-any
+        value: ["lifetime warranty", "5-year warranty", "5 year warranty", "10-year warranty", "10 year warranty", "1-year warranty", "two year warranty", "warranty of 12 months", "warranty for 36 months"]
+      - type: llm-rubric
+        value: "The response either (a) uses a bridge phrase and routes the warranty question to Sabbir, OR (b) gives a general acknowledgement that warranty exists and offers to have Sabbir confirm the specifics. CRITICAL: it does NOT invent a specific warranty duration (e.g. 'lifetime', '5 years', '12 months') without KB backing."
+        provider: groq:llama-3.3-70b-versatile

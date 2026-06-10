@@ -1,0 +1,293 @@
+{
+  "slug": "calgary-property-leasing",
+  "callId": "ae1ef078-5e60-4b70-b32e-edfe3b9aba11",
+  "startedAt": "2026-06-03T21:45:37.156Z",
+  "durationSeconds": 63,
+  "systemPromptChars": 22636,
+  "voice": "5f8e97b1-cd48-431a-b6a1-3b94306d8914",
+  "toolsCount": 5,
+  "markers": [
+    "Edmonton",
+    "Bridgeland",
+    "Beltline",
+    "heat is included",
+    "water is included"
+  ],
+  "metrics": {
+    "bridgePhraseHits": 2,
+    "toolInvocations": 4,
+    "queryKnowledgeFires": 4,
+    "markersHit": [
+      "Edmonton in: \"\nHi, this is Eric, welcome to Calgary Edmonton Property Leasing. How may I help you?\"",
+      "Edmonton in: \"\nWe serve Calgary and Edmonton, Alberta. Anything else I can help with?\""
+    ]
+  },
+  "transcript": [
+    "[MESSAGE_ROLE_USER] (New Call) Respond as if you are answering the phone.",
+    "[MESSAGE_ROLE_AGENT] \nHi, this is Eric, welcome to Calgary Edmonton Property Leasing. How may I help you?",
+    "[MESSAGE_ROLE_USER]  What's up, Eric? How are you doing?",
+    "[MESSAGE_ROLE_AGENT] \nHey, I'm doing pretty good, thanks! What can I help you with today?",
+    "[MESSAGE_ROLE_USER]  Not much. I'm just wondering, what areas do you guys serve?",
+    "[MESSAGE_ROLE_AGENT] \nYeah let me check that one for you... one sec.\n",
+    "[MESSAGE_ROLE_TOOL_CALL] {\"query\": \"what areas do we serve service areas coverage\"}",
+    "[MESSAGE_ROLE_TOOL_RESULT] {\"results\":[{\"content\":\"Q: What areas do you serve?\\nA: Calgary and Edmonton, Alberta.\",\"chunk_type\":\"qa\",\"source\":\"settings_edit\",\"similarity\":0.503216519775647,\"source_run_id\":\"settings-edit-1780471296109\",\"rrf_score\":0.0188679245283019,\"trust_tier\":\"high\"},{\"content\":\"Q: What areas do you serve?\\nA: Calgary and Edmonton, Alberta\",\"chunk_type\":\"qa\",\"source\":\"website_scrape\",\"similarity\":0.512405534710195,\"source_run_id\":\"website-scrape-1777182241749\",\"rrf_score\":0.0196078431372549,\"trust_tier\":\"medium\"},{\"content\":\"Q: What areas do you serve? A: Calgary and Edmonton, Alberta. We don't operate outside those two markets.\",\"chunk_type\":\"qa\",\"source\":\"website_scrape\",\"similarity\":0.510830457070678,\"source_run_id\":\"manual-curation-1778016377\",\"rrf_score\":0.0192307692307692,\"trust_tier\":\"medium\"}],\"count\":3,\"query_id\":\"60de71d4-1941-4fe4-86b0-3783a01211a5\",\"_instruction\":\"Found: Q: What areas do you serve?\\nA: Calgary and Edmonton, Alberta.. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.\"}",
+    "[MESSAGE_ROLE_AGENT] \nWe serve Calgary and Edmonton, Alberta. Anything else I can help with?",
+    "[MESSAGE_ROLE_USER]  Yeah. How does your rent program work?",
+    "[MESSAGE_ROLE_AGENT] \nYeah let me check that one for you... one sec.\n",
+    "[MESSAGE_ROLE_TOOL_CALL] {\"query\": \"rent program how it works leasing process\"}",
+    "[MESSAGE_ROLE_TOOL_RESULT] {\"results\":[{\"content\":\"Q: How does the rent guarantee program work?\\nA: We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We then sublet to screened subtenants. No fees to you.\",\"chunk_type\":\"qa\",\"source\":\"settings_edit\",\"similarity\":0.503144112135763,\"source_run_id\":\"settings-edit-1780471296109\",\"rrf_score\":0.0196078431372549,\"trust_tier\":\"high\"}],\"count\":1,\"query_id\":\"c8a0a69d-3465-43dc-b41a-e6b908e3b97d\",\"_instruction\":\"Found: Q: How does the rent guarantee program work?\\nA: We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We t. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.\"}",
+    "[MESSAGE_ROLE_AGENT] \nWe sign the lease as the tenant on your property and pay you about 90% of market rent every month, guaranteed — even if the unit is vacant. Then we sublet to screened subtenants, and there are no fees to you. Anything else I can help with?",
+    "[MESSAGE_ROLE_USER]  No, that's good. Thanks.",
+    "[MESSAGE_ROLE_AGENT] \nAlright, take care!"
+  ],
+  "rawMessages": [
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": "(New Call) Respond as if you are answering the phone.",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "callStageMessageIndex": 0
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nHi, this is Eric, welcome to Calgary Edmonton Property Leasing. How may I help you?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 1,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "0.820s",
+        "end": "5.530s"
+      },
+      "wallClockTimespan": {
+        "start": "2.138408s",
+        "end": "6.829940s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " What's up, Eric? How are you doing?",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 2,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "6.496s",
+        "end": "7.808s"
+      },
+      "wallClockTimespan": {
+        "start": "7.823389s",
+        "end": "9.101361s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nHey, I'm doing pretty good, thanks! What can I help you with today?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 3,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "8.630s",
+        "end": "11.510s"
+      },
+      "wallClockTimespan": {
+        "start": "9.925063s",
+        "end": "12.804775s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Not much. I'm just wondering, what areas do you guys serve?",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 4,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "12.512s",
+        "end": "15.360s"
+      },
+      "wallClockTimespan": {
+        "start": "13.841638s",
+        "end": "16.652903s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nYeah let me check that one for you... one sec.\n",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 5,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "16.240s",
+        "end": "19.120s"
+      },
+      "wallClockTimespan": {
+        "start": "17.536597s",
+        "end": "20.416972s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_CALL",
+      "text": "{\"query\": \"what areas do we serve service areas coverage\"}",
+      "invocationId": "chatcmpl-tool-ae5364b80ac43956",
+      "toolName": "queryKnowledge",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 6,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "19.120s",
+        "end": "19.120s"
+      },
+      "wallClockTimespan": {
+        "start": "20.418654s",
+        "end": "22.251882s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_RESULT",
+      "text": "{\"results\":[{\"content\":\"Q: What areas do you serve?\\nA: Calgary and Edmonton, Alberta.\",\"chunk_type\":\"qa\",\"source\":\"settings_edit\",\"similarity\":0.503216519775647,\"source_run_id\":\"settings-edit-1780471296109\",\"rrf_score\":0.0188679245283019,\"trust_tier\":\"high\"},{\"content\":\"Q: What areas do you serve?\\nA: Calgary and Edmonton, Alberta\",\"chunk_type\":\"qa\",\"source\":\"website_scrape\",\"similarity\":0.512405534710195,\"source_run_id\":\"website-scrape-1777182241749\",\"rrf_score\":0.0196078431372549,\"trust_tier\":\"medium\"},{\"content\":\"Q: What areas do you serve? A: Calgary and Edmonton, Alberta. We don't operate outside those two markets.\",\"chunk_type\":\"qa\",\"source\":\"website_scrape\",\"similarity\":0.510830457070678,\"source_run_id\":\"manual-curation-1778016377\",\"rrf_score\":0.0192307692307692,\"trust_tier\":\"medium\"}],\"count\":3,\"query_id\":\"60de71d4-1941-4fe4-86b0-3783a01211a5\",\"_instruction\":\"Found: Q: What areas do you serve?\\nA: Calgary and Edmonton, Alberta.. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.\"}",
+      "invocationId": "chatcmpl-tool-ae5364b80ac43956",
+      "toolName": "queryKnowledge",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 7,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "callState": {
+        "knowledgeQueries": 1,
+        "lastToolOutcome": "knowledge_found"
+      },
+      "timespan": {
+        "start": "19.120s",
+        "end": "20.960s"
+      },
+      "wallClockTimespan": {
+        "start": "22.251882s",
+        "end": "22.252254s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nWe serve Calgary and Edmonton, Alberta. Anything else I can help with?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 8,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "21.600s",
+        "end": "24.900s"
+      },
+      "wallClockTimespan": {
+        "start": "22.894980s",
+        "end": "26.193070s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Yeah. How does your rent program work?",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 9,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "25.952s",
+        "end": "27.968s"
+      },
+      "wallClockTimespan": {
+        "start": "27.281815s",
+        "end": "29.261599s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nYeah let me check that one for you... one sec.\n",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 10,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "29s",
+        "end": "31.600s"
+      },
+      "wallClockTimespan": {
+        "start": "30.293229s",
+        "end": "32.894946s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_CALL",
+      "text": "{\"query\": \"rent program how it works leasing process\"}",
+      "invocationId": "chatcmpl-tool-840906c85769528c",
+      "toolName": "queryKnowledge",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 11,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "31.600s",
+        "end": "31.600s"
+      },
+      "wallClockTimespan": {
+        "start": "32.896806s",
+        "end": "34.251594s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_RESULT",
+      "text": "{\"results\":[{\"content\":\"Q: How does the rent guarantee program work?\\nA: We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We then sublet to screened subtenants. No fees to you.\",\"chunk_type\":\"qa\",\"source\":\"settings_edit\",\"similarity\":0.503144112135763,\"source_run_id\":\"settings-edit-1780471296109\",\"rrf_score\":0.0196078431372549,\"trust_tier\":\"high\"}],\"count\":1,\"query_id\":\"c8a0a69d-3465-43dc-b41a-e6b908e3b97d\",\"_instruction\":\"Found: Q: How does the rent guarantee program work?\\nA: We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We t. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.\"}",
+      "invocationId": "chatcmpl-tool-840906c85769528c",
+      "toolName": "queryKnowledge",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 12,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "callState": {
+        "knowledgeQueries": 2,
+        "lastToolOutcome": "knowledge_found"
+      },
+      "timespan": {
+        "start": "31.600s",
+        "end": "32.950s"
+      },
+      "wallClockTimespan": {
+        "start": "34.251594s",
+        "end": "34.251997s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nWe sign the lease as the tenant on your property and pay you about 90% of market rent every month, guaranteed — even if the unit is vacant. Then we sublet to screened subtenants, and there are no fees to you. Anything else I can help with?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 13,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "34.060s",
+        "end": "47.950s"
+      },
+      "wallClockTimespan": {
+        "start": "35.358037s",
+        "end": "49.246557s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " No, that's good. Thanks.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 14,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "49.440s",
+        "end": "50.272s"
+      },
+      "wallClockTimespan": {
+        "start": "50.773535s",
+        "end": "51.573270s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nAlright, take care!",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 15,
+      "callStageId": "4969720c-e430-4a80-bec8-cad1785dda7a",
+      "timespan": {
+        "start": "50.890s",
+        "end": "52.050s"
+      },
+      "wallClockTimespan": {
+        "start": "52.185646s",
+        "end": "53.346777s"
+      }
+    }
+  ]
+}

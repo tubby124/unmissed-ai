@@ -4,7 +4,7 @@
 # To start manually: bash scripts/nlm-watch.sh &
 # To stop: pkill -f nlm-watch.sh
 
-PROJECT_ROOT="/Users/owner/Downloads/CALLING AGENTs"
+PROJECT_ROOT="/Users/owner/Downloads/Repos/CALLING AGENTs"
 SYNC_SCRIPT="$PROJECT_ROOT/scripts/nlm-sync.sh"
 LOG="$PROJECT_ROOT/scripts/nlm-watch.log"
 

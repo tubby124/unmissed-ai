@@ -1,0 +1,40 @@
+{
+  "slug": "velly-remodeling",
+  "promptSource": {
+    "type": "file",
+    "path": "/tmp/velly-slot-output.txt"
+  },
+  "callId": "86005da9-820a-47e5-ac3c-40e929272003",
+  "startedAt": "2026-06-04T13:49:54.791Z",
+  "durationSeconds": 38,
+  "systemPromptChars": 19487,
+  "voice": "aa601962-1cbd-4bbd-9d96-3c7a93c3414a",
+  "toolsCount": 6,
+  "markers": [
+    "Sutherland",
+    "Nutana",
+    "Riversdale",
+    "$200/sqft",
+    "per square foot",
+    "$15,000",
+    "$20,000"
+  ],
+  "metrics": {
+    "bridgePhraseHits": 0,
+    "toolInvocations": 0,
+    "queryKnowledgeFires": 0,
+    "markersHit": []
+  },
+  "transcript": [
+    "[MESSAGE_ROLE_USER] (New Call) Respond as if you are answering the phone."
+  ],
+  "rawMessages": [
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": "(New Call) Respond as if you are answering the phone.",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageId": "c096202b-91a4-4e67-af4b-b5043ec7171b",
+      "callStageMessageIndex": 0
+    }
+  ]
+}

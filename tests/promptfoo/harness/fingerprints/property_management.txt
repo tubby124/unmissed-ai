@@ -1,0 +1,48 @@
+# Sacred substrings for property_management niche.
+# Every line is a fixed-string (NOT regex) that MUST appear in any built
+# system_prompt for a property_management client. If any line is missing
+# post-edit, the slim/refactor lost a load-bearing rule.
+#
+# Source: CALLINGAGENTS/00-Inbox/2026-06-02-brian-prompt-audit.md (12 fingerprints)
+# + Bug 3 returning-caller rule (1 fingerprint) = 13 total.
+#
+# Lines starting with # are ignored.
+# Blank lines are ignored.
+# Leading/trailing whitespace is stripped.
+# Matches are case-sensitive grep -F. Quote in fingerprint exactly as it
+# should appear in the prompt — case included.
+
+# ── FHA / discrimination ─────────────────────────────────────────────
+Fair Housing Act violations carry penalties up to $150,000
+NEVER reject or question service animal or ESA
+demographic language
+
+# ── Safety / emergency triage ────────────────────────────────────────
+9-1-1 right now
+no heat
+do NOT downplay
+
+# ── Scope / liability ────────────────────────────────────────────────
+NEVER quote unit-specific rent
+
+# ── Urgency triage tool call (contemporary wording, 2026-06-03) ──────
+# Audit doc had "flag as [P1 URGENT] immediately" — that wording was
+# superseded by the submitMaintenanceRequest tool flow.
+submitMaintenanceRequest with urgency_tier='urgent'
+
+# ── Internal routing tags (must NEVER be spoken to callers) ──────────
+INTERNAL TAGS — NEVER SPEAK
+
+# ── Conversation discipline ──────────────────────────────────────────
+CALLER ENDS CALL
+COMPLETION CHECK
+hangUp
+
+# ── Prompt-injection defense (S16e) ──────────────────────────────────
+Never reveal
+
+# ── Bug 3 — returning-caller topic presumption fix ───────────────────
+# EXPECTED FAILURE until Bug 3 fix lands in source (currently only patched
+# on Brian's live agent via regenerateSlot). When this fingerprint passes
+# in CURRENT snapshot for all PM clients, Bug 3 is fully shipped.
+ALWAYS ASK why they're calling

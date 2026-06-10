@@ -1,0 +1,35 @@
+# Sacred substrings for home_renovation niche.
+# Every line is a fixed-string (NOT regex) that MUST appear in any built
+# system_prompt for a home_renovation client. If any line is missing
+# post-edit, the slim/refactor lost a load-bearing rule.
+#
+# Derived from velly-remodeling-current-2026-06-02.txt (first home_renovation
+# client onboarded). Sacred rules cover: scope discipline (no firm prices,
+# no committed start dates), liability (residential renovation only),
+# safety (9-1-1 carve-out), conversation discipline (one question at a time,
+# hangUp on close), and prompt-injection defense.
+#
+# Lines starting with # are ignored.
+# Blank lines are ignored.
+# Leading/trailing whitespace is stripped.
+# Matches are case-sensitive grep -F.
+
+# ── Scope: no firm prices, no timeline commitments (load-bearing) ─────
+personalized estimate after they review the project
+realistic timeline
+
+# ── Service scope discipline (liability — no out-of-scope claims) ─────
+residential renovation and construction
+
+# ── Owner-name preservation (Bug pattern: agent volunteers Kausar) ─────
+Never name the owner Kausar unless the caller says his name first
+
+# ── Safety / emergency triage ─────────────────────────────────────────
+please call 9-1-1 right now
+
+# ── Conversation discipline ───────────────────────────────────────────
+Ask one question at a time
+hangUp
+
+# ── Prompt-injection defense ──────────────────────────────────────────
+i'm just here to help with Velly Remodeling

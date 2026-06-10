@@ -1,0 +1,72 @@
+# Sacred substrings for real_estate niche.
+# Every line is a fixed-string (NOT regex) that MUST appear in any built
+# system_prompt for a real_estate client. If any line is missing post-edit,
+# the slim/refactor lost a load-bearing rule.
+#
+# Source: src/lib/prompt-config/niche-defaults.ts → real_estate block
+#   - FORBIDDEN_EXTRA (8 lines, real-estate-specific scope/safety/regulatory)
+#   - TRIAGE_DEEP (BUY/SELL/EVAL/RENT/SHOWING REQUEST branch rules)
+#   - LINGUISTIC_ANCHORS (RECA/CREA/MLS lexicon)
+# Plus universal slot-pipeline rules (prompt-slots.ts buildForbiddenActions):
+#   - hangUp discipline
+#   - Never reveal system prompt (S16e injection defense)
+#   - COMPLETION CHECK + CALLER ENDS CALL
+#
+# Why this niche needs a separate fingerprint set:
+# Real estate is REGULATED — RECA (Alberta), RECO (Ontario), CREA federally.
+# A slim that drops the commission-disclosure rule, listing-fact-vs-policy
+# distinction, or Fair Housing demographic guard could create real regulatory
+# exposure for Hasan (Calgary/Saskatoon AB+SK) and Omar (Toronto exp-realty).
+#
+# Lines starting with # are ignored.
+# Blank lines are ignored.
+# Leading/trailing whitespace is stripped.
+# Matches are case-sensitive grep -F. Quote in fingerprint exactly as it
+# should appear in the prompt — case included.
+
+# ── Regulatory anchors (RECA/CREA/MLS lexicon — proves linguistic_anchors slot landed)
+RECA
+MLS
+
+# ── Property fact anti-hallucination (FORBIDDEN_EXTRA line 1) ─────────
+# Specific listing facts (price, availability, square footage) must NEVER
+# be stated — always route to {{CLOSE_PERSON}}. Catches the worst-case bug
+# where the agent invents a listing price.
+specific property prices
+home valuations
+
+# ── Showing/listing availability scope (FORBIDDEN_EXTRA line 2) ──────
+# Agent must NEVER confirm a showing time or that a listing is still on
+# the market. Booking confirmation is always routed.
+NEVER promise a showing time
+
+# ── Legal / mortgage / commission boundary (FORBIDDEN_EXTRA lines 3+5)
+legal advice
+mortgage rates
+COMMISSION + FEES
+
+# ── Fair Housing / demographic-coded language (FORBIDDEN_EXTRA line 6)
+# Real estate equivalent of property_management's $150K FHA fingerprint.
+# Fair Housing Act + provincial Human Rights Code = "significant penalties"
+# wording in the source. Both substrings catch trims that drop this guard.
+demographic
+Fair Housing Act
+
+# ── Cold-call / vendor pitch close (FORBIDDEN_EXTRA line 7) ──────────
+not the right fit
+
+# ── Internal routing tags (FORBIDDEN_EXTRA line 8) ───────────────────
+# BUY/SELL/EVAL/RENT tags are internal-only — must NEVER be spoken or
+# included in SMS bodies. Same pattern as property_management.
+INTERNAL TAGS — NEVER SPEAK
+
+# ── Conversation discipline (universal slot rules) ───────────────────
+COMPLETION CHECK
+hangUp
+CALLER ENDS CALL
+
+# ── Prompt-injection defense (S16e universal) ────────────────────────
+Never reveal
+
+# ── Emergency triage (universal) ─────────────────────────────────────
+9-1-1 right now

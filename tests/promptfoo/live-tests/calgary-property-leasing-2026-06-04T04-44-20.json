@@ -1,0 +1,496 @@
+{
+  "slug": "calgary-property-leasing",
+  "callId": "7f7681d6-942c-4f91-946d-4bc19d657c78",
+  "startedAt": "2026-06-04T04:42:10.298Z",
+  "durationSeconds": 130,
+  "systemPromptChars": 25386,
+  "voice": "5f8e97b1-cd48-431a-b6a1-3b94306d8914",
+  "toolsCount": 5,
+  "markers": [
+    "heat is included",
+    "water is included",
+    "all utilities",
+    "most of our units include",
+    "Vancouver",
+    "Toronto"
+  ],
+  "metrics": {
+    "bridgePhraseHits": 1,
+    "toolInvocations": 4,
+    "queryKnowledgeFires": 2,
+    "markersHit": []
+  },
+  "transcript": [
+    "[MESSAGE_ROLE_USER] (New Call) Respond as if you are answering the phone.",
+    "[MESSAGE_ROLE_AGENT] \nHi, this is Eric, welcome to Calgary Edmonton Property Leasing. How may I help you?",
+    "[MESSAGE_ROLE_USER]  Hey, where's Eric at?",
+    "[MESSAGE_ROLE_AGENT] \nThis is Eric — what can I help you with?",
+    "[MESSAGE_ROLE_USER]  Where's Brian?",
+    "[MESSAGE_ROLE_AGENT] \nBrian's tied up right now — I can have him give you a call back. What's your name?",
+    "[MESSAGE_ROLE_USER]  My name is Jennifer.",
+    "[MESSAGE_ROLE_AGENT] \nGot it Jennifer — what's this regarding?",
+    "[MESSAGE_ROLE_USER]  I'm actually looking to rent a place and I wanted to know how it works.",
+    "[MESSAGE_ROLE_AGENT] \nYeah, for sure — what kind of place are you looking for?",
+    "[MESSAGE_ROLE_USER]  I've seen it on Facebook, but I don't remember the address.",
+    "[MESSAGE_ROLE_AGENT] \nNo worries — do you remember what type of unit it was? Like a",
+    "[MESSAGE_ROLE_USER]  I think it was an apartment.",
+    "[MESSAGE_ROLE_AGENT] \nGot it — was it a one-bedroom or two-bedroom, or do you remember?",
+    "[MESSAGE_ROLE_USER]  I don't know.",
+    "[MESSAGE_ROLE_AGENT] \nNo worries — do you remember roughly what area it was in?",
+    "[MESSAGE_ROLE_USER]  East, East Edmonton.",
+    "[MESSAGE_ROLE_AGENT] \nOkay — any days or times that work for a showing? Even rough ones help, like weekday evenings or Saturday?",
+    "[MESSAGE_ROLE_USER]  and let's do uh i don't know you guys had some rent program i don't know how that works",
+    "[MESSAGE_ROLE_AGENT] \nYeah let me check that one for you... one sec.\n",
+    "[MESSAGE_ROLE_TOOL_CALL] {\"query\": \"rent program how it works\"}",
+    "[MESSAGE_ROLE_TOOL_RESULT] {\"results\":[{\"content\":\"Q: How does the rent guarantee program work?\\nA: We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We then sublet to screened subtenants. No fees to you.\",\"chunk_type\":\"qa\",\"source\":\"settings_edit\",\"similarity\":0.480655194021264,\"source_run_id\":\"settings-edit-1780471296109\",\"rrf_score\":0.0388386123680241,\"trust_tier\":\"high\"},{\"content\":\"Rent guarantee program: We pay property owners approximately 90% of market rental value every month, regardless of whether the unit is occupied or who is living in it. This is the rent guarantee — guaranteed monthly rent for the property owner.\",\"chunk_type\":\"fact\",\"source\":\"settings_edit\",\"similarity\":0.498575823034489,\"source_run_id\":\"settings-edit-1780471296109\",\"rrf_score\":0.0196078431372549,\"trust_tier\":\"high\"}],\"count\":2,\"query_id\":\"33d625c8-2824-4dc7-84ef-1e2ddd045154\",\"_instruction\":\"Found: Q: How does the rent guarantee program work?\\nA: We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We t. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.\"}",
+    "[MESSAGE_ROLE_AGENT] \nYeah, so the rent guarantee program is for property owners — we sign the lease as the tenant and pay you about 90% of market rent every month, guaranteed, even if it's vacant. Then we sublet to screened tenants.\n\nAre you looking to rent a place, or do you own a property you want us to manage?",
+    "[MESSAGE_ROLE_USER]  Oh yeah, I'm looking to rent a place.",
+    "[MESSAGE_ROLE_AGENT] \nGot it — so you're looking to rent. Any days or times that work for a showing? Like weekday evenings or Saturday?",
+    "[MESSAGE_ROLE_USER]  Like tomorrow, anytime.",
+    "[MESSAGE_ROLE_AGENT] \nPerfect — I've logged your showing request for tomorrow. Brian will call you back to confirm the time and address. Talk to you soon!\n",
+    "[MESSAGE_ROLE_TOOL_CALL] {\"to\": \"+15555550100\", \"message\": \"Hi Jennifer, this is Eric from Calgary Edmonton Property Leasing. We've received your showing request for tomorrow. Brian will call you back shortly to confirm the time and address.\"}",
+    "[MESSAGE_ROLE_TOOL_RESULT] ERROR: 500 - {\"error\":\"Invalid 'To' Phone Number: +1555555XXXX\"}"
+  ],
+  "rawMessages": [
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": "(New Call) Respond as if you are answering the phone.",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "callStageMessageIndex": 0
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nHi, this is Eric, welcome to Calgary Edmonton Property Leasing. How may I help you?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 1,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "0.450s",
+        "end": "5.100s"
+      },
+      "wallClockTimespan": {
+        "start": "1.113185s",
+        "end": "5.757223s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Hey, where's Eric at?",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 2,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "5.952s",
+        "end": "6.976s"
+      },
+      "wallClockTimespan": {
+        "start": "6.647391s",
+        "end": "7.637726s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nThis is Eric — what can I help you with?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 3,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "7.590s",
+        "end": "10s"
+      },
+      "wallClockTimespan": {
+        "start": "8.247394s",
+        "end": "10.664627s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Where's Brian?",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 4,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "11.232s",
+        "end": "11.968s"
+      },
+      "wallClockTimespan": {
+        "start": "11.927250s",
+        "end": "12.626779s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nBrian's tied up right now — I can have him give you a call back. What's your name?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 5,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "12.540s",
+        "end": "16.480s"
+      },
+      "wallClockTimespan": {
+        "start": "13.197062s",
+        "end": "17.144982s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " My name is Jennifer.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 6,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "17.792s",
+        "end": "18.912s"
+      },
+      "wallClockTimespan": {
+        "start": "18.485481s",
+        "end": "19.577292s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nGot it Jennifer — what's this regarding?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 7,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "19.410s",
+        "end": "21.690s"
+      },
+      "wallClockTimespan": {
+        "start": "20.071267s",
+        "end": "22.347479s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " I'm actually looking to rent a place and I wanted to know how it works.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 8,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "23.104s",
+        "end": "26.752s"
+      },
+      "wallClockTimespan": {
+        "start": "23.796384s",
+        "end": "27.417394s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nYeah, for sure — what kind of place are you looking for?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 9,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "27.410s",
+        "end": "29.830s"
+      },
+      "wallClockTimespan": {
+        "start": "28.070199s",
+        "end": "30.485814s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " I've seen it on Facebook, but I don't remember the address.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 10,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "30.720s",
+        "end": "33.600s"
+      },
+      "wallClockTimespan": {
+        "start": "31.416161s",
+        "end": "34.257131s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nNo worries — do you remember what type of unit it was? Like a",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 11,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "34.140s",
+        "end": "37.890s"
+      },
+      "wallClockTimespan": {
+        "start": "34.796327s",
+        "end": "38.550936s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " I think it was an apartment.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 12,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "37.664s",
+        "end": "42.240s"
+      },
+      "wallClockTimespan": {
+        "start": "38.358702s",
+        "end": "42.896563s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nGot it — was it a one-bedroom or two-bedroom, or do you remember?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 13,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "42.930s",
+        "end": "45.720s"
+      },
+      "wallClockTimespan": {
+        "start": "43.588540s",
+        "end": "46.375921s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " I don't know.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 14,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "46.560s",
+        "end": "47.136s"
+      },
+      "wallClockTimespan": {
+        "start": "47.256078s",
+        "end": "47.795436s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nNo worries — do you remember roughly what area it was in?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 15,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "47.730s",
+        "end": "51.170s"
+      },
+      "wallClockTimespan": {
+        "start": "48.390763s",
+        "end": "51.828471s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " East, East Edmonton.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 16,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "53.248s",
+        "end": "54.784s"
+      },
+      "wallClockTimespan": {
+        "start": "53.937708s",
+        "end": "55.446428s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nOkay — any days or times that work for a showing? Even rough ones help, like weekday evenings or Saturday?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 17,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "55.630s",
+        "end": "61.580s"
+      },
+      "wallClockTimespan": {
+        "start": "56.292429s",
+        "end": "62.237567s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " and let's do uh i don't know you guys had some rent program i don't know how that works",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 18,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "63.168s",
+        "end": "68.704s"
+      },
+      "wallClockTimespan": {
+        "start": "63.857722s",
+        "end": "69.365795s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nYeah let me check that one for you... one sec.\n",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 19,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "69.480s",
+        "end": "71.950s"
+      },
+      "wallClockTimespan": {
+        "start": "70.144692s",
+        "end": "72.607289s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_CALL",
+      "text": "{\"query\": \"rent program how it works\"}",
+      "invocationId": "chatcmpl-tool-b9e6a5b648e4fb1d",
+      "toolName": "queryKnowledge",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 20,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "71.950s",
+        "end": "71.950s"
+      },
+      "wallClockTimespan": {
+        "start": "72.608902s",
+        "end": "74.588532s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_RESULT",
+      "text": "{\"results\":[{\"content\":\"Q: How does the rent guarantee program work?\\nA: We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We then sublet to screened subtenants. No fees to you.\",\"chunk_type\":\"qa\",\"source\":\"settings_edit\",\"similarity\":0.480655194021264,\"source_run_id\":\"settings-edit-1780471296109\",\"rrf_score\":0.0388386123680241,\"trust_tier\":\"high\"},{\"content\":\"Rent guarantee program: We pay property owners approximately 90% of market rental value every month, regardless of whether the unit is occupied or who is living in it. This is the rent guarantee — guaranteed monthly rent for the property owner.\",\"chunk_type\":\"fact\",\"source\":\"settings_edit\",\"similarity\":0.498575823034489,\"source_run_id\":\"settings-edit-1780471296109\",\"rrf_score\":0.0196078431372549,\"trust_tier\":\"high\"}],\"count\":2,\"query_id\":\"33d625c8-2824-4dc7-84ef-1e2ddd045154\",\"_instruction\":\"Found: Q: How does the rent guarantee program work?\\nA: We sign the lease as the tenant on your property and pay you approximately 90% of market rent every month, guaranteed — even if the unit is vacant. We t. Read this back naturally — do not say 'according to our knowledge base' or 'our records show'.\"}",
+      "invocationId": "chatcmpl-tool-b9e6a5b648e4fb1d",
+      "toolName": "queryKnowledge",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 21,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "callState": {
+        "knowledgeQueries": 1,
+        "lastToolOutcome": "knowledge_found"
+      },
+      "timespan": {
+        "start": "71.950s",
+        "end": "73.930s"
+      },
+      "wallClockTimespan": {
+        "start": "74.588532s",
+        "end": "74.588902s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nYeah, so the rent guarantee program is for property owners — we sign the lease as the tenant and pay you about 90% of market rent every month, guaranteed, even if it's vacant. Then we sublet to screened tenants.\n\nAre you looking to rent a place, or do you own a property you want us to manage?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 22,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "74.770s",
+        "end": "88.840s"
+      },
+      "wallClockTimespan": {
+        "start": "75.432104s",
+        "end": "89.504124s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Oh yeah, I'm looking to rent a place.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 23,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "90.752s",
+        "end": "92.896s"
+      },
+      "wallClockTimespan": {
+        "start": "91.445465s",
+        "end": "93.557777s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nGot it — so you're looking to rent. Any days or times that work for a showing? Like weekday evenings or Saturday?",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 24,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "93.520s",
+        "end": "100.580s"
+      },
+      "wallClockTimespan": {
+        "start": "94.181563s",
+        "end": "101.241593s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_USER",
+      "text": " Like tomorrow, anytime.",
+      "medium": "MESSAGE_MEDIUM_VOICE",
+      "callStageMessageIndex": 25,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "102.112s",
+        "end": "103.360s"
+      },
+      "wallClockTimespan": {
+        "start": "102.808384s",
+        "end": "104.016595s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_AGENT",
+      "text": "\nPerfect — I've logged your showing request for tomorrow. Brian will call you back to confirm the time and address. Talk to you soon!\n",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 26,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "103.950s",
+        "end": "110.870s"
+      },
+      "wallClockTimespan": {
+        "start": "104.608310s",
+        "end": "111.528562s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_CALL",
+      "text": "{\"to\": \"+15555550100\", \"message\": \"Hi Jennifer, this is Eric from Calgary Edmonton Property Leasing. We've received your showing request for tomorrow. Brian will call you back shortly to confirm the time and address.\"}",
+      "invocationId": "chatcmpl-tool-b54b4ba9536bc9b7",
+      "toolName": "sendTextMessage",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 27,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "110.870s",
+        "end": "110.870s"
+      },
+      "wallClockTimespan": {
+        "start": "111.530604s",
+        "end": "113.160563s"
+      }
+    },
+    {
+      "role": "MESSAGE_ROLE_TOOL_RESULT",
+      "text": "ERROR: 500 - {\"error\":\"Invalid 'To' Phone Number: +1555555XXXX\"}",
+      "invocationId": "chatcmpl-tool-b54b4ba9536bc9b7",
+      "toolName": "sendTextMessage",
+      "errorDetails": "Received 500 from https://endvoicemail.ai/api/webhook/calgary-property-leasing/sms",
+      "medium": "MESSAGE_MEDIUM_TEXT",
+      "callStageMessageIndex": 28,
+      "callStageId": "9e1c2589-29a5-43ce-b81b-ea91621f98c0",
+      "timespan": {
+        "start": "110.870s",
+        "end": "112.500s"
+      },
+      "wallClockTimespan": {
+        "start": "113.160563s",
+        "end": "113.160901s"
+      }
+    }
+  ]
+}
