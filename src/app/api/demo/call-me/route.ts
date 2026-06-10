@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const globalCheck = globalDemoBudget.check(GLOBAL_DEMO_KEY)
   if (!globalCheck.allowed) {
     return NextResponse.json(
-      { error: 'Demo service is temporarily at capacity. Please try again later.' },
+      { error: 'Demo service is temporarily at capacity. Please try again later.', code: 'rate_limit_exceeded' },
       { status: 429, headers: { 'Retry-After': String(Math.ceil(globalCheck.retryAfterMs / 1000)) } }
     )
   }
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const ipCheck = perIpLimiter.check(ip)
   if (!ipCheck.allowed) {
     return NextResponse.json(
-      { error: 'You\'ve reached the demo limit (3 calls/hour). Try again later or sign up for your own agent.' },
+      { error: 'You\'ve reached the demo limit (3 calls/hour). Try again later or sign up for your own agent.', code: 'rate_limit_exceeded' },
       { status: 429, headers: { 'Retry-After': String(Math.ceil(ipCheck.retryAfterMs / 1000)) } }
     )
   }
@@ -171,7 +171,7 @@ Call structure:
 3. Triage simulation: ask them to pretend they are a windshield caller, then collect the same things a shop needs: repair vs replacement, year/make/model, damage, ADAS/lane-assist camera, urgency, insurance/cash, and callback window. Ask one question at a time and wait after each question.
 4. Owner-summary reveal: summarize the lead exactly like the owner alert would read: lead temperature, vehicle, damage, urgency, insurance/cash, and next callback action.
 5. Hormozi-style value stack: make the value obvious — more booked jobs, higher confidence because every caller gets handled, less time wasted replaying voicemail, less effort because they keep their number and just forward missed calls.
-6. Conversion handoff: explain setup simply: they keep their number; missed, busy, and after-hours calls forward to the AI line; no porting. Mention there is no setup fee, the AI Receptionist is $119/month CAD with 250 included minutes, and the first month proves it works with a 30-day money-back guarantee. If they want the next step, use sendTextMessage to text them the setup link: https://endvoicemail.ai/onboard?niche=auto_glass
+6. Conversion handoff: explain setup simply: they keep their number; missed, busy, and after-hours calls forward to the AI line; no porting. Mention there is no setup fee, the AI Receptionist is $119/month CAD with 250 included minutes, 50 activation minutes, and a 30-day money-back guarantee. If they want the next step, use sendTextMessage to text them the setup link: https://endvoicemail.ai/onboard?niche=auto_glass
 
 Rules:
 - Do not collect sensitive data.
@@ -260,7 +260,7 @@ Rules:
       },
     })
 
-    console.log(`[demo:call-me] callId=${uvCall.callId} tools=${demoTools.length} medium=twilio-outbound phone=${phone}`)
+    console.log(`[demo:call-me] callId=${uvCall.callId} tools=${demoTools.length} medium=twilio-outbound phone=***${phone.slice(-4)}`)
 
     // 2. Build TwiML that connects the phone call to the Ultravox stream
     const twiml = buildStreamTwiml(uvCall.joinUrl)
@@ -289,7 +289,7 @@ Rules:
       twiml,
     })
 
-    console.log(`[call-me] Twilio outbound call created: sid=${call.sid} to=${phone}`)
+    console.log(`[call-me] Twilio outbound call created: sid=${call.sid} to=***${phone.slice(-4)}`)
 
     perIpLimiter.record(ip)
     globalDemoBudget.record(GLOBAL_DEMO_KEY)

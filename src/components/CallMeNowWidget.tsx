@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import { Phone, Check, AlertCircle, Loader2, ChevronDown } from "lucide-react"
 import { CALL_ME_WIDGET_COPY } from "@/lib/marketing-content"
 import { trackEvent } from "@/lib/analytics"
+import Link from "next/link"
 
 interface CallMeNowWidgetProps {
   /** Pre-selected niche for the demo agent (default: auto_glass) */
@@ -27,6 +28,15 @@ interface CallMeNowWidgetProps {
 }
 
 type WidgetState = "idle" | "loading" | "success" | "error"
+
+// Distinguishes error treatments: rate_limit gets a trial CTA, retryable gets a "Try again" button.
+type ErrorKind = "rate_limit" | "retryable" | "generic"
+
+// Client-side cap on the call-me fetch — createDemoCall + Twilio dial normally complete in ~2-5s.
+const FETCH_TIMEOUT_MS = 15_000
+
+const RATE_LIMIT_MESSAGE =
+  "Demo line is busy right now — try again in a bit, or start your free trial instead."
 
 function formatPhoneDisplay(raw: string): string {
   const digits = raw.replace(/\D/g, "")
@@ -71,6 +81,7 @@ export default function CallMeNowWidget({
   const [countryCode] = useState("+1")
   const [state, setState] = useState<WidgetState>("idle")
   const [errorMsg, setErrorMsg] = useState("")
+  const [errorKind, setErrorKind] = useState<ErrorKind | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const digits = phone.replace(/\D/g, "")
@@ -83,7 +94,15 @@ export default function CallMeNowWidget({
     if (state === "error") {
       setState("idle")
       setErrorMsg("")
+      setErrorKind(null)
     }
+  }
+
+  function showError(msg: string, kind: ErrorKind) {
+    setState("error")
+    setErrorMsg(msg)
+    setErrorKind(kind)
+    onError?.(msg)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -92,6 +111,7 @@ export default function CallMeNowWidget({
 
     setState("loading")
     setErrorMsg("")
+    setErrorKind(null)
     trackEvent("demo_hero_submit", {
       niche: niche ?? "unmissed_demo",
       variant,
@@ -101,10 +121,15 @@ export default function CallMeNowWidget({
 
     const e164 = `${countryCode}${digits}`
 
+    // Abort the fetch if Twilio/Ultravox stalls — without this the button spins forever.
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+
     try {
       const res = await fetch("/api/demo/call-me", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           phone: e164,
           niche,
@@ -116,14 +141,19 @@ export default function CallMeNowWidget({
         }),
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+
+      // 429 covers both per-IP limit and global demo budget; body code is a belt-and-suspenders check.
+      if (res.status === 429 || data.code === "rate_limit_exceeded") {
+        trackEvent("demo_call_missed", { niche: niche ?? "unmissed_demo", variant, reason: "rate_limit" })
+        showError(RATE_LIMIT_MESSAGE, "rate_limit")
+        return
+      }
 
       if (!res.ok) {
-        const msg = data.error || "Something went wrong. Try again."
-        setState("error")
-        setErrorMsg(msg)
+        const msg = data.error || data.message || "Something went wrong. Try again."
         trackEvent("demo_call_missed", { niche: niche ?? "unmissed_demo", variant })
-        onError?.(msg)
+        showError(msg, "generic")
         return
       }
 
@@ -140,11 +170,15 @@ export default function CallMeNowWidget({
         setShopName("")
         setPainPoint("")
       }, 20000)
-    } catch {
-      const msg = "Network error. Check your connection and try again."
-      setState("error")
-      setErrorMsg(msg)
-      onError?.(msg)
+    } catch (err) {
+      const timedOut = err instanceof DOMException && err.name === "AbortError"
+      const msg = timedOut
+        ? "That took longer than expected and the call didn't go through. Give it another try."
+        : "Network error. Check your connection and try again."
+      trackEvent("demo_call_missed", { niche: niche ?? "unmissed_demo", variant, reason: timedOut ? "timeout" : "network" })
+      showError(msg, "retryable")
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 
@@ -341,11 +375,36 @@ export default function CallMeNowWidget({
 
       {/* Error message */}
       {state === "error" && errorMsg && (
-        <div className="flex items-center gap-2 mt-2">
-          <AlertCircle size={14} style={{ color: "#EF4444" }} />
-          <p className="text-xs" style={{ color: "#EF4444" }}>
-            {errorMsg}
-          </p>
+        <div className="mt-2">
+          <div className="flex items-center gap-2">
+            <AlertCircle size={14} className="shrink-0" style={{ color: "#EF4444" }} />
+            <p className="text-xs" style={{ color: "#EF4444" }}>
+              {errorMsg}
+            </p>
+          </div>
+          {errorKind === "rate_limit" && (
+            <Link
+              href="/onboard"
+              className="mt-2 inline-block text-xs font-semibold underline underline-offset-2"
+              style={{ color: "var(--color-primary)" }}
+            >
+              Start your free trial →
+            </Link>
+          )}
+          {errorKind === "retryable" && (
+            <button
+              type="submit"
+              className="mt-2 inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                backgroundColor: "var(--color-bg)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text-1)",
+                cursor: "pointer",
+              }}
+            >
+              Try again
+            </button>
+          )}
         </div>
       )}
 
@@ -357,6 +416,11 @@ export default function CallMeNowWidget({
         {isWindshield
           ? "The AI calls your phone, greets you by name, then walks through a real windshield-call demo."
           : compact ? CALL_ME_WIDGET_COPY.helperTextCompact : CALL_ME_WIDGET_COPY.helperTextFull}
+      </p>
+
+      <p className="text-[11px] leading-relaxed mt-2" style={{ color: "var(--color-text-3)" }}>
+        By submitting, you agree to receive a one-time demo call. Demo calls may be recorded and transcribed.{" "}
+        <Link href="/privacy" className="underline underline-offset-2">Privacy</Link>
       </p>
 
       {/* Proof line — compact/hero mode only */}

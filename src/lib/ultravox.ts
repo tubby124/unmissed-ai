@@ -244,6 +244,7 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
     method: 'POST',
     headers: ultravoxHeaders(),
     body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
   })
 
   if (!res.ok) {
