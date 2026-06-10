@@ -8,6 +8,7 @@ import CallMeNowWidget from './CallMeNowWidget'
 import { TRIAL, PUBLIC_PLANS, getPlanDisplayMonthly } from '@/lib/pricing'
 import { HERO } from '@/lib/marketing-content'
 import { trackEvent } from '@/lib/analytics'
+import { BOOK_WALKTHROUGH_HREF } from '@/lib/booking'
 
 export default function HeroContent() {
   const ctaRef = useRef<HTMLDivElement>(null)
@@ -86,8 +87,8 @@ export default function HeroContent() {
             Get Your AI Number
             <ArrowRight className="w-4 h-4" />
           </Link>
-          <a
-            href="#demo"
+          <Link
+            href="/try"
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg font-semibold text-sm border transition-colors"
             style={{
               color: 'var(--color-text-1)',
@@ -96,9 +97,19 @@ export default function HeroContent() {
             }}
           >
             <PhoneCall className="w-4 h-4" />
-            Hear a Demo Call
-          </a>
+            Try the Agent
+          </Link>
         </div>
+        <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
+          Prefer a walkthrough first?{' '}
+          <a
+            href={BOOK_WALKTHROUGH_HREF}
+            className="font-medium underline underline-offset-2 transition-colors"
+            style={{ color: 'var(--color-text-2)' }}
+          >
+            Book a 15-min walkthrough
+          </a>
+        </p>
         <p
           className="text-sm font-semibold"
           style={{ color: 'var(--color-text-1)' }}

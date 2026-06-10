@@ -16,6 +16,7 @@ import {
   getPlanDisplayMonthly,
 } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 export const metadata: Metadata = {
   title: `Pricing — ${BRAND_NAME} AI Receptionist`,
@@ -111,6 +112,15 @@ export default function PricingPage() {
             >
               Get Your AI Number
             </Link>
+            <p className="mt-3">
+              <a
+                href={BOOK_WALKTHROUGH_HREF}
+                className="text-xs underline underline-offset-2 transition-colors"
+                style={{ color: "var(--color-text-3)" }}
+              >
+                Prefer a walkthrough? Book one
+              </a>
+            </p>
           </div>
         </section>
 
@@ -127,6 +137,15 @@ export default function PricingPage() {
             >
               Get Your AI Number →
             </Link>
+            <p className="mt-3">
+              <a
+                href={BOOK_WALKTHROUGH_HREF}
+                className="text-xs underline underline-offset-2 transition-colors"
+                style={{ color: "var(--color-text-3)" }}
+              >
+                Prefer a walkthrough? Book one
+              </a>
+            </p>
             <p className="text-xs mt-3" style={{ color: "var(--color-text-3)" }}>
               {POLICIES.setupTime} · {POLICIES.contracts}
             </p>

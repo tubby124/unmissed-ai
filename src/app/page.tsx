@@ -18,6 +18,7 @@ import { TRIAL, PUBLIC_PLANS, getPlanDisplayMonthly } from "@/lib/pricing";
 import { BRAND_NAME, BRAND_DOMAIN } from "@/lib/brand";
 import { PRICING_SECTION, FINAL_CTA } from "@/lib/marketing-content";
 import AuthHashRedirect from "@/components/AuthHashRedirect";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
 
 export const metadata: Metadata = {
   title: `${BRAND_NAME} — AI Receptionist for Service Businesses`,
@@ -184,15 +185,22 @@ export default async function HomePage() {
               <span>No contracts</span>
             </div>
 
-            <p className="mt-6">
+            <div className="mt-6 flex flex-col items-center gap-1.5">
               <Link
                 href="/onboard"
                 className="text-sm font-medium transition-colors"
                 style={{ color: "var(--color-primary)" }}
               >
-                {FINAL_CTA.signupLinkText}
+                Get your AI number →
               </Link>
-            </p>
+              <a
+                href={BOOK_WALKTHROUGH_HREF}
+                className="text-xs transition-colors"
+                style={{ color: "var(--color-text-3)" }}
+              >
+                {FINAL_CTA.signupLinkText}
+              </a>
+            </div>
           </div>
         </section>
       </main>

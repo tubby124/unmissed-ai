@@ -1,11 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { CircleCheck } from "lucide-react";
+import { CircleCheck, CircleMinus } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PUBLIC_PLANS, TRIAL, POLICIES, CURRENCY, FOUNDING_PROMO, getPlanDisplayMonthly } from "@/lib/pricing";
+import { getPlanEntitlements } from "@/lib/plan-entitlements";
+import { BOOK_WALKTHROUGH_HREF } from "@/lib/booking";
+
+/** Per-tier capability rows derived from plan entitlements (runtime truth). */
+function getCapabilityRows(planId: string) {
+  const ent = getPlanEntitlements(planId);
+  return [
+    { label: "SMS follow-up texts to callers", included: ent.smsEnabled },
+    { label: "Calendar booking via Google Calendar", included: ent.bookingEnabled },
+    { label: "Live call transfer to your phone", included: ent.transferEnabled },
+  ];
+}
 
 export default function PricingCards({ compact = false }: { compact?: boolean }) {
   const isAnnual = false;
@@ -169,6 +181,35 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                     </span>
                   </div>
                 ))}
+
+                {/* Capabilities (from plan entitlements) */}
+                <div
+                  className="space-y-2 pt-3 mt-3"
+                  style={{ borderTop: "1px solid var(--color-border)" }}
+                >
+                  {getCapabilityRows(plan.id).map(({ label, included }) => (
+                    <div key={label} className="flex items-start gap-2">
+                      {included ? (
+                        <CircleCheck
+                          size={14}
+                          className="text-emerald-500 flex-shrink-0 mt-0.5"
+                        />
+                      ) : (
+                        <CircleMinus
+                          size={14}
+                          className="flex-shrink-0 mt-0.5"
+                          style={{ color: "var(--color-text-3)" }}
+                        />
+                      )}
+                      <span
+                        className="text-sm"
+                        style={{ color: included ? "var(--color-text-2)" : "var(--color-text-3)" }}
+                      >
+                        {label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* CTA */}
@@ -192,6 +233,15 @@ export default function PricingCards({ compact = false }: { compact?: boolean })
                 >
                   <Link href={plan.href}>{plan.cta} →</Link>
                 </Button>
+                <p className="text-center text-xs mt-2">
+                  <a
+                    href={BOOK_WALKTHROUGH_HREF}
+                    className="underline underline-offset-2"
+                    style={{ color: "var(--color-text-3)" }}
+                  >
+                    Prefer a walkthrough? Book one
+                  </a>
+                </p>
                 <p
                   className="text-center text-xs mt-2"
                   style={{ color: "var(--color-text-3)" }}
