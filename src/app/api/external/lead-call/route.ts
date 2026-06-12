@@ -197,7 +197,7 @@ export async function POST(req: NextRequest) {
       phone,
       name,
       notes,
-      status: 'new',
+      status: 'queued', // campaign_leads_status_check: queued|called|dnc|calling|completed
       source,
       external_ref: externalRef,
       scheduled_callback_at: scheduledFor.toISOString(),
