@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
+import { createHmac } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getTranscript, getRecordingStream, verifyCallbackSig } from '@/lib/ultravox'
 import { classifyCall } from '@/lib/openrouter'
@@ -158,7 +159,7 @@ export async function POST(
       // Fetch client — includes sms_enabled for post-call SMS
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, business_name, niche, call_handling_mode, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, business_hours_weekday, knowledge_backend, website_url, website_scrape_status, business_facts, extra_qa, system_prompt, first_call_at, alert_phone, alert_email, alert_email_cc, sms_alerts_enabled, callback_phone')
+        .select('id, business_name, niche, call_handling_mode, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, telegram_style, sms_enabled, sms_template, twilio_number, classification_rules, timezone, contact_email, telegram_notifications_enabled, email_notifications_enabled, booking_enabled, forwarding_number, business_hours_weekday, knowledge_backend, website_url, website_scrape_status, business_facts, extra_qa, system_prompt, first_call_at, alert_phone, alert_email, alert_email_cc, sms_alerts_enabled, callback_phone, lead_webhook_url')
         .eq('slug', slug)
         .single()
 
@@ -319,6 +320,59 @@ export async function POST(
           .update(leadUpdates)
           .eq('id', metadata.lead_id)
         console.log(`[completed] outbound lead ${metadata.lead_id} disposition=${disposition}${disposition === 'answered' ? ' status=completed' : ''}`)
+
+        // ── External outcome writeback (hasansharif.ca speed-to-lead) ──────
+        // Leads created via /api/external/lead-call carry an external_ref.
+        // When the client has lead_webhook_url set, POST the call outcome
+        // back, HMAC-signed with LEAD_WEBHOOK_SECRET. Fire-and-forget —
+        // failure never blocks internal processing.
+        try {
+          const webhookUrl = (client as Record<string, unknown>).lead_webhook_url as string | null
+          const webhookSecret = process.env.LEAD_WEBHOOK_SECRET
+          if (webhookUrl && webhookSecret) {
+            const { data: clRow } = await supabase
+              .from('campaign_leads')
+              .select('external_ref, source')
+              .eq('id', metadata.lead_id)
+              .maybeSingle()
+            if (clRow?.external_ref) {
+              // No phone in the payload — external_ref is the correlation key
+              // and the receiver already owns the lead's PII.
+              const outcomeBody = JSON.stringify({
+                external_ref: clRow.external_ref,
+                campaign_lead_id: metadata.lead_id,
+                ultravox_call_id: callId,
+                call_status: classification.status,
+                disposition,
+                summary: classification.summary || ultravoxSummary || null,
+                key_topics: classification.key_topics ?? [],
+                next_steps: classification.next_steps || null,
+                sentiment: classification.sentiment ?? null,
+                booked: classification.caller_data?.booked ?? false,
+                callback_preference: classification.caller_data?.callback_preference ?? null,
+                duration_seconds: durationSeconds,
+                ended_at: endedAt,
+              })
+              const tsHeader = Date.now().toString()
+              const sigHeader = createHmac('sha256', webhookSecret)
+                .update(`${tsHeader}.${outcomeBody}`)
+                .digest('hex')
+              const whRes = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Lead-Timestamp': tsHeader,
+                  'X-Lead-Signature': sigHeader,
+                },
+                body: outcomeBody,
+                signal: AbortSignal.timeout(10_000),
+              })
+              console.log(`[completed] external lead webhook → ${whRes.status} for external_ref=${clRow.external_ref}`)
+            }
+          }
+        } catch (whErr) {
+          console.error('[completed] external lead webhook failed (non-fatal):', whErr)
+        }
       }
 
       // ── Ops alert for system failures (skip for test calls) ──────────────────
