@@ -7,7 +7,7 @@
 
 import { sendAlert } from '@/lib/telegram'
 import { formatTelegramMessage, type TelegramStyle } from '@/lib/telegram-formats'
-import { getSmsTemplate } from '@/lib/sms-templates'
+import { getSmsTemplate, getOutboundLeadSmsTemplate } from '@/lib/sms-templates'
 import twilio from 'twilio'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { APP_URL } from '@/lib/app-url'
@@ -20,6 +20,7 @@ import { sendBrandedEmail } from '@/lib/email/send'
 export interface CompletedClient {
   id: string
   business_name: string | null
+  agent_name?: string | null
   niche: string | null
   telegram_bot_token: string | null
   telegram_chat_id: string | null
@@ -54,6 +55,8 @@ export interface Classification {
   caller_data?: {
     caller_name?: string | null
     service_requested?: string | null
+    booked?: boolean | null
+    appointment_time?: string | null
   } | null
   niche_data?: {
     caller_name?: string | null
@@ -83,6 +86,7 @@ export interface NotificationContext {
   metadata: Record<string, string>
   transcript: Array<{ role: string; text: string }>
   callbackPreference?: string | null
+  endReason?: string | null
 }
 
 export interface OwnerAlertDetails {
@@ -542,14 +546,69 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
     return
   }
 
-  const smsBody = getSmsTemplate(classification.status, {
-    businessName: client.business_name || 'us',
-    callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
-    summary: classification.summary,
-    niche: client.niche,
-    smsTemplate: client.sms_template,
-    isTransferRecovery: metadata.transfer_recovery === 'true',
-  })
+  // Outbound lead-qual calls (speed-to-lead) use direction-aware templates —
+  // the inbound path below (incl. custom sms_template "thanks for calling")
+  // must never fire at a lead WE dialed.
+  const isOutboundLead = ['outbound', 'scheduled_callback'].includes(metadata.source ?? '')
+  // Distinct channel for outbound lanes — keeps the dedupe queries below from
+  // colliding with inbound 'sms_followup' rows for the same phone.
+  const smsChannel = isOutboundLead ? 'sms_outbound' : 'sms_followup'
+  let smsBody: string | null
+
+  if (isOutboundLead) {
+    // Replay guard: webhook re-delivery must not double-text the lead. The
+    // outer notificationsAlreadySent() check only works when Telegram inserted
+    // a row first — not guaranteed (telegram_notifications_enabled=false).
+    if (callLogId) {
+      const { count: sentForCall } = await supabase
+        .from('notification_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('call_id', callLogId)
+        .eq('channel', smsChannel)
+      if ((sentForCall ?? 0) > 0) {
+        console.log(`[completed] Outbound lead SMS already sent for this call — skipping: callId=${callId}`)
+        return
+      }
+    }
+
+    const cd = classification.caller_data
+    const missed = classification.status === 'MISSED' || classification.status === 'VOICEMAIL' || ctx.endReason === 'unjoined'
+    const outcome: 'booked' | 'missed' | 'answered' = cd?.booked ? 'booked' : missed ? 'missed' : 'answered'
+    smsBody = getOutboundLeadSmsTemplate(outcome, {
+      businessName: client.business_name || 'our office',
+      agentName: client.agent_name ?? null,
+      callerName: cd?.caller_name ?? null,
+      appointmentTime: cd?.appointment_time ?? null,
+    })
+    if (!smsBody) {
+      console.log(`[completed] Outbound lead SMS suppressed (answered, not booked): callId=${callId} status=${classification.status}`)
+      return
+    }
+    if (outcome === 'missed') {
+      // Retry dials must not re-text the same lead — 1 missed-lane SMS per phone per 24h
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const { count: recentCount } = await supabase
+        .from('notification_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', client.id)
+        .eq('channel', smsChannel)
+        .eq('recipient', callerPhone)
+        .gte('created_at', dayAgo)
+      if ((recentCount ?? 0) > 0) {
+        console.log(`[completed] Outbound missed-lane SMS deduped (sent within 24h): callId=${callId} to=${callerPhone}`)
+        return
+      }
+    }
+  } else {
+    smsBody = getSmsTemplate(classification.status, {
+      businessName: client.business_name || 'us',
+      callerName: classification.caller_data?.caller_name ?? classification.niche_data?.caller_name ?? null,
+      summary: classification.summary,
+      niche: client.niche,
+      smsTemplate: client.sms_template,
+      isTransferRecovery: metadata.transfer_recovery === 'true',
+    })
+  }
 
   if (!smsBody) {
     console.log(`[completed] SMS skipped: callId=${callId} status=${classification.status}`)
@@ -576,7 +635,7 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
     const { error: nlErr } = await supabase.from('notification_logs').insert({
       call_id: callLogId,
       client_id: client.id,
-      channel: 'sms_followup',
+      channel: smsChannel,
       recipient: callerPhone,
       content: smsBody.slice(0, 10000),
       status: 'sent',
@@ -601,7 +660,7 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
     const { error: nlErr2 } = await supabase.from('notification_logs').insert({
       call_id: callLogId,
       client_id: client.id,
-      channel: 'sms_followup',
+      channel: smsChannel,
       recipient: callerPhone,
       content: smsBody.slice(0, 10000),
       status: 'failed',

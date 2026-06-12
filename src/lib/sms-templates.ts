@@ -61,3 +61,45 @@ export function getSmsTemplate(
       return `Thanks for calling ${biz}! We'll follow up with you shortly.`
   }
 }
+
+// ── Outbound lead-qualification SMS ─────────────────────────────────────────
+
+export interface OutboundLeadSmsConfig {
+  businessName: string
+  agentName?: string | null
+  callerName?: string | null
+  /** Free-text slot the lead verbally agreed to, e.g. "tomorrow evening" */
+  appointmentTime?: string | null
+}
+
+/**
+ * Post-call SMS for OUTBOUND lead-qualification calls (speed-to-lead dials).
+ * Direction matters: the lead did NOT call us, so the inbound templates above
+ * (including the client's custom sms_template — "thanks for calling") read
+ * wrong and must never be sent on this path.
+ *
+ * Lanes (call-quality-overhaul design 2026-06-12):
+ *  - booked   → confirmation text. The agent's close promises "we'll text to
+ *               confirm" — this is the only thing that fulfills that promise.
+ *  - missed   → vm/no-answer. Instant SMS paired with the voicemail (VM+SMS
+ *               same-minute roughly doubles contact rate vs VM alone).
+ *  - answered → null. Answered-but-not-booked (browsing/warm) gets NOTHING —
+ *               the list email already went out; extra texts add noise.
+ */
+export function getOutboundLeadSmsTemplate(
+  outcome: 'booked' | 'missed' | 'answered',
+  config: OutboundLeadSmsConfig
+): string | null {
+  const biz = config.businessName || 'our office'
+  const from = config.agentName ? `${config.agentName} at ${biz}` : biz
+  const name = config.callerName ? ` ${config.callerName}` : ''
+
+  if (outcome === 'booked') {
+    const when = config.appointmentTime ? ` for ${config.appointmentTime}` : ''
+    return `Hi${name}, it's ${from} — confirming your chat with one of our agents${when}. Reply here if you need to reschedule. Reply STOP to opt out.`
+  }
+  if (outcome === 'missed') {
+    return `Hey${name}, it's ${from} — your home list just landed in your email. Want showings or tweaks to the list? Just text back here. Reply STOP to opt out.`
+  }
+  return null
+}
