@@ -98,7 +98,27 @@ export async function listSlots(
 
   // If preferredTime provided, sort by proximity to that time, then take maxSlots
   if (preferredTime && /^\d{2}:\d{2}$/.test(preferredTime)) {
-    const prefTarget = parseLocalTime(dateStr, preferredTime, timezone).getTime()
+    const prefStart = parseLocalTime(dateStr, preferredTime, timezone)
+    const prefTarget = prefStart.getTime()
+
+    // The grid above is anchored at workdayStart and stepped by duration+buffer,
+    // so the caller's exact time (e.g. 14:00 on a 9:00+45min grid) may not exist
+    // as a candidate even when the calendar is FREE then — which made the agent
+    // counter-offer 1:30/2:30 against an open 2:00. Snap: if the requested
+    // window fits the workday and isn't busy, add it as a real slot. Distance 0
+    // puts it first, and the route then confirms the exact time directly.
+    const prefEnd = new Date(prefTarget + durationMinutes * 60_000)
+    const fitsWorkday = prefStart >= dayStart && prefEnd <= dayEnd
+    const prefBusy = busyBlocks.some(b => prefStart < b.end && prefEnd > b.start)
+    const alreadyCandidate = allSlots.some(s => s.start === prefStart.toISOString())
+    if (fitsWorkday && !prefBusy && !alreadyCandidate) {
+      allSlots.push({
+        start: prefStart.toISOString(),
+        end: prefEnd.toISOString(),
+        displayTime: formatLocal(prefStart, timezone),
+      })
+    }
+
     allSlots.sort((a, b) => {
       const distA = Math.abs(new Date(a.start).getTime() - prefTarget)
       const distB = Math.abs(new Date(b.start).getTime() - prefTarget)
