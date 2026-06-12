@@ -290,3 +290,6 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 **Chars:** 8319 | **Hash:** 3aa3675a145082c6
 **Supabase version_id:** c2eec96e-5059-4494-8787-69f640ec2e33
 **Ultravox revision:** b52923ee-485c-4043-ab5f-39a860f68472
+
+## OUTBOUND v4 — 2026-06-12 (outbound-lead-qual.json → clients.outbound_*, 9,288 chars)
+**Change:** Naturalness + ISA overhaul from 3-track research (fleet prompt mining, Ultravox stage docs, ISA script research). Grammar-breaking mechanics (And/So/But starters, fragments), named 7-item backchannel pool with no-consecutive rule, one-sentence-then-listen + follow-their-thread, FAST-CONFIRM skip for front-loaded answers, read-back before close, downshift-once booking rule, "send me the list"/"got my number" handlers, anti-dead-air bridge, Fair Housing rewrite of amenities line (caller-initiated only). Kept locked v3 owner feedback: "virtual assistant" opening, agency framing, silent-wait. Validated: hot/skeptic/busy sims all PASS.
