@@ -129,7 +129,8 @@ export async function listSlots(
   return allSlots.slice(0, maxSlots)
 }
 
-/** Create a calendar event (booking) */
+/** Create a calendar event (booking). When attendeeEmails is provided, Google
+ *  emails those attendees the calendar invite (sendUpdates=all). */
 export async function createEvent(
   accessToken: string,
   calendarId: string,
@@ -138,9 +139,12 @@ export async function createEvent(
     start,
     end,
     description,
-  }: { title: string; start: string; end: string; description?: string }
+    attendeeEmails,
+  }: { title: string; start: string; end: string; description?: string; attendeeEmails?: string[] }
 ): Promise<{ id: string; htmlLink: string }> {
-  const res = await fetch(`${GOOGLE_CALENDAR_BASE}/calendars/${encodeURIComponent(calendarId)}/events`, {
+  const attendees = (attendeeEmails ?? []).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+  const query = attendees.length ? '?sendUpdates=all' : ''
+  const res = await fetch(`${GOOGLE_CALENDAR_BASE}/calendars/${encodeURIComponent(calendarId)}/events${query}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -151,6 +155,7 @@ export async function createEvent(
       description,
       start: { dateTime: start },
       end: { dateTime: end },
+      ...(attendees.length ? { attendees: attendees.map(email => ({ email })) } : {}),
     }),
   })
   if (!res.ok) {

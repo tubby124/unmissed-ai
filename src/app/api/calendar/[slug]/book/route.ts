@@ -103,12 +103,42 @@ export async function POST(
       `Booked via ${client.business_name || BRAND_NAME}`,
     ].filter(Boolean).join('\n')
 
-    const event = await createEvent(accessToken, calendarId, {
-      title,
-      start: matchedSlot.start,
-      end: matchedSlot.end,
-      description,
-    })
+    // Outbound speed-to-lead dials carry the lead's email on campaign_leads —
+    // attach them as an event attendee so Google emails the calendar invite.
+    let attendeeEmails: string[] | undefined
+    if (callerPhone) {
+      const { data: leadRow } = await supabase
+        .from('campaign_leads')
+        .select('email')
+        .eq('client_id', client.id)
+        .eq('phone', callerPhone)
+        .not('email', 'is', null)
+        .order('added_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (leadRow?.email) attendeeEmails = [leadRow.email as string]
+    }
+
+    let event: { id: string; htmlLink: string }
+    try {
+      event = await createEvent(accessToken, calendarId, {
+        title,
+        start: matchedSlot.start,
+        end: matchedSlot.end,
+        description,
+        attendeeEmails,
+      })
+    } catch (eventErr) {
+      if (!attendeeEmails?.length) throw eventErr
+      // A rejected attendee must never kill the booking — retry without invite.
+      console.warn(`[calendar/book] createEvent with attendee failed, retrying without invite: ${String(eventErr).slice(0, 200)}`)
+      event = await createEvent(accessToken, calendarId, {
+        title,
+        start: matchedSlot.start,
+        end: matchedSlot.end,
+        description,
+      })
+    }
 
     // Store booking record so completed webhook can include calendar URL in Telegram
     // Resolve call_logs row ID for FK (non-blocking lookup)

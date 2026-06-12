@@ -574,6 +574,21 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
     const cd = classification.caller_data
     const missed = classification.status === 'MISSED' || classification.status === 'VOICEMAIL' || ctx.endReason === 'unjoined'
     const outcome: 'booked' | 'missed' | 'answered' = cd?.booked ? 'booked' : missed ? 'missed' : 'answered'
+
+    // A REAL calendar booking already texted the lead from the book route
+    // (confirmation + calendar link). Lane 2 here only covers verbal-only
+    // bookings — sending both would double-text the lead.
+    if (outcome === 'booked' && callLogId) {
+      const { count: realBookings } = await supabase
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('call_id', callLogId)
+      if ((realBookings ?? 0) > 0) {
+        console.log(`[completed] Booked SMS skipped — calendar booking confirmation already sent by book route: callId=${callId}`)
+        return
+      }
+    }
+
     smsBody = getOutboundLeadSmsTemplate(outcome, {
       businessName: client.business_name || 'our office',
       agentName: client.agent_name ?? null,

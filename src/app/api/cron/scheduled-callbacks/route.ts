@@ -23,6 +23,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
+import { outboundBookingReady, appendOutboundBookingTools, buildOutboundDateBlock } from '@/lib/outbound-call-assembly'
 import { APP_URL } from '@/lib/app-url'
 import { sendAlert } from '@/lib/telegram'
 import { validateOutboundVmScript } from '@/lib/outbound-safety'
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
   const clientIds = [...new Set(leads.map(l => l.client_id).filter(Boolean))] as string[]
   const { data: clients } = await svc
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_vm_script, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_vm_script, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, booking_enabled, calendar_auth_status, selected_plan, subscription_status')
     .in('id', clientIds)
 
   const clientMap = new Map((clients ?? []).map(c => [c.id as string, c]))
@@ -214,7 +215,14 @@ export async function POST(req: NextRequest) {
       (t.temporaryTool as Record<string, unknown> | undefined)?.modelToolName === 'hangUp'
     )
     const HANGUP_TOOL = { toolName: 'hangUp', parameterOverrides: { strict: true } }
-    const tools = hasHangUp ? clientTools : [HANGUP_TOOL, ...clientTools]
+    let tools = hasHangUp ? clientTools : [HANGUP_TOOL, ...clientTools]
+
+    // Outbound on-call booking: direct calendar tools (no stage transition) +
+    // a date anchor so the model can resolve "tomorrow" into YYYY-MM-DD.
+    if (outboundBookingReady(client)) {
+      tools = appendOutboundBookingTools(tools, slug)
+      fullPrompt += `\n\n${buildOutboundDateBlock(client.timezone as string | null, toPhone)}`
+    }
 
     const callbackUrl = signCallbackUrl(`${APP_URL}/api/webhook/${slug}/completed`, slug)
 

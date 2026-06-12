@@ -23,6 +23,7 @@
  *   client_slug: string,        // e.g. "hasan-sharif"
  *   phone: string,              // lead's phone, NA formats accepted
  *   name?: string,
+ *   email?: string,             // lets the calendar book route invite the lead as event attendee
  *   notes?: string,             // becomes {{LEAD_NOTES}} in the outbound prompt
  *   external_ref?: string,      // source system lead id (outcome writeback key)
  *   source?: string             // e.g. "hasansharif.ca/get-the-list-calgary"
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest) {
     client_slug?: unknown
     phone?: unknown
     name?: unknown
+    email?: unknown
     notes?: unknown
     external_ref?: unknown
     source?: unknown
@@ -114,6 +116,9 @@ export async function POST(req: NextRequest) {
   const slug = typeof body.client_slug === 'string' ? body.client_slug.trim() : ''
   const rawPhone = typeof body.phone === 'string' ? body.phone.trim() : ''
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : null
+  const rawEmail = typeof body.email === 'string' ? body.email.trim().slice(0, 320) : ''
+  // Loose shape check only — a bad email just means no calendar invite later.
+  const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : null
   const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, 2000) : null
   const externalRef = typeof body.external_ref === 'string' ? body.external_ref.trim().slice(0, 100) : null
   const source = typeof body.source === 'string' ? body.source.trim().slice(0, 200) : 'external'
@@ -196,6 +201,7 @@ export async function POST(req: NextRequest) {
       client_id: client.id,
       phone,
       name,
+      email,
       notes,
       status: 'queued', // campaign_leads_status_check: queued|called|dnc|calling|completed
       source,

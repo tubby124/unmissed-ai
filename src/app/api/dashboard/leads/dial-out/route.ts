@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
+import { outboundBookingReady, appendOutboundBookingTools, buildOutboundDateBlock } from '@/lib/outbound-call-assembly'
 import { assembleOutboundPrompt, type OutboundTone } from '@/lib/outbound-prompt-builder'
 import { validateOutboundVmScript } from '@/lib/outbound-safety'
 import { APP_URL } from '@/lib/app-url'
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
   // Fetch client config — include outbound_prompt + structured fields + all context fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, outbound_allowed_start, outbound_allowed_end, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at, service_areas')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, outbound_allowed_start, outbound_allowed_end, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at, service_areas, booking_enabled, calendar_auth_status, selected_plan, subscription_status')
     .eq('id', clientId)
     .single()
 
@@ -221,7 +222,14 @@ export async function POST(req: NextRequest) {
     (t.temporaryTool as Record<string, unknown> | undefined)?.modelToolName === 'hangUp'
   )
   const HANGUP_TOOL = { toolName: 'hangUp', parameterOverrides: { strict: true } }
-  const tools = hasHangUp ? clientTools : [HANGUP_TOOL, ...clientTools]
+  let tools = hasHangUp ? clientTools : [HANGUP_TOOL, ...clientTools]
+
+  // Outbound on-call booking: direct calendar tools (no stage transition) +
+  // a date anchor so the model can resolve "tomorrow" into YYYY-MM-DD.
+  if (outboundBookingReady(client)) {
+    tools = appendOutboundBookingTools(tools, slug)
+    fullPrompt += `\n\n${buildOutboundDateBlock(client.timezone as string | null, toPhone)}`
+  }
 
   console.log('[dial-out] tools being sent:', JSON.stringify(tools.map((t: Record<string, unknown>) => t.toolName || (t.temporaryTool as Record<string, unknown>)?.modelToolName || '__unknown__')))
 
