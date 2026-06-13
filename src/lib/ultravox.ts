@@ -454,6 +454,8 @@ interface AgentConfig {
   subscriptionStatus?: string | null
   /** Client niche — used for niche-specific tool injection (e.g. property_management → maintenanceRequest). */
   niche?: string | null
+  /** Base URL of the client's listing-search API. When set, injects the lookupListing HTTP tool (real-estate inbound). */
+  listing_search_url?: string | null
 }
 
 /**
@@ -667,6 +669,46 @@ export function buildPageOwnerTool(slug: string): UltravoxTool {
 }
 
 /**
+ * Build lookupListing HTTP tool — lets a real-estate agent look up the client's
+ * live listings by street-address fragment or MLS number during a call.
+ * Gated on clients.listing_search_url (admin-set). The webhook route proxies to
+ * the client's own listing-search API and returns voice-friendly matches with
+ * an _instruction the agent follows for its next turn.
+ */
+export function buildListingLookupTool(slug: string): UltravoxTool {
+  const appUrl = AGENT_WEBHOOK_BASE
+  const secret = process.env.WEBHOOK_SIGNING_SECRET
+  return {
+    temporaryTool: {
+      modelToolName: 'lookupListing',
+      description: "Look up a property listing by street address fragment or MLS number. Use the moment a caller mentions a specific property, an address, a for-sale sign, or asks whether a listing is still available. Returns matching listings with address, price, beds/baths, availability, and a link. If several match, read the street addresses back and ask which one they mean.",
+      dynamicParameters: [
+        {
+          name: 'query',
+          location: 'PARAMETER_LOCATION_BODY',
+          schema: { type: 'string', description: "Street address fragment (e.g. '123 Taradale Drive') or MLS number (e.g. 'A2151234'), as close to what the caller said as possible" },
+          required: true,
+        },
+      ],
+      automaticParameters: [
+        CALL_STATE_PARAM,
+        { name: 'call_id', location: 'PARAMETER_LOCATION_BODY', knownValue: 'KNOWN_PARAM_CALL_ID' },
+      ],
+      ...(secret ? {
+        staticParameters: [
+          { name: 'X-Tool-Secret', location: 'PARAMETER_LOCATION_HEADER', value: secret },
+        ],
+      } : {}),
+      defaultReaction: 'AGENT_REACTION_SPEAKS',
+      http: {
+        baseUrlPattern: `${appUrl}/api/webhook/${slug}/listing-lookup`,
+        httpMethod: 'POST',
+      },
+    },
+  }
+}
+
+/**
  * Build queryKnowledge HTTP tool for pgvector RAG retrieval.
  * Points to our Railway endpoint /api/knowledge/{slug}/query.
  * Only injected when knowledge_backend='pgvector' on the client.
@@ -804,6 +846,8 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   // maintenanceRequest: PM niche only — lets voice agent write maintenance requests during live calls
   const isPropertyManagement = opts.niche === 'property_management' || opts.niche === 'property-management'
   const maintenanceTools: object[] = isPropertyManagement && opts.slug ? [buildMaintenanceRequestTool(opts.slug)] : []
+  // lookupListing: real-estate listing search — gated on admin-set listing_search_url (no plan gate: no dashboard UI sets it)
+  const listingTools: object[] = (opts.listing_search_url && opts.slug) ? [buildListingLookupTool(opts.slug)] : []
 
   // Phase 4.5 GAP-I: Log plan-gated tools for observability
   if (opts.slug) {
@@ -818,7 +862,7 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
     }
   }
 
-  return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools, ...pageOwnerTools, ...maintenanceTools]
+  return [...baseTools, ...calendarTools, ...transferTools, ...smsTools, ...knowledgeTools, ...coachingTools, ...pageOwnerTools, ...maintenanceTools, ...listingTools]
 }
 
 async function fetchExistingAgentSystemPrompt(agentId: string): Promise<string | undefined> {

@@ -232,6 +232,29 @@ describe('Flag isolation: forwarding_number only', () => {
   })
 })
 
+describe('Listing lookup tool registration', () => {
+  test('registers lookupListing when listing_search_url is set', () => {
+    const tools = buildAgentTools({ slug: 're-client', listing_search_url: 'https://example.com/api/listings/search' })
+    const names = toolNames(tools)
+    assert.ok(names.includes('lookupListing'),
+      `lookupListing must be registered when listing_search_url set, got: ${names.join(', ')}`)
+  })
+
+  test('does NOT register lookupListing without listing_search_url', () => {
+    const tools = buildAgentTools({ slug: 're-client', niche: 'real_estate' })
+    const names = toolNames(tools)
+    assert.ok(!names.includes('lookupListing'),
+      `lookupListing must NOT be registered without listing_search_url, got: ${names.join(', ')}`)
+  })
+
+  test('does NOT register lookupListing without slug', () => {
+    const tools = buildAgentTools({ listing_search_url: 'https://example.com/api/listings/search' })
+    const names = toolNames(tools)
+    assert.ok(!names.includes('lookupListing'),
+      `lookupListing must NOT be registered without slug, got: ${names.join(', ')}`)
+  })
+})
+
 describe('Property management tool registration', () => {
   test('registers maintenance tool for canonical property_management niche', () => {
     const tools = buildAgentTools({ slug: 'pm-client', niche: 'property_management' })

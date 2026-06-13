@@ -21,7 +21,7 @@ export async function syncClientTools(
   try {
     const { data: client } = await svc
       .from('clients')
-      .select('id, slug, niche, booking_enabled, forwarding_number, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, selected_plan, subscription_status, tools')
+      .select('id, slug, niche, booking_enabled, forwarding_number, sms_enabled, twilio_number, knowledge_backend, transfer_conditions, selected_plan, subscription_status, tools, listing_search_url')
       .eq('id', clientId)
       .single()
     if (!client) return
@@ -44,6 +44,7 @@ export async function syncClientTools(
       transfer_conditions: (client.transfer_conditions as string | null) || undefined,
       selectedPlan: (client.selected_plan as string | null) || undefined,
       subscriptionStatus: (client.subscription_status as string | null) || undefined,
+      listing_search_url: (client.listing_search_url as string | null) || undefined,
     })
 
     await svc.from('clients').update({ tools }).eq('id', clientId)

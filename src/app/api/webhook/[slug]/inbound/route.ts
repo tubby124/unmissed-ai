@@ -52,7 +52,7 @@ export async function POST(
   const supabase = createServiceClient()
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url, injected_note, injected_note_expires_at, ivr_enabled, ivr_prompt, selected_plan, subscription_status, sms_enabled, staff_roster, service_areas')
+    .select('id, niche, business_name, system_prompt, agent_voice_id, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, ultravox_agent_id, tools, seconds_used_this_month, monthly_minute_limit, bonus_minutes, context_data, context_data_label, business_facts, extra_qa, timezone, grace_period_end, trial_expires_at, trial_converted, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, knowledge_backend, voicemail_greeting_text, voicemail_greeting_audio_url, injected_note, injected_note_expires_at, ivr_enabled, ivr_prompt, selected_plan, subscription_status, sms_enabled, staff_roster, service_areas, forwarding_number')
     .eq('slug', slug)
     .eq('status', 'active')
     .single()
@@ -280,6 +280,21 @@ export async function POST(
   let callerContextRaw   = ctx.assembled.callerContextBlock.slice(1, -1)
   if (smsCallerOptedOut) {
     callerContextRaw += '\nSMS STATUS: Caller has opted out. Do not offer or send a text.'
+  }
+  // Twilio sets ForwardedFrom when the call arrived via carrier conditional
+  // forwarding (Diversion header) — i.e. the caller dialed another number
+  // (usually the owner's personal cell) and missed. Lets the prompt steer
+  // forwarded personal calls toward message-taking vs direct dials of the
+  // business line (listing/sign/GBP calls). Carrier support varies, so absence
+  // means "unknown", not "direct dial" — the line is only injected when present.
+  const forwardedFrom = (body.ForwardedFrom || body.CalledVia || '').trim()
+  if (forwardedFrom) {
+    const last10 = (n: string) => n.replace(/\D/g, '').slice(-10)
+    const isOwnerLine = !!client.forwarding_number && last10(forwardedFrom) === last10(client.forwarding_number as string)
+    // Mask the number — last 4 only. Full numbers in callerContext leak into transcripts + ai_summary.
+    callerContextRaw += isOwnerLine
+      ? `\nCALL PATH: forwarded missed call — the caller dialed the owner's personal number and was forwarded here.`
+      : `\nCALL PATH: forwarded from a number ending ${last10(forwardedFrom).slice(-4)}.`
   }
   const callerContextBlock = `[${callerContextRaw}]`
   // Phase 3: use condensed knowledge summary instead of raw businessFacts + extraQa
