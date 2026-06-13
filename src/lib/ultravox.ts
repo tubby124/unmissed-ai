@@ -454,7 +454,10 @@ interface AgentConfig {
   subscriptionStatus?: string | null
   /** Client niche — used for niche-specific tool injection (e.g. property_management → maintenanceRequest). */
   niche?: string | null
-  /** Base URL of the client's listing-search API. When set, injects the lookupListing HTTP tool (real-estate inbound). */
+  /** Base URL of the client's listing-search API. NOTE: this is NOT the lookupListing
+   *  gate (that's niche==='real_estate' — drift-proof). The webhook route reads this
+   *  column from the DB at call time; passing it here is inert. Kept so typed callers
+   *  (deploy script) don't excess-property-error. */
   listing_search_url?: string | null
 }
 
@@ -846,8 +849,15 @@ export function buildAgentTools(opts: Partial<AgentConfig>): object[] {
   // maintenanceRequest: PM niche only — lets voice agent write maintenance requests during live calls
   const isPropertyManagement = opts.niche === 'property_management' || opts.niche === 'property-management'
   const maintenanceTools: object[] = isPropertyManagement && opts.slug ? [buildMaintenanceRequestTool(opts.slug)] : []
-  // lookupListing: real-estate listing search — gated on admin-set listing_search_url (no plan gate: no dashboard UI sets it)
-  const listingTools: object[] = (opts.listing_search_url && opts.slug) ? [buildListingLookupTool(opts.slug)] : []
+  // lookupListing: real-estate listing search. Gated on the IMMUTABLE niche
+  // (not listing_search_url) so it survives every agentFlags rebuilder — the
+  // scheduled drift-check cron + 13 other callers all thread `niche` but not a
+  // brand-new column, so a column gate would silently strip the tool on the
+  // next cron run (mirrors how maintenanceRequest is niche-gated). The route
+  // reads clients.listing_search_url at call time; a real_estate client with no
+  // URL gets the graceful "not set up — take a message" instruction.
+  const isRealEstate = opts.niche === 'real_estate' || opts.niche === 'real-estate'
+  const listingTools: object[] = (isRealEstate && opts.slug) ? [buildListingLookupTool(opts.slug)] : []
 
   // Phase 4.5 GAP-I: Log plan-gated tools for observability
   if (opts.slug) {

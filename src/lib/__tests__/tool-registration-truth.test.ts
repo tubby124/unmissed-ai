@@ -233,22 +233,31 @@ describe('Flag isolation: forwarding_number only', () => {
 })
 
 describe('Listing lookup tool registration', () => {
-  test('registers lookupListing when listing_search_url is set', () => {
-    const tools = buildAgentTools({ slug: 're-client', listing_search_url: 'https://example.com/api/listings/search' })
-    const names = toolNames(tools)
-    assert.ok(names.includes('lookupListing'),
-      `lookupListing must be registered when listing_search_url set, got: ${names.join(', ')}`)
-  })
-
-  test('does NOT register lookupListing without listing_search_url', () => {
+  // Gated on niche (immutable, threaded by every agentFlags rebuilder) — NOT on
+  // listing_search_url, which would be stripped on the next drift-check cron run.
+  test('registers lookupListing for real_estate niche', () => {
     const tools = buildAgentTools({ slug: 're-client', niche: 'real_estate' })
     const names = toolNames(tools)
+    assert.ok(names.includes('lookupListing'),
+      `lookupListing must be registered for real_estate niche, got: ${names.join(', ')}`)
+  })
+
+  test('registers lookupListing for legacy real-estate niche', () => {
+    const tools = buildAgentTools({ slug: 're-client', niche: 'real-estate' })
+    const names = toolNames(tools)
+    assert.ok(names.includes('lookupListing'),
+      `lookupListing must be registered for real-estate niche, got: ${names.join(', ')}`)
+  })
+
+  test('does NOT register lookupListing for non-real-estate niche', () => {
+    const tools = buildAgentTools({ slug: 'glass-client', niche: 'auto_glass' })
+    const names = toolNames(tools)
     assert.ok(!names.includes('lookupListing'),
-      `lookupListing must NOT be registered without listing_search_url, got: ${names.join(', ')}`)
+      `lookupListing must NOT be registered for auto_glass, got: ${names.join(', ')}`)
   })
 
   test('does NOT register lookupListing without slug', () => {
-    const tools = buildAgentTools({ listing_search_url: 'https://example.com/api/listings/search' })
+    const tools = buildAgentTools({ niche: 'real_estate' })
     const names = toolNames(tools)
     assert.ok(!names.includes('lookupListing'),
       `lookupListing must NOT be registered without slug, got: ${names.join(', ')}`)
