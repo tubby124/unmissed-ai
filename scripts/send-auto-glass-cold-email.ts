@@ -6,7 +6,7 @@ type Row = Record<string, string>
 
 const DEFAULT_BATCH = path.join(process.cwd(), 'public/leads/campaigns/auto-glass-email-batch-01-2026-06-17.csv')
 const DEFAULT_LOG_DIR = '/Users/owner/Downloads/Obsidian Vault/Projects/unmissed/leads'
-const FROM = 'End Voicemail <hello@endvoicemail.ai>'
+const FROM = 'Sean from EndVoicemail <hello@endvoicemail.ai>'
 const DEFAULT_REPLY_TO = 'hello@endvoicemail.ai'
 const BLOCKED_RE = /windshield\s*hub|riverbend\s*auto\s*glass|riverbend\s*autoglass/i
 
@@ -132,8 +132,14 @@ async function main() {
   const limit = Number(argValue('limit') || (send ? 1 : 5))
   const start = Number(argValue('start') || 1)
   const testTo = argValue('test-to')
+  const from = argValue('from') || process.env.COLD_OUTREACH_FROM || FROM
   const replyTo = argValue('reply-to') || process.env.COLD_OUTREACH_REPLY_TO || DEFAULT_REPLY_TO
+  const isTestSend = Boolean(testTo)
   const key = process.env.RESEND_API_KEY
+
+  if (!isTestSend && /@resend\.dev[>\s]*$/i.test(from)) {
+    throw new Error('Refusing to send prospects from resend.dev; verify a real sender domain first.')
+  }
 
   if (!fs.existsSync(batchPath)) throw new Error(`Batch CSV not found: ${batchPath}`)
   const rows = uniqueSendableRows(parseCsv(fs.readFileSync(batchPath, 'utf8')))
@@ -147,7 +153,7 @@ async function main() {
     start,
     limit,
     selected: slice.length,
-    from: FROM,
+    from,
     replyTo,
     blockedPattern: String(BLOCKED_RE),
   }, null, 2))
@@ -169,7 +175,7 @@ async function main() {
     if (!key) throw new Error('RESEND_API_KEY is not configured')
     const resend = new Resend(key)
     const result = await resend.emails.send({
-      from: FROM,
+      from,
       to,
       replyTo,
       subject: row.subject_1,
@@ -177,17 +183,19 @@ async function main() {
       headers: {
         'List-Unsubscribe': `<${unsubscribeMailto}>`,
       },
-      tags: [{ name: 'purpose', value: 'auto_glass_cold_1' }],
+      tags: [{ name: 'purpose', value: isTestSend ? 'auto_glass_cold_test' : 'auto_glass_cold_1' }],
     })
 
-    appendLog(row, result.error
-      ? { ok: false, error: result.error.message ?? String(result.error) }
-      : { ok: true, id: result.data?.id })
+    if (!isTestSend) {
+      appendLog(row, result.error
+        ? { ok: false, error: result.error.message ?? String(result.error) }
+        : { ok: true, id: result.data?.id })
+    }
 
     if (result.error) {
       console.error(`failed: ${row.business_name} <${row.email}>: ${result.error.message}`)
     } else {
-      console.log(`sent: ${row.business_name} <${row.email}> id=${result.data?.id}`)
+      console.log(`${isTestSend ? 'sent test' : 'sent'}: ${row.business_name} <${row.email}>${testTo ? ` to ${testTo}` : ''} id=${result.data?.id}`)
     }
   }
 }
