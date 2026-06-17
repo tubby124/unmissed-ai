@@ -6,8 +6,9 @@ type Row = Record<string, string>
 
 const DEFAULT_BATCH = path.join(process.cwd(), 'public/leads/campaigns/auto-glass-email-batch-01-2026-06-17.csv')
 const DEFAULT_LOG_DIR = '/Users/owner/Downloads/Obsidian Vault/Projects/unmissed/leads'
-const FROM = 'Sean from EndVoicemail <hello@endvoicemail.ai>'
+const FROM = 'Hasan from EndVoicemail <hello@endvoicemail.ai>'
 const DEFAULT_REPLY_TO = 'hello@endvoicemail.ai'
+const DEFAULT_MAILING_ADDRESS = 'End Voicemail, Calgary, AB, Canada'
 const BLOCKED_RE = /windshield\s*hub|riverbend\s*auto\s*glass|riverbend\s*autoglass/i
 
 function argValue(name: string): string | undefined {
@@ -124,6 +125,19 @@ function appendLog(row: Row, result: Record<string, unknown>) {
   })}\n`)
 }
 
+function buildEmailText(row: Row, replyTo: string, mailingAddress: string) {
+  const text = row.email_1.trim()
+  if (/reply\s+STOP/i.test(text) && text.includes(mailingAddress)) return text
+
+  return [
+    text,
+    '',
+    'PS: If this is not useful, reply STOP and I will not email again.',
+    '',
+    `${mailingAddress} - ${replyTo}`,
+  ].join('\n')
+}
+
 async function main() {
   loadEnvFile(path.join(process.cwd(), '.env.local'))
 
@@ -134,6 +148,7 @@ async function main() {
   const testTo = argValue('test-to')
   const from = argValue('from') || process.env.COLD_OUTREACH_FROM || FROM
   const replyTo = argValue('reply-to') || process.env.COLD_OUTREACH_REPLY_TO || DEFAULT_REPLY_TO
+  const mailingAddress = argValue('mailing-address') || process.env.COLD_OUTREACH_MAILING_ADDRESS || process.env.BRAND_MAILING_ADDRESS || DEFAULT_MAILING_ADDRESS
   const isTestSend = Boolean(testTo)
   const key = process.env.RESEND_API_KEY
 
@@ -155,12 +170,13 @@ async function main() {
     selected: slice.length,
     from,
     replyTo,
+    mailingAddress,
     blockedPattern: String(BLOCKED_RE),
   }, null, 2))
 
   for (const row of slice) {
     const to = testTo || row.email
-    const text = row.email_1
+    const text = buildEmailText(row, replyTo, mailingAddress)
     const unsubscribeMailto = `mailto:${replyTo}?subject=Unsubscribe&body=Please remove ${encodeURIComponent(row.email)} from End Voicemail outreach.`
 
     if (!send) {

@@ -1,1651 +1,1141 @@
 batch,send_order,business_name,city,province,email,phone,website_url,email_source_url,google_place_url,yp_detail_url,campaign_url,subject_1,preview_1,email_1,subject_2,email_2,subject_3,email_3,reply_after_yes
-batch-01,1,Bridge City Glass,Saskatoon,SK,bridgecityglass@sasktel.net,+1 306-664-4616,http://bridgecityglass.ca/,http://bridgecityglass.ca/,https://www.google.com/maps/search/?api=1&query=Bridge%20City%20Glass&query_place_id=ChIJNwJ7FfT2BFMRgA6Htkf-wUs,https://www.yellowpages.ca/bus/Saskatchewan/Saskatoon/Bridge-City-Glass/6878788.html?what=auto+glass&where=Saskatoon+SK&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1acb5902e523&shop=Bridge+City+Glass&city=Saskatoon,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Bridge City Glass team,
+batch-01,1,Bridge City Glass,Saskatoon,SK,bridgecityglass@sasktel.net,+1 306-664-4616,http://bridgecityglass.ca/,http://bridgecityglass.ca/,https://www.google.com/maps/search/?api=1&query=Bridge%20City%20Glass&query_place_id=ChIJNwJ7FfT2BFMRgA6Htkf-wUs,https://www.yellowpages.ca/bus/Saskatchewan/Saskatoon/Bridge-City-Glass/6878788.html?what=auto+glass&where=Saskatoon+SK&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1acb5902e523&shop=Bridge+City+Glass&city=Saskatoon,what happens to your missed calls?,"Quick one for Bridge City Glass: when the phone rings mid-job, where does it go?","Hey Bridge City Glass team,
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+Saw Bridge City Glass does auto glass around Saskatoon. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Basically a front desk on every missed call, without the salary.
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-Want me to send it over?
+Takes two minutes.
 
-Sean
-EndVoicemail.ai
+Hasan
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Bridge City Glass team,
+EndVoicemail.ai",the chip-repair test,"Hey Bridge City Glass team,
 
-Quick follow-up.
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Want me to send the link so you can try it on your phone?
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Hasan",close this out?,"Hey Bridge City Glass team,
 
-Want me to send the link for Bridge City Glass?
+Should I close this out?
 
-Sean
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Bridge City Glass team,
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Bridge City Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1acb5902e523&shop=Bridge+City+Glass&city=Saskatoon
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,2,Showtime Glass Inc.,Saskatoon,SK,info@showtimeglass.com,+1 306-952-3580,https://showtimeglass.com/,https://showtimeglass.com/,https://www.google.com/maps/search/?api=1&query=Showtime%20Glass%20Inc.&query_place_id=ChIJk31gRtj2BFMRBHvREQZHk9U,https://www.yellowpages.ca/bus/Saskatchewan/Saskatoon/Showtime-Glass/100987891.html?what=auto+glass&where=Saskatoon+SK&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=a03690f75dd2&shop=Showtime+Glass+Inc.&city=Saskatoon,what happens to your missed calls?,"Quick one for Showtime Glass Inc.: when the phone rings mid-job, where does it go?","Hey Showtime Glass Inc. team,
 
-Sean"
-batch-01,2,Showtime Glass Inc.,Saskatoon,SK,info@showtimeglass.com,+1 306-952-3580,https://showtimeglass.com/,https://showtimeglass.com/,https://www.google.com/maps/search/?api=1&query=Showtime%20Glass%20Inc.&query_place_id=ChIJk31gRtj2BFMRBHvREQZHk9U,https://www.yellowpages.ca/bus/Saskatchewan/Saskatoon/Showtime-Glass/100987891.html?what=auto+glass&where=Saskatoon+SK&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=a03690f75dd2&shop=Showtime+Glass+Inc.&city=Saskatoon,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Showtime Glass Inc. team,
+Saw Showtime Glass Inc. does auto glass around Saskatoon. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Showtime Glass Inc. team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Showtime Glass Inc. team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Showtime Glass Inc. team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Showtime Glass Inc.?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Showtime Glass Inc. team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Showtime Glass Inc.:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=a03690f75dd2&shop=Showtime+Glass+Inc.&city=Saskatoon
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,3,Nu Vu Auto Glass,Saskatoon,SK,nuvuautoglass@sasktel.net,+1 306-221-2378,http://www.nuvuautoglass.ca/,http://www.nuvuautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Nu%20Vu%20Auto%20Glass&query_place_id=ChIJ5U7KYlf2BFMR11Eco_Pgw-g,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=481fd40f3234&shop=Nu+Vu+Auto+Glass&city=Saskatoon,what happens to your missed calls?,"Quick one for Nu Vu Auto Glass: when the phone rings mid-job, where does it go?","Hey Nu Vu Auto Glass team,
 
-Sean"
-batch-01,3,Nu Vu Auto Glass,Saskatoon,SK,nuvuautoglass@sasktel.net,+1 306-221-2378,http://www.nuvuautoglass.ca/,http://www.nuvuautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Nu%20Vu%20Auto%20Glass&query_place_id=ChIJ5U7KYlf2BFMR11Eco_Pgw-g,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=481fd40f3234&shop=Nu+Vu+Auto+Glass&city=Saskatoon,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Nu Vu Auto Glass team,
+Saw Nu Vu Auto Glass does auto glass around Saskatoon. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Nu Vu Auto Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Nu Vu Auto Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Nu Vu Auto Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Nu Vu Auto Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Nu Vu Auto Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Nu Vu Auto Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=481fd40f3234&shop=Nu+Vu+Auto+Glass&city=Saskatoon
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,4,True Blue Windshield Chip Repair Saskatoon Market Mall,Saskatoon,SK,trueblueglasscanada@gmail.com,+1 306-281-4744,http://www.trueblueglass.ca/,http://www.trueblueglass.ca/,https://www.google.com/maps/search/?api=1&query=True%20Blue%20Windshield%20Chip%20Repair%20Saskatoon%20Market%20Mall&query_place_id=ChIJA9iyJ-TxBFMR5gwI7uaxKcE,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=02f41c18a2df&shop=True+Blue+Windshield+Chip+Repair+Saskatoon+Market+Mall&city=Saskatoon,what happens to your missed calls?,"Quick one for True Blue Windshield Chip Repair Saskatoon Market Mall: when the phone rings mid-job, where does it go?","Hey True Blue Windshield Chip Repair Saskatoon Market Mall team,
 
-Sean"
-batch-01,4,True Blue Windshield Chip Repair Saskatoon Market Mall,Saskatoon,SK,trueblueglasscanada@gmail.com,+1 306-281-4744,http://www.trueblueglass.ca/,http://www.trueblueglass.ca/,https://www.google.com/maps/search/?api=1&query=True%20Blue%20Windshield%20Chip%20Repair%20Saskatoon%20Market%20Mall&query_place_id=ChIJA9iyJ-TxBFMR5gwI7uaxKcE,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=02f41c18a2df&shop=True+Blue+Windshield+Chip+Repair+Saskatoon+Market+Mall&city=Saskatoon,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi True Blue Windshield Chip Repair Saskatoon Market Mall team,
+Saw True Blue Windshield Chip Repair Saskatoon Market Mall does auto glass around Saskatoon. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey True Blue Windshield Chip Repair Saskatoon Market Mall team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi True Blue Windshield Chip Repair Saskatoon Market Mall team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey True Blue Windshield Chip Repair Saskatoon Market Mall team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for True Blue Windshield Chip Repair Saskatoon Market Mall?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi True Blue Windshield Chip Repair Saskatoon Market Mall team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for True Blue Windshield Chip Repair Saskatoon Market Mall:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=02f41c18a2df&shop=True+Blue+Windshield+Chip+Repair+Saskatoon+Market+Mall&city=Saskatoon
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,5,Nats Glass,Saskatoon,SK,natsglasssk@gmail.com,+1 639-480-9599,http://natsglass.ca/,http://natsglass.ca/,https://www.google.com/maps/search/?api=1&query=Nats%20Glass&query_place_id=ChIJhaGh4MXxBFMRijWHl0Zy_hw,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=2cab0c917859&shop=Nats+Glass&city=Saskatoon,what happens to your missed calls?,"Quick one for Nats Glass: when the phone rings mid-job, where does it go?","Hey Nats Glass team,
 
-Sean"
-batch-01,5,Nats Glass,Saskatoon,SK,natsglasssk@gmail.com,+1 639-480-9599,http://natsglass.ca/,http://natsglass.ca/,https://www.google.com/maps/search/?api=1&query=Nats%20Glass&query_place_id=ChIJhaGh4MXxBFMRijWHl0Zy_hw,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=2cab0c917859&shop=Nats+Glass&city=Saskatoon,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Nats Glass team,
+Saw Nats Glass does auto glass around Saskatoon. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Nats Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Nats Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Nats Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Nats Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Nats Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Nats Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=2cab0c917859&shop=Nats+Glass&city=Saskatoon
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,6,Windshield Wizard,Saskatoon,SK,contact@windshieldwizard.ca,+1 306-933-2400,http://www.windshieldwizard.ca/,http://www.windshieldwizard.ca/,https://www.google.com/maps/search/?api=1&query=Windshield%20Wizard&query_place_id=ChIJwUAGs2X2BFMR8tavb13XZfU,https://www.yellowpages.ca/bus/Saskatchewan/Saskatoon/Windshield-Wizard/1723003.html?what=auto+glass&where=Saskatoon+SK&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=3f1647d82ada&shop=Windshield+Wizard&city=Saskatoon,what happens to your missed calls?,"Quick one for Windshield Wizard: when the phone rings mid-job, where does it go?","Hey Windshield Wizard team,
 
-Sean"
-batch-01,6,Windshield Wizard,Saskatoon,SK,contact@windshieldwizard.ca,+1 306-933-2400,http://www.windshieldwizard.ca/,http://www.windshieldwizard.ca/,https://www.google.com/maps/search/?api=1&query=Windshield%20Wizard&query_place_id=ChIJwUAGs2X2BFMR8tavb13XZfU,https://www.yellowpages.ca/bus/Saskatchewan/Saskatoon/Windshield-Wizard/1723003.html?what=auto+glass&where=Saskatoon+SK&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=3f1647d82ada&shop=Windshield+Wizard&city=Saskatoon,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Windshield Wizard team,
+Saw Windshield Wizard does auto glass around Saskatoon. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Windshield Wizard team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Windshield Wizard team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Windshield Wizard team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Windshield Wizard?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Windshield Wizard team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Windshield Wizard:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=3f1647d82ada&shop=Windshield+Wizard&city=Saskatoon
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,7,Mr Windshield,Calgary,AB,info@mr-windshield.com,+1 403-276-7366,http://mr-windshield.com/,http://mr-windshield.com/,https://www.google.com/maps/search/?api=1&query=Mr%20Windshield&query_place_id=ChIJvcgMPwtlcVMRD1VXsgFeLJA,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=c3121e43408a&shop=Mr+Windshield&city=Calgary,what happens to your missed calls?,"Quick one for Mr Windshield: when the phone rings mid-job, where does it go?","Hey Mr Windshield team,
 
-Sean"
-batch-01,7,Mr Windshield,Calgary,AB,info@mr-windshield.com,+1 403-276-7366,http://mr-windshield.com/,http://mr-windshield.com/,https://www.google.com/maps/search/?api=1&query=Mr%20Windshield&query_place_id=ChIJvcgMPwtlcVMRD1VXsgFeLJA,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=c3121e43408a&shop=Mr+Windshield&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Mr Windshield team,
+Saw Mr Windshield does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Mr Windshield team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Mr Windshield team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Mr Windshield team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Mr Windshield?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Mr Windshield team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Mr Windshield:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=c3121e43408a&shop=Mr+Windshield&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,8,Boulevard Auto Glass,Calgary,AB,info@boulevardautoglass.com,+1 587-391-4030,https://boulevardautoglass.com/?utm_source=GMB&utm_medium=organic-local&utm_campaign=GMB,https://boulevardautoglass.com/?utm_source=GMB&utm_medium=organic-local&utm_campaign=GMB,https://www.google.com/maps/search/?api=1&query=Boulevard%20Auto%20Glass&query_place_id=ChIJI7UjzF9xcVMRJRlWfWRfoWg,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5c6181b2d645&shop=Boulevard+Auto+Glass&city=Calgary,what happens to your missed calls?,"Quick one for Boulevard Auto Glass: when the phone rings mid-job, where does it go?","Hey Boulevard Auto Glass team,
 
-Sean"
-batch-01,8,Boulevard Auto Glass,Calgary,AB,info@boulevardautoglass.com,+1 587-391-4030,https://boulevardautoglass.com/?utm_source=GMB&utm_medium=organic-local&utm_campaign=GMB,https://boulevardautoglass.com/?utm_source=GMB&utm_medium=organic-local&utm_campaign=GMB,https://www.google.com/maps/search/?api=1&query=Boulevard%20Auto%20Glass&query_place_id=ChIJI7UjzF9xcVMRJRlWfWRfoWg,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5c6181b2d645&shop=Boulevard+Auto+Glass&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Boulevard Auto Glass team,
+Saw Boulevard Auto Glass does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Boulevard Auto Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Boulevard Auto Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Boulevard Auto Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Boulevard Auto Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Boulevard Auto Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Boulevard Auto Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5c6181b2d645&shop=Boulevard+Auto+Glass&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,9,VIP Glass,Calgary,AB,info@vipglass.ca,+1 403-285-2000,https://vipglass.ca/,https://vipglass.ca/,https://www.google.com/maps/search/?api=1&query=VIP%20Glass&query_place_id=ChIJVUlmQoBkcVMRTWVLp2oddUI,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=807cf06c4639&shop=VIP+Glass&city=Calgary,what happens to your missed calls?,"Quick one for VIP Glass: when the phone rings mid-job, where does it go?","Hey VIP Glass team,
 
-Sean"
-batch-01,9,VIP Glass,Calgary,AB,info@vipglass.ca,+1 403-285-2000,https://vipglass.ca/,https://vipglass.ca/,https://www.google.com/maps/search/?api=1&query=VIP%20Glass&query_place_id=ChIJVUlmQoBkcVMRTWVLp2oddUI,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=807cf06c4639&shop=VIP+Glass&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi VIP Glass team,
+Saw VIP Glass does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey VIP Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi VIP Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey VIP Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for VIP Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi VIP Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for VIP Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=807cf06c4639&shop=VIP+Glass&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,10,Any Crack Windshield Repair,Edmonton,AB,support@anycrack.ca,+1 587-597-7778,http://anycrack.ca/,http://anycrack.ca/,https://www.google.com/maps/search/?api=1&query=Any%20Crack%20Windshield%20Repair&query_place_id=ChIJcX7rVcT1n1MRb307qKAUumY,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=e0f70bea117c&shop=Any+Crack+Windshield+Repair&city=Edmonton,what happens to your missed calls?,"Quick one for Any Crack Windshield Repair: when the phone rings mid-job, where does it go?","Hey Any Crack Windshield Repair team,
 
-Sean"
-batch-01,10,Any Crack Windshield Repair,Edmonton,AB,support@anycrack.ca,+1 587-597-7778,http://anycrack.ca/,http://anycrack.ca/,https://www.google.com/maps/search/?api=1&query=Any%20Crack%20Windshield%20Repair&query_place_id=ChIJcX7rVcT1n1MRb307qKAUumY,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=e0f70bea117c&shop=Any+Crack+Windshield+Repair&city=Edmonton,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Any Crack Windshield Repair team,
+Saw Any Crack Windshield Repair does auto glass around Edmonton. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Any Crack Windshield Repair team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Any Crack Windshield Repair team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Any Crack Windshield Repair team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Any Crack Windshield Repair?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Any Crack Windshield Repair team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Any Crack Windshield Repair:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=e0f70bea117c&shop=Any+Crack+Windshield+Repair&city=Edmonton
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,11,CalAlta Autoglass North,Calgary,AB,quotes@calaltaglass.com,+1 403-291-7020,http://www.calaltaautoglass.ca/?utm_source=Google&utm_medium=GMB,http://www.calaltaautoglass.ca/?utm_source=Google&utm_medium=GMB,https://www.google.com/maps/search/?api=1&query=CalAlta%20Autoglass%20North&query_place_id=ChIJNc5lEgtlcVMR5tK2lfq4rEw,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=62b291afa901&shop=CalAlta+Autoglass+North&city=Calgary,what happens to your missed calls?,"Quick one for CalAlta Autoglass North: when the phone rings mid-job, where does it go?","Hey CalAlta Autoglass North team,
 
-Sean"
-batch-01,11,CalAlta Autoglass North,Calgary,AB,quotes@calaltaglass.com,+1 403-291-7020,http://www.calaltaautoglass.ca/?utm_source=Google&utm_medium=GMB,http://www.calaltaautoglass.ca/?utm_source=Google&utm_medium=GMB,https://www.google.com/maps/search/?api=1&query=CalAlta%20Autoglass%20North&query_place_id=ChIJNc5lEgtlcVMR5tK2lfq4rEw,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=62b291afa901&shop=CalAlta+Autoglass+North&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi CalAlta Autoglass North team,
+Saw CalAlta Autoglass North does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey CalAlta Autoglass North team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi CalAlta Autoglass North team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey CalAlta Autoglass North team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for CalAlta Autoglass North?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi CalAlta Autoglass North team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for CalAlta Autoglass North:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=62b291afa901&shop=CalAlta+Autoglass+North&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,12,Stealth Windshield Repair Inc,Calgary,AB,stealth@stealthwindshieldrepairs.com,+1 825-360-0435,http://www.stealthwindshieldrepairs.com/,http://www.stealthwindshieldrepairs.com/,https://www.google.com/maps/search/?api=1&query=Stealth%20Windshield%20Repair%20Inc&query_place_id=ChIJS1_Jy-llcVMRFH97a0RHx1Y,https://www.yellowpages.ca/bus/Alberta/Stealth-Windshield-Repair/104371742.html?what=auto+glass&where=Calgary+AB&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5e9b9c1e1f2e&shop=Stealth+Windshield+Repair+Inc&city=Calgary,what happens to your missed calls?,"Quick one for Stealth Windshield Repair Inc: when the phone rings mid-job, where does it go?","Hey Stealth Windshield Repair Inc team,
 
-Sean"
-batch-01,12,Stealth Windshield Repair Inc,Calgary,AB,stealth@stealthwindshieldrepairs.com,+1 825-360-0435,http://www.stealthwindshieldrepairs.com/,http://www.stealthwindshieldrepairs.com/,https://www.google.com/maps/search/?api=1&query=Stealth%20Windshield%20Repair%20Inc&query_place_id=ChIJS1_Jy-llcVMRFH97a0RHx1Y,https://www.yellowpages.ca/bus/Alberta/Stealth-Windshield-Repair/104371742.html?what=auto+glass&where=Calgary+AB&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5e9b9c1e1f2e&shop=Stealth+Windshield+Repair+Inc&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Stealth Windshield Repair Inc team,
+Saw Stealth Windshield Repair Inc does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Stealth Windshield Repair Inc team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Stealth Windshield Repair Inc team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Stealth Windshield Repair Inc team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Stealth Windshield Repair Inc?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Stealth Windshield Repair Inc team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Stealth Windshield Repair Inc:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5e9b9c1e1f2e&shop=Stealth+Windshield+Repair+Inc&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,13,Town Auto Glass LTD,Calgary,AB,townautoglassltd@gmail.com,+1 403-681-0016,https://townautoglass.ca/,https://townautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Town%20Auto%20Glass%20LTD&query_place_id=ChIJzTVbdgBjcVMR7TT4gGfnaS0,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=238b75b4d4dd&shop=Town+Auto+Glass+LTD&city=Calgary,what happens to your missed calls?,"Quick one for Town Auto Glass LTD: when the phone rings mid-job, where does it go?","Hey Town Auto Glass LTD team,
 
-Sean"
-batch-01,13,Town Auto Glass LTD,Calgary,AB,townautoglassltd@gmail.com,+1 403-681-0016,https://townautoglass.ca/,https://townautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Town%20Auto%20Glass%20LTD&query_place_id=ChIJzTVbdgBjcVMR7TT4gGfnaS0,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=238b75b4d4dd&shop=Town+Auto+Glass+LTD&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Town Auto Glass LTD team,
+Saw Town Auto Glass LTD does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Town Auto Glass LTD team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Town Auto Glass LTD team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Town Auto Glass LTD team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Town Auto Glass LTD?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Town Auto Glass LTD team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Town Auto Glass LTD:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=238b75b4d4dd&shop=Town+Auto+Glass+LTD&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,14,Quality Auto Glass LTD,Calgary,AB,qualityglass22@yahoo.com,+1 403-354-4422,https://qualityautoglassltd.com/,https://qualityautoglassltd.com/,https://www.google.com/maps/search/?api=1&query=Quality%20Auto%20Glass%20LTD&query_place_id=ChIJjzR0fCtlcVMR-zoD0_MB6rU,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=65c22656c4cc&shop=Quality+Auto+Glass+LTD&city=Calgary,what happens to your missed calls?,"Quick one for Quality Auto Glass LTD: when the phone rings mid-job, where does it go?","Hey Quality Auto Glass LTD team,
 
-Sean"
-batch-01,14,Quality Auto Glass LTD,Calgary,AB,qualityglass22@yahoo.com,+1 403-354-4422,https://qualityautoglassltd.com/,https://qualityautoglassltd.com/,https://www.google.com/maps/search/?api=1&query=Quality%20Auto%20Glass%20LTD&query_place_id=ChIJjzR0fCtlcVMR-zoD0_MB6rU,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=65c22656c4cc&shop=Quality+Auto+Glass+LTD&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Quality Auto Glass LTD team,
+Saw Quality Auto Glass LTD does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Quality Auto Glass LTD team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Quality Auto Glass LTD team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Quality Auto Glass LTD team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Quality Auto Glass LTD?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Quality Auto Glass LTD team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Quality Auto Glass LTD:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=65c22656c4cc&shop=Quality+Auto+Glass+LTD&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,15,Dominion Auto Glass,Calgary,AB,info@dominionautoglass.ca,+1 403-250-8930,http://www.dominionautoglass.ca/,http://www.dominionautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Dominion%20Auto%20Glass&query_place_id=ChIJOynh_eNkcVMRzTydDwRAlp8,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=dd5aa445dd1f&shop=Dominion+Auto+Glass&city=Calgary,what happens to your missed calls?,"Quick one for Dominion Auto Glass: when the phone rings mid-job, where does it go?","Hey Dominion Auto Glass team,
 
-Sean"
-batch-01,15,Dominion Auto Glass,Calgary,AB,info@dominionautoglass.ca,+1 403-250-8930,http://www.dominionautoglass.ca/,http://www.dominionautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Dominion%20Auto%20Glass&query_place_id=ChIJOynh_eNkcVMRzTydDwRAlp8,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=dd5aa445dd1f&shop=Dominion+Auto+Glass&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Dominion Auto Glass team,
+Saw Dominion Auto Glass does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Dominion Auto Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Dominion Auto Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Dominion Auto Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Dominion Auto Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Dominion Auto Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Dominion Auto Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=dd5aa445dd1f&shop=Dominion+Auto+Glass&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,16,Super Auto Glass - Windshield Replacement Calgary,Calgary,AB,info@superautoglasscalgary.ca,+1 587-777-1755,https://www.superautoglasscalgary.ca/?utm_campaign=gmb&utm_medium=gmb&utm_source=google,https://www.superautoglasscalgary.ca/?utm_campaign=gmb&utm_medium=gmb&utm_source=google,https://www.google.com/maps/search/?api=1&query=Super%20Auto%20Glass%20-%20Windshield%20Replacement%20Calgary&query_place_id=ChIJRzKebDh3cVMRv1JaumPT_lo,https://www.yellowpages.ca/bus/Alberta/Calgary/Super-Auto-Glass-Ltd/101342684.html?what=auto+glass&where=Calgary+AB&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=bb62fcae3bf2&shop=Super+Auto+Glass+-+Windshield+Replacement+Calgary&city=Calgary,what happens to your missed calls?,"Quick one for Super Auto Glass - Windshield Replacement Calgary: when the phone rings mid-job, where does it go?","Hey Super Auto Glass - Windshield Replacement Calgary team,
 
-Sean"
-batch-01,16,Super Auto Glass - Windshield Replacement Calgary,Calgary,AB,info@superautoglasscalgary.ca,+1 587-777-1755,https://www.superautoglasscalgary.ca/?utm_campaign=gmb&utm_medium=gmb&utm_source=google,https://www.superautoglasscalgary.ca/?utm_campaign=gmb&utm_medium=gmb&utm_source=google,https://www.google.com/maps/search/?api=1&query=Super%20Auto%20Glass%20-%20Windshield%20Replacement%20Calgary&query_place_id=ChIJRzKebDh3cVMRv1JaumPT_lo,https://www.yellowpages.ca/bus/Alberta/Calgary/Super-Auto-Glass-Ltd/101342684.html?what=auto+glass&where=Calgary+AB&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=bb62fcae3bf2&shop=Super+Auto+Glass+-+Windshield+Replacement+Calgary&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Super Auto Glass - Windshield Replacement Calgary team,
+Saw Super Auto Glass - Windshield Replacement Calgary does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Super Auto Glass - Windshield Replacement Calgary team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Super Auto Glass - Windshield Replacement Calgary team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Super Auto Glass - Windshield Replacement Calgary team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Super Auto Glass - Windshield Replacement Calgary?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Super Auto Glass - Windshield Replacement Calgary team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Super Auto Glass - Windshield Replacement Calgary:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=bb62fcae3bf2&shop=Super+Auto+Glass+-+Windshield+Replacement+Calgary&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,17,Easy Auto Glass Inc,Calgary,AB,info@easyautoglass.ca,+1 403-265-0007,https://www.easyautoglass.ca/,https://www.easyautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Easy%20Auto%20Glass%20Inc&query_place_id=ChIJvWGJ0UV3cVMRZ9HU7lssXnU,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5f7099744e1f&shop=Easy+Auto+Glass+Inc&city=Calgary,what happens to your missed calls?,"Quick one for Easy Auto Glass Inc: when the phone rings mid-job, where does it go?","Hey Easy Auto Glass Inc team,
 
-Sean"
-batch-01,17,Easy Auto Glass Inc,Calgary,AB,info@easyautoglass.ca,+1 403-265-0007,https://www.easyautoglass.ca/,https://www.easyautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Easy%20Auto%20Glass%20Inc&query_place_id=ChIJvWGJ0UV3cVMRZ9HU7lssXnU,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5f7099744e1f&shop=Easy+Auto+Glass+Inc&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Easy Auto Glass Inc team,
+Saw Easy Auto Glass Inc does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Easy Auto Glass Inc team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Easy Auto Glass Inc team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Easy Auto Glass Inc team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Easy Auto Glass Inc?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Easy Auto Glass Inc team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Easy Auto Glass Inc:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=5f7099744e1f&shop=Easy+Auto+Glass+Inc&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,18,Glacier Glass Service Ltd.,Regina,SK,orderdesk@glacierglass.com,+1 306-545-3990,http://www.glacierglass.com/,http://www.glacierglass.com/,https://www.google.com/maps/search/?api=1&query=Glacier%20Glass%20Service%20Ltd.&query_place_id=ChIJsc8mLAEfHFMReKcAZ9gUPn0,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=9fcb86664b67&shop=Glacier+Glass+Service+Ltd.&city=Regina,what happens to your missed calls?,"Quick one for Glacier Glass Service Ltd.: when the phone rings mid-job, where does it go?","Hey Glacier Glass Service Ltd. team,
 
-Sean"
-batch-01,18,Glacier Glass Service Ltd.,Regina,SK,orderdesk@glacierglass.com,+1 306-545-3990,http://www.glacierglass.com/,http://www.glacierglass.com/,https://www.google.com/maps/search/?api=1&query=Glacier%20Glass%20Service%20Ltd.&query_place_id=ChIJsc8mLAEfHFMReKcAZ9gUPn0,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=9fcb86664b67&shop=Glacier+Glass+Service+Ltd.&city=Regina,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Glacier Glass Service Ltd. team,
+Saw Glacier Glass Service Ltd. does auto glass around Regina. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Glacier Glass Service Ltd. team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Glacier Glass Service Ltd. team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Glacier Glass Service Ltd. team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Glacier Glass Service Ltd.?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Glacier Glass Service Ltd. team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Glacier Glass Service Ltd.:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=9fcb86664b67&shop=Glacier+Glass+Service+Ltd.&city=Regina
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,19,R K Auto Glass,Edmonton,AB,info@rkautoglass.ca,+1 780-461-0001,https://rkautoglass.ca/,https://rkautoglass.ca/,https://www.google.com/maps/search/?api=1&query=R%20K%20Auto%20Glass&query_place_id=ChIJv1E4yk8YoFMRjmnYYEDk6qA,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1a0981ab5548&shop=R+K+Auto+Glass&city=Edmonton,what happens to your missed calls?,"Quick one for R K Auto Glass: when the phone rings mid-job, where does it go?","Hey R K Auto Glass team,
 
-Sean"
-batch-01,19,R K Auto Glass,Edmonton,AB,info@rkautoglass.ca,+1 780-461-0001,https://rkautoglass.ca/,https://rkautoglass.ca/,https://www.google.com/maps/search/?api=1&query=R%20K%20Auto%20Glass&query_place_id=ChIJv1E4yk8YoFMRjmnYYEDk6qA,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1a0981ab5548&shop=R+K+Auto+Glass&city=Edmonton,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi R K Auto Glass team,
+Saw R K Auto Glass does auto glass around Edmonton. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey R K Auto Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi R K Auto Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey R K Auto Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for R K Auto Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi R K Auto Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for R K Auto Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1a0981ab5548&shop=R+K+Auto+Glass&city=Edmonton
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,20,Queen City Glass (1961) Ltd,Regina,SK,queencityglass@sasktel.net,+1 306-525-2345,https://www.queencityglass.ca/,https://www.queencityglass.ca/,https://www.google.com/maps/search/?api=1&query=Queen%20City%20Glass%20(1961)%20Ltd&query_place_id=ChIJY6kPCk0eHFMRoBoIUdc9xFQ,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=db1799b9bcb0&shop=Queen+City+Glass+%281961%29+Ltd&city=Regina,what happens to your missed calls?,"Quick one for Queen City Glass (1961) Ltd: when the phone rings mid-job, where does it go?","Hey Queen City Glass (1961) Ltd team,
 
-Sean"
-batch-01,20,Queen City Glass (1961) Ltd,Regina,SK,queencityglass@sasktel.net,+1 306-525-2345,https://www.queencityglass.ca/,https://www.queencityglass.ca/,https://www.google.com/maps/search/?api=1&query=Queen%20City%20Glass%20(1961)%20Ltd&query_place_id=ChIJY6kPCk0eHFMRoBoIUdc9xFQ,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=db1799b9bcb0&shop=Queen+City+Glass+%281961%29+Ltd&city=Regina,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Queen City Glass (1961) Ltd team,
+Saw Queen City Glass (1961) Ltd does auto glass around Regina. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Queen City Glass (1961) Ltd team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Queen City Glass (1961) Ltd team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Queen City Glass (1961) Ltd team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Queen City Glass (1961) Ltd?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Queen City Glass (1961) Ltd team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Queen City Glass (1961) Ltd:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=db1799b9bcb0&shop=Queen+City+Glass+%281961%29+Ltd&city=Regina
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,21,KINGS GLASS,Calgary,AB,info@kingsglass.com,+1 403-258-1798,http://www.kingsglass.ca/,http://www.kingsglass.ca/,https://www.google.com/maps/search/?api=1&query=KINGS%20GLASS&query_place_id=ChIJsRajl_lwcVMRrRBVeRwZNcQ,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=b2ec486fc40e&shop=KINGS+GLASS&city=Calgary,what happens to your missed calls?,"Quick one for KINGS GLASS: when the phone rings mid-job, where does it go?","Hey KINGS GLASS team,
 
-Sean"
-batch-01,21,KINGS GLASS,Calgary,AB,info@kingsglass.com,+1 403-258-1798,http://www.kingsglass.ca/,http://www.kingsglass.ca/,https://www.google.com/maps/search/?api=1&query=KINGS%20GLASS&query_place_id=ChIJsRajl_lwcVMRrRBVeRwZNcQ,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=b2ec486fc40e&shop=KINGS+GLASS&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi KINGS GLASS team,
+Saw KINGS GLASS does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey KINGS GLASS team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi KINGS GLASS team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey KINGS GLASS team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for KINGS GLASS?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi KINGS GLASS team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for KINGS GLASS:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=b2ec486fc40e&shop=KINGS+GLASS&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,22,WIN Auto Glass & Solutions,Regina,SK,winautosalesltd@gmail.com,+1 306-201-7389,https://www.facebook.com/profile.php?id=61554235056954,https://www.facebook.com/profile.php?id=61554235056954,https://www.google.com/maps/search/?api=1&query=WIN%20Auto%20Glass%20%26%20Solutions&query_place_id=ChIJhwG9zccfHFMREkbJ5E0L7zU,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=e52a5ad8e376&shop=WIN+Auto+Glass+%26+Solutions&city=Regina,what happens to your missed calls?,"Quick one for WIN Auto Glass & Solutions: when the phone rings mid-job, where does it go?","Hey WIN Auto Glass & Solutions team,
 
-Sean"
-batch-01,22,WIN Auto Glass & Solutions,Regina,SK,winautosalesltd@gmail.com,+1 306-201-7389,https://www.facebook.com/profile.php?id=61554235056954,https://www.facebook.com/profile.php?id=61554235056954,https://www.google.com/maps/search/?api=1&query=WIN%20Auto%20Glass%20%26%20Solutions&query_place_id=ChIJhwG9zccfHFMREkbJ5E0L7zU,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=e52a5ad8e376&shop=WIN+Auto+Glass+%26+Solutions&city=Regina,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi WIN Auto Glass & Solutions team,
+Saw WIN Auto Glass & Solutions does auto glass around Regina. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey WIN Auto Glass & Solutions team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi WIN Auto Glass & Solutions team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey WIN Auto Glass & Solutions team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for WIN Auto Glass & Solutions?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi WIN Auto Glass & Solutions team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for WIN Auto Glass & Solutions:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=e52a5ad8e376&shop=WIN+Auto+Glass+%26+Solutions&city=Regina
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,23,Precious Auto Glass,Calgary,AB,info@preciousautoglass.ca,+1 403-376-1666,http://preciousautoglass.ca/,http://preciousautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Precious%20Auto%20Glass&query_place_id=ChIJY6FoLV17cVMRAadEmMSqYGo,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=383d640b2025&shop=Precious+Auto+Glass&city=Calgary,what happens to your missed calls?,"Quick one for Precious Auto Glass: when the phone rings mid-job, where does it go?","Hey Precious Auto Glass team,
 
-Sean"
-batch-01,23,Precious Auto Glass,Calgary,AB,info@preciousautoglass.ca,+1 403-376-1666,http://preciousautoglass.ca/,http://preciousautoglass.ca/,https://www.google.com/maps/search/?api=1&query=Precious%20Auto%20Glass&query_place_id=ChIJY6FoLV17cVMRAadEmMSqYGo,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=383d640b2025&shop=Precious+Auto+Glass&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Precious Auto Glass team,
+Saw Precious Auto Glass does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Precious Auto Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Precious Auto Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Precious Auto Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Precious Auto Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Precious Auto Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Precious Auto Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=383d640b2025&shop=Precious+Auto+Glass&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,24,Advance Glass & Mirror Ltd,Regina,SK,advanceglass@sasktel.net,+1 306-949-3800,http://advanceglassmirror.com/,http://advanceglassmirror.com/,https://www.google.com/maps/search/?api=1&query=Advance%20Glass%20%26%20Mirror%20Ltd&query_place_id=ChIJ2UewZfceHFMRdlTPs-rG-yc,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1991e0b85d91&shop=Advance+Glass+%26+Mirror+Ltd&city=Regina,what happens to your missed calls?,"Quick one for Advance Glass & Mirror Ltd: when the phone rings mid-job, where does it go?","Hey Advance Glass & Mirror Ltd team,
 
-Sean"
-batch-01,24,Advance Glass & Mirror Ltd,Regina,SK,advanceglass@sasktel.net,+1 306-949-3800,http://advanceglassmirror.com/,http://advanceglassmirror.com/,https://www.google.com/maps/search/?api=1&query=Advance%20Glass%20%26%20Mirror%20Ltd&query_place_id=ChIJ2UewZfceHFMRdlTPs-rG-yc,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1991e0b85d91&shop=Advance+Glass+%26+Mirror+Ltd&city=Regina,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Advance Glass & Mirror Ltd team,
+Saw Advance Glass & Mirror Ltd does auto glass around Regina. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Advance Glass & Mirror Ltd team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Advance Glass & Mirror Ltd team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Advance Glass & Mirror Ltd team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Advance Glass & Mirror Ltd?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Advance Glass & Mirror Ltd team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Advance Glass & Mirror Ltd:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=1991e0b85d91&shop=Advance+Glass+%26+Mirror+Ltd&city=Regina
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,25,Fast Glass,Regina,SK,fastglass@sasktel.net,+1 306-352-3278,http://www.fastglassregina.com/,http://www.fastglassregina.com/,https://www.google.com/maps/search/?api=1&query=Fast%20Glass&query_place_id=ChIJDx2KA0IeHFMRvVNfmeL08IA,https://www.yellowpages.ca/bus/Saskatchewan/Regina/Fast-Glass/7527544.html?what=auto+glass&where=Regina+SK&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=9cf084e358fd&shop=Fast+Glass&city=Regina,what happens to your missed calls?,"Quick one for Fast Glass: when the phone rings mid-job, where does it go?","Hey Fast Glass team,
 
-Sean"
-batch-01,25,Fast Glass,Regina,SK,fastglass@sasktel.net,+1 306-352-3278,http://www.fastglassregina.com/,http://www.fastglassregina.com/,https://www.google.com/maps/search/?api=1&query=Fast%20Glass&query_place_id=ChIJDx2KA0IeHFMRvVNfmeL08IA,https://www.yellowpages.ca/bus/Saskatchewan/Regina/Fast-Glass/7527544.html?what=auto+glass&where=Regina+SK&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=9cf084e358fd&shop=Fast+Glass&city=Regina,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Fast Glass team,
+Saw Fast Glass does auto glass around Regina. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Fast Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Fast Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Fast Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Fast Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Fast Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Fast Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=9cf084e358fd&shop=Fast+Glass&city=Regina
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,26,Hepting Glass Centre,Regina,SK,heptingglass@sasktel.net,+1 306-775-1770,http://hepting-glass.com/,http://hepting-glass.com/,https://www.google.com/maps/search/?api=1&query=Hepting%20Glass%20Centre&query_place_id=ChIJMzWvdPoeHFMROOINpy4kZ7U,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=06648c64837d&shop=Hepting+Glass+Centre&city=Regina,what happens to your missed calls?,"Quick one for Hepting Glass Centre: when the phone rings mid-job, where does it go?","Hey Hepting Glass Centre team,
 
-Sean"
-batch-01,26,Hepting Glass Centre,Regina,SK,heptingglass@sasktel.net,+1 306-775-1770,http://hepting-glass.com/,http://hepting-glass.com/,https://www.google.com/maps/search/?api=1&query=Hepting%20Glass%20Centre&query_place_id=ChIJMzWvdPoeHFMROOINpy4kZ7U,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=06648c64837d&shop=Hepting+Glass+Centre&city=Regina,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Hepting Glass Centre team,
+Saw Hepting Glass Centre does auto glass around Regina. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Hepting Glass Centre team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Hepting Glass Centre team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Hepting Glass Centre team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Hepting Glass Centre?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Hepting Glass Centre team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Hepting Glass Centre:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=06648c64837d&shop=Hepting+Glass+Centre&city=Regina
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,27,5 STAR AUTO GLASS,Calgary,AB,info@5starautoglass.ca,+1 403-457-4446,https://5starautoglass.ca/?utm_source=organic&utm_medium=gbp&utm_campaign=gbp-link,https://5starautoglass.ca/?utm_source=organic&utm_medium=gbp&utm_campaign=gbp-link,https://www.google.com/maps/search/?api=1&query=5%20STAR%20AUTO%20GLASS&query_place_id=ChIJgXiqZUNwcVMRYo3WDEtAnwo,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=72d21c9d388e&shop=5+STAR+AUTO+GLASS&city=Calgary,what happens to your missed calls?,"Quick one for 5 STAR AUTO GLASS: when the phone rings mid-job, where does it go?","Hey 5 STAR AUTO GLASS team,
 
-Sean"
-batch-01,27,5 STAR AUTO GLASS,Calgary,AB,info@5starautoglass.ca,+1 403-457-4446,https://5starautoglass.ca/?utm_source=organic&utm_medium=gbp&utm_campaign=gbp-link,https://5starautoglass.ca/?utm_source=organic&utm_medium=gbp&utm_campaign=gbp-link,https://www.google.com/maps/search/?api=1&query=5%20STAR%20AUTO%20GLASS&query_place_id=ChIJgXiqZUNwcVMRYo3WDEtAnwo,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=72d21c9d388e&shop=5+STAR+AUTO+GLASS&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi 5 STAR AUTO GLASS team,
+Saw 5 STAR AUTO GLASS does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey 5 STAR AUTO GLASS team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi 5 STAR AUTO GLASS team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey 5 STAR AUTO GLASS team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for 5 STAR AUTO GLASS?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi 5 STAR AUTO GLASS team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for 5 STAR AUTO GLASS:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=72d21c9d388e&shop=5+STAR+AUTO+GLASS&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,28,Dynasty Auto Glass,Calgary,AB,info@dynasty-autoglass.com,+1 403-250-5000,https://www.dynasty-autoglass.com/,https://www.dynasty-autoglass.com/,https://www.google.com/maps/search/?api=1&query=Dynasty%20Auto%20Glass&query_place_id=ChIJR4PTEgtlcVMRFA7huP44VyU,https://www.yellowpages.ca/bus/Alberta/Dynasty-Auto-Glass-Inc/538721.html?what=auto+glass&where=Calgary+AB&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=913af10a825d&shop=Dynasty+Auto+Glass&city=Calgary,what happens to your missed calls?,"Quick one for Dynasty Auto Glass: when the phone rings mid-job, where does it go?","Hey Dynasty Auto Glass team,
 
-Sean"
-batch-01,28,Dynasty Auto Glass,Calgary,AB,info@dynasty-autoglass.com,+1 403-250-5000,https://www.dynasty-autoglass.com/,https://www.dynasty-autoglass.com/,https://www.google.com/maps/search/?api=1&query=Dynasty%20Auto%20Glass&query_place_id=ChIJR4PTEgtlcVMRFA7huP44VyU,https://www.yellowpages.ca/bus/Alberta/Dynasty-Auto-Glass-Inc/538721.html?what=auto+glass&where=Calgary+AB&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=913af10a825d&shop=Dynasty+Auto+Glass&city=Calgary,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Dynasty Auto Glass team,
+Saw Dynasty Auto Glass does auto glass around Calgary. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Dynasty Auto Glass team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Dynasty Auto Glass team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Dynasty Auto Glass team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Dynasty Auto Glass?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Dynasty Auto Glass team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Dynasty Auto Glass:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=913af10a825d&shop=Dynasty+Auto+Glass&city=Calgary
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,29,Mobile 24/7 Long Crack Nasty Chip Repair,Edmonton,AB,crackchiprepair@gmail.com,+1 780-217-6796,https://crackchiprepair.com/,https://crackchiprepair.com/,https://www.google.com/maps/search/?api=1&query=Mobile%2024%2F7%20Long%20Crack%20Nasty%20Chip%20Repair&query_place_id=ChIJnfuiLEGQCYoRHNrv4YLLpfQ,https://www.yellowpages.ca/bus/Alberta/Sherwood-Park/Mobile-24-7-Long-Crack-Nasty-Chip-Repair/104831371.html?what=auto+glass&where=Edmonton+AB&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=293e1bd3aa61&shop=Mobile+24%2F7+Long+Crack+Nasty+Chip+Repair&city=Edmonton,what happens to your missed calls?,"Quick one for Mobile 24/7 Long Crack Nasty Chip Repair: when the phone rings mid-job, where does it go?","Hey Mobile 24/7 Long Crack Nasty Chip Repair team,
 
-Sean"
-batch-01,29,Mobile 24/7 Long Crack Nasty Chip Repair,Edmonton,AB,crackchiprepair@gmail.com,+1 780-217-6796,https://crackchiprepair.com/,https://crackchiprepair.com/,https://www.google.com/maps/search/?api=1&query=Mobile%2024%2F7%20Long%20Crack%20Nasty%20Chip%20Repair&query_place_id=ChIJnfuiLEGQCYoRHNrv4YLLpfQ,https://www.yellowpages.ca/bus/Alberta/Sherwood-Park/Mobile-24-7-Long-Crack-Nasty-Chip-Repair/104831371.html?what=auto+glass&where=Edmonton+AB&useContext=true,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=293e1bd3aa61&shop=Mobile+24%2F7+Long+Crack+Nasty+Chip+Repair&city=Edmonton,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi Mobile 24/7 Long Crack Nasty Chip Repair team,
+Saw Mobile 24/7 Long Crack Nasty Chip Repair does auto glass around Edmonton. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey Mobile 24/7 Long Crack Nasty Chip Repair team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi Mobile 24/7 Long Crack Nasty Chip Repair team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey Mobile 24/7 Long Crack Nasty Chip Repair team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for Mobile 24/7 Long Crack Nasty Chip Repair?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi Mobile 24/7 Long Crack Nasty Chip Repair team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for Mobile 24/7 Long Crack Nasty Chip Repair:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=293e1bd3aa61&shop=Mobile+24%2F7+Long+Crack+Nasty+Chip+Repair&city=Edmonton
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
+Hasan"
+batch-01,30,REGINA CHIP REPAIR,Regina,SK,northgate@reginachiprepair.ca,+1 306-216-7545,http://reginachiprepair.ca/,http://reginachiprepair.ca/,https://www.google.com/maps/search/?api=1&query=REGINA%20CHIP%20REPAIR&query_place_id=ChIJY9zr-OsfHFMRHqCVpJIxqvY,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=7c6b68fcaf0e&shop=REGINA+CHIP+REPAIR&city=Regina,what happens to your missed calls?,"Quick one for REGINA CHIP REPAIR: when the phone rings mid-job, where does it go?","Hey REGINA CHIP REPAIR team,
 
-Sean"
-batch-01,30,REGINA CHIP REPAIR,Regina,SK,northgate@reginachiprepair.ca,+1 306-216-7545,http://reginachiprepair.ca/,http://reginachiprepair.ca/,https://www.google.com/maps/search/?api=1&query=REGINA%20CHIP%20REPAIR&query_place_id=ChIJY9zr-OsfHFMRHqCVpJIxqvY,,https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=7c6b68fcaf0e&shop=REGINA+CHIP+REPAIR&city=Regina,missed windshield calls,"If a quote call hits voicemail, they may just call the next shop.","Hi REGINA CHIP REPAIR team,
+Saw REGINA CHIP REPAIR does auto glass around Regina. Quick one - when your guys are under a windshield or out on a mobile job and the phone rings, where's it going?
 
-Quick question — do quote calls ever hit voicemail when your team is in the bay, with a customer, or closed for the day?
+If it's voicemail, a lot of callers just hang up and try the next shop. That's a $400-ish windshield job gone over a call you never even heard.
 
-I’m with EndVoicemail. We’re testing a simple missed-call backup for auto-glass shops.
+So I built End Voicemail. Instead of voicemail, an AI receptionist picks up, talks to the caller like a real person, asks what matters - vehicle, damage, calibration, how soon - and texts you a clean summary so you call back already knowing the job.
 
-When someone calls about a chip repair, windshield replacement, insurance job, or mobile service, it answers, asks the basic intake questions, and sends your team the callback notes.
+Basically a front desk on every missed call, without the salary.
 
-Nothing fancy: just catch the lead before they call the next shop.
+Easiest way to get it is to hear it. Want me to send you the auto-glass demo link so you can run a chip-repair call and see the summary it sends back?
 
-I can send you a link to try it. You open the page, call the demo number, and hear the auto-glass flow yourself.
+Takes two minutes.
 
-Want me to send it over?
+Hasan
 
-Sean
-EndVoicemail.ai
+EndVoicemail.ai",the chip-repair test,"Hey REGINA CHIP REPAIR team,
 
-PS: If this is not useful, reply STOP and I won’t email again.",what it asks callers,"Hi REGINA CHIP REPAIR team,
+Following up on this. The useful part is not a deck or a demo video - it is hearing what happens when a real missed auto-glass call gets answered.
 
-Quick follow-up.
+The demo asks for the vehicle, glass damage, calibration/ADAS, timing, and callback details, then turns it into a clean summary you can act on.
 
-The demo is just a phone number on a page. Call it like you’re a customer, and it walks through the kind of intake an auto-glass shop needs:
+Want me to send the link so you can try it on your phone?
 
-- repair or replacement
-- chip, crack, or full windshield damage
-- vehicle year / make / model
-- insurance or cash
-- urgency and best callback time
+Hasan",close this out?,"Hey REGINA CHIP REPAIR team,
 
-The shop still calls the customer back. The point is to avoid losing the call while everyone is busy.
+Should I close this out?
 
-Want me to send the link for REGINA CHIP REPAIR?
+I built End Voicemail for shops that lose calls while installers are busy, on mobile jobs, or after hours. If missed calls are not costing you jobs, no worries.
 
-Sean
+If they are, I can send the auto-glass demo link and you can test the chip-repair flow in two minutes.
 
-PS: Reply STOP and I’ll take you off the list.",should I close this out?,"Hi REGINA CHIP REPAIR team,
-
-Last note from me.
-
-If missed quote calls are not really a problem, no worries.
-
-But if a few windshield or chip repair calls go to voicemail each week, this might be worth hearing once. You can call the demo number yourself and see if the intake flow makes sense for your shop.
-
-Want the link, or should I close this out?
-
-Sean
-
-PS: Reply STOP and I won’t email again.","Sure — here’s the auto-glass demo page for REGINA CHIP REPAIR:
+Hasan","Yep - here is the auto-glass demo page:
 https://endvoicemail.ai/for-auto-glass?ref=glass-email-1&lead=7c6b68fcaf0e&shop=REGINA+CHIP+REPAIR&city=Regina
 
-Open it, call the number on the page, and pretend you’re a customer asking about a chip repair or windshield replacement.
+Open it, enter your cell, and it will ring you with a short auto-glass call. Run it like a chip-repair customer and you will see the kind of summary End Voicemail sends back.
 
-It’ll answer, ask the intake questions, and show the kind of callback summary your shop would get.
-
-Sean"
+Hasan"
