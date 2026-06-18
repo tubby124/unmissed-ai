@@ -10,6 +10,7 @@ const FROM = 'Hasan from EndVoicemail <hello@endvoicemail.ai>'
 const DEFAULT_REPLY_TO = 'hello@endvoicemail.ai'
 const DEFAULT_MAILING_ADDRESS = 'End Voicemail, Calgary, AB, Canada'
 const BLOCKED_RE = /windshield\s*hub|riverbend\s*auto\s*glass|riverbend\s*autoglass/i
+const CAMPAIGN_TAG = 'auto_glass_cold_1'
 
 function argValue(name: string): string | undefined {
   const exact = process.argv.find((arg) => arg.startsWith(`--${name}=`))
@@ -79,6 +80,10 @@ function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
+function sendLogPath() {
+  return path.join(DEFAULT_LOG_DIR, `apify-autoglass-email-batch-01-send-log-${today()}.jsonl`)
+}
+
 function uniqueSendableRows(rows: Row[]): Row[] {
   const seenEmails = new Set<string>()
   return rows.filter((row) => {
@@ -111,16 +116,56 @@ function assertNoBlockedRows(rows: Row[]) {
   }
 }
 
-function appendLog(row: Row, result: Record<string, unknown>) {
+function successfulSendKey(row: Row) {
+  return `${row.batch}|${row.send_order}|${row.email.trim().toLowerCase()}`
+}
+
+function readSuccessfulSendKeys() {
+  const keys = new Set<string>()
+  if (!fs.existsSync(DEFAULT_LOG_DIR)) return keys
+
+  const files = fs.readdirSync(DEFAULT_LOG_DIR)
+    .filter((name) => /^apify-autoglass-email-batch-01-send-log-\d{4}-\d{2}-\d{2}\.jsonl$/.test(name))
+
+  for (const file of files) {
+    const filePath = path.join(DEFAULT_LOG_DIR, file)
+    for (const line of fs.readFileSync(filePath, 'utf8').split(/\r?\n/)) {
+      if (!line.trim()) continue
+      try {
+        const entry = JSON.parse(line) as {
+          batch?: string
+          send_order?: string
+          email?: string
+          resend_email_id?: string
+          result?: { ok?: boolean; id?: string }
+        }
+        const resendEmailId = entry.resend_email_id ?? entry.result?.id
+        if (entry.result?.ok && resendEmailId && entry.batch && entry.send_order && entry.email) {
+          keys.add(`${entry.batch}|${entry.send_order}|${entry.email.trim().toLowerCase()}`)
+        }
+      } catch {
+        // Ignore malformed historical log lines; the send loop still logs new rows.
+      }
+    }
+  }
+
+  return keys
+}
+
+function appendLog(row: Row, result: Record<string, unknown>, resendEmailId?: string) {
   fs.mkdirSync(DEFAULT_LOG_DIR, { recursive: true })
-  const filePath = path.join(DEFAULT_LOG_DIR, `apify-autoglass-email-batch-01-send-log-${today()}.jsonl`)
-  fs.appendFileSync(filePath, `${JSON.stringify({
+  fs.appendFileSync(sendLogPath(), `${JSON.stringify({
     sent_at: new Date().toISOString(),
+    campaign: CAMPAIGN_TAG,
     batch: row.batch,
     send_order: row.send_order,
     business_name: row.business_name,
+    city: row.city,
+    province: row.province,
     email: row.email,
     subject: row.subject_1,
+    campaign_url: row.campaign_url,
+    resend_email_id: resendEmailId ?? null,
     result,
   })}\n`)
 }
@@ -138,6 +183,37 @@ function buildEmailText(row: Row, replyTo: string, mailingAddress: string) {
   ].join('\n')
 }
 
+function escapeHtml(text: string) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function buildEmailHtml(text: string) {
+  const paragraphs = text
+    .trim()
+    .split(/\n{2,}/)
+    .map((paragraph) => {
+      const html = escapeHtml(paragraph).replace(/\n/g, '<br>')
+      return `<p style="margin:0 0 16px 0">${html}</p>`
+    })
+    .join('\n')
+
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#111">${paragraphs}</div>`
+}
+
+function leadId(row: Row) {
+  try {
+    const url = new URL(row.campaign_url)
+    return url.searchParams.get('lead') ?? row.send_order
+  } catch {
+    return row.send_order
+  }
+}
+
 async function main() {
   loadEnvFile(path.join(process.cwd(), '.env.local'))
 
@@ -150,6 +226,7 @@ async function main() {
   const replyTo = argValue('reply-to') || process.env.COLD_OUTREACH_REPLY_TO || DEFAULT_REPLY_TO
   const mailingAddress = argValue('mailing-address') || process.env.COLD_OUTREACH_MAILING_ADDRESS || process.env.BRAND_MAILING_ADDRESS || DEFAULT_MAILING_ADDRESS
   const isTestSend = Boolean(testTo)
+  const force = hasFlag('force')
   const key = process.env.RESEND_API_KEY
 
   if (!isTestSend && /@resend\.dev[>\s]*$/i.test(from)) {
@@ -171,13 +248,19 @@ async function main() {
     from,
     replyTo,
     mailingAddress,
+    html: true,
+    duplicateGuard: !force,
     blockedPattern: String(BLOCKED_RE),
   }, null, 2))
+
+  const successfulSends = send && !isTestSend && !force ? readSuccessfulSendKeys() : new Set<string>()
 
   for (const row of slice) {
     const to = testTo || row.email
     const text = buildEmailText(row, replyTo, mailingAddress)
+    const html = buildEmailHtml(text)
     const unsubscribeMailto = `mailto:${replyTo}?subject=Unsubscribe&body=Please remove ${encodeURIComponent(row.email)} from End Voicemail outreach.`
+    const sendKey = successfulSendKey(row)
 
     if (!send) {
       console.log('\n--- DRY RUN EMAIL ---')
@@ -188,6 +271,11 @@ async function main() {
       continue
     }
 
+    if (!isTestSend && successfulSends.has(sendKey)) {
+      console.log(`skipped already sent: ${row.business_name} <${row.email}>`)
+      continue
+    }
+
     if (!key) throw new Error('RESEND_API_KEY is not configured')
     const resend = new Resend(key)
     const result = await resend.emails.send({
@@ -195,17 +283,23 @@ async function main() {
       to,
       replyTo,
       subject: row.subject_1,
+      html,
       text,
       headers: {
         'List-Unsubscribe': `<${unsubscribeMailto}>`,
       },
-      tags: [{ name: 'purpose', value: isTestSend ? 'auto_glass_cold_test' : 'auto_glass_cold_1' }],
+      tags: [
+        { name: 'purpose', value: isTestSend ? 'auto_glass_cold_test' : CAMPAIGN_TAG },
+        { name: 'campaign', value: 'auto_glass' },
+        { name: 'batch', value: row.batch.replace(/[^A-Za-z0-9_-]/g, '_') },
+        { name: 'lead', value: leadId(row).replace(/[^A-Za-z0-9_-]/g, '_') },
+      ],
     })
 
     if (!isTestSend) {
       appendLog(row, result.error
         ? { ok: false, error: result.error.message ?? String(result.error) }
-        : { ok: true, id: result.data?.id })
+        : { ok: true, id: result.data?.id }, result.data?.id)
     }
 
     if (result.error) {
