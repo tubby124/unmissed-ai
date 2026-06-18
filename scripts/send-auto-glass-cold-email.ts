@@ -214,6 +214,10 @@ function leadId(row: Row) {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function main() {
   loadEnvFile(path.join(process.cwd(), '.env.local'))
 
@@ -227,6 +231,7 @@ async function main() {
   const mailingAddress = argValue('mailing-address') || process.env.COLD_OUTREACH_MAILING_ADDRESS || process.env.BRAND_MAILING_ADDRESS || DEFAULT_MAILING_ADDRESS
   const isTestSend = Boolean(testTo)
   const force = hasFlag('force')
+  const delayMs = Number(argValue('delay-ms') || (send && !isTestSend ? 250 : 0))
   const key = process.env.RESEND_API_KEY
 
   if (!isTestSend && /@resend\.dev[>\s]*$/i.test(from)) {
@@ -250,6 +255,7 @@ async function main() {
     mailingAddress,
     html: true,
     duplicateGuard: !force,
+    delayMs,
     blockedPattern: String(BLOCKED_RE),
   }, null, 2))
 
@@ -306,6 +312,10 @@ async function main() {
       console.error(`failed: ${row.business_name} <${row.email}>: ${result.error.message}`)
     } else {
       console.log(`${isTestSend ? 'sent test' : 'sent'}: ${row.business_name} <${row.email}>${testTo ? ` to ${testTo}` : ''} id=${result.data?.id}`)
+    }
+
+    if (delayMs > 0) {
+      await sleep(delayMs)
     }
   }
 }

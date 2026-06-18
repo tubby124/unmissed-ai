@@ -68,6 +68,24 @@ function readSendLog(filePath: string): SendLogEntry[] {
     .map((line) => JSON.parse(line) as SendLogEntry)
 }
 
+function sendKey(send: SendLogEntry) {
+  return [
+    send.batch ?? '',
+    send.send_order ?? '',
+    (send.email ?? '').trim().toLowerCase(),
+  ].join('|')
+}
+
+function dedupeSendLog(sends: SendLogEntry[]) {
+  const byKey = new Map<string, SendLogEntry>()
+  for (const send of sends) {
+    const key = sendKey(send)
+    if (!key.trim()) continue
+    byKey.set(key, send)
+  }
+  return [...byKey.values()].sort((a, b) => Number(a.send_order ?? 0) - Number(b.send_order ?? 0))
+}
+
 function csvCell(value: unknown) {
   const text = value == null ? '' : String(value)
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
@@ -105,7 +123,8 @@ async function main() {
     return
   }
   const sends = readSendLog(logPath)
-  const ids = sends
+  const dedupedSends = dedupeSendLog(sends)
+  const ids = dedupedSends
     .map((send) => send.resend_email_id ?? send.result?.id)
     .filter((id): id is string => Boolean(id))
 
@@ -149,7 +168,7 @@ async function main() {
     'campaign_url',
   ]
 
-  const rows = sends.map((send) => {
+  const rows = dedupedSends.map((send) => {
     const id = send.resend_email_id ?? send.result?.id ?? ''
     const events = eventsById.get(id) ?? []
     const count = (eventType: string) => events.filter((event) => event.event_type === eventType).length
@@ -189,7 +208,8 @@ async function main() {
   console.log(JSON.stringify({
     logPath,
     outPath,
-    sends: sends.length,
+    sends: rows.length,
+    rawLogLines: sends.length,
     events: (data ?? []).length,
     summary,
   }, null, 2))
