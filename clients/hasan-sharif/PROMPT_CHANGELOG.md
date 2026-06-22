@@ -293,3 +293,20 @@ To roll back: `python3 scripts/deploy_prompt.py hasan-sharif "rollback to vN" --
 
 ## OUTBOUND v4 — 2026-06-12 (outbound-lead-qual.json → clients.outbound_*, 9,288 chars)
 **Change:** Naturalness + ISA overhaul from 3-track research (fleet prompt mining, Ultravox stage docs, ISA script research). Grammar-breaking mechanics (And/So/But starters, fragments), named 7-item backchannel pool with no-consecutive rule, one-sentence-then-listen + follow-their-thread, FAST-CONFIRM skip for front-loaded answers, read-back before close, downshift-once booking rule, "send me the list"/"got my number" handlers, anti-dead-air bridge, Fair Housing rewrite of amenities line (caller-initiated only). Kept locked v3 owner feedback: "virtual assistant" opening, agency framing, silent-wait. Validated: hot/skeptic/busy sims all PASS.
+
+## OUTBOUND v6 — 2026-06-13 (hardening pass: greet<1s + noise read-back + barge-in)
+**Trigger:** First REAL outbound PSTN call (Ultravox `3cd497f6-e390-497e-88b7-35262306daec`, lead `4589d585`, 138s, sentiment=frustrated). Hasan answered live and reported: (a) too much pause before the agent spoke, (b) mishears in background noise. Full root-cause trace in vault note `Projects/real-estate/lead-engine/2026-06-13-voice-agent-call-feedback-and-test-plan.md`.
+
+**Evidence (from the scored call):**
+- Live call config showed `firstSpeaker: FIRST_SPEAKER_USER`, `firstSpeakerSettings: { user: {} }` (no fallback) → agent waited for the human AFTER Twilio sync-AMD already held the bridge ~3-5s. Two stacked dead-air legs.
+- t=0.256s ASR rendered Hasan's phone-pickup as garbage `"Thank you"` — the noise-mishear, with zero read-back to recover money fields.
+- Agent skipped the conditional read-back at close (went straight to the meeting ask at t=93s).
+
+**Changes (code + prompt):**
+1. **Greet on connect (Fix B)** — `src/lib/ultravox.ts` `createCall()`: new `firstSpeakerAgentDelay` option → `firstSpeakerSettings: { agent: { uninterruptible: false, delay: '0.4s' } }`. Both outbound call sites (`scheduled-callbacks/route.ts`, `dashboard/leads/dial-out/route.ts`) swapped `waitForUser: true` → `firstSpeakerAgentDelay: '0.4s'`. Removes the wait-for-human leg; 0.4s avoids clipping "hello".
+2. **Barge-in (Fix C)** — new `OUTBOUND_VAD` (`minimumInterruptionDuration: 0.2s` vs inbound 0.3s), auto-applied on the agent-first path. Scoped to outbound — DEFAULT_VAD and the 4 inbound clients untouched.
+3. **Read-back + noise confirm-back (Fix D)** — `clients/hasan-sharif/outbound-lead-qual.json` callNotes: read-back at CLOSE made MANDATORY before the meeting ask ("So just to make sure I've got it — [area], [reason/timeline], [lender] — that right?"); added a mid-flow noise confirm-back ("sorry, did you say the next few months?") so a half-heard answer is never silently kept.
+
+**Chars:** outbound_prompt 10,490 → 10,871 (cap 25,300). **Offline validation:** typecheck 0 errors, 163/163 scenario tests pass, JSON valid, prompt assembles clean.
+**NOT YET DEPLOYED.** Fix A (async AMD, the ~3-5s win) deferred to a 2nd pass after B/C/D prove out on real PSTN calls.
+**Activation (on Hasan's go):** (1) git push → Railway redeploy (B/C); (2) `npx tsx scripts/deploy-outbound-fields.ts --slug hasan-sharif --fields clients/hasan-sharif/outbound-lead-qual.json` (D); (3) run condition×persona matrix (see TEST_TRANSCRIPTS.md). Supabase version_id + Ultravox revision: TBD on deploy.
