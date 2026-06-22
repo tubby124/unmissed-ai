@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { after } from 'next/server'
 import { createHmac } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
-import { getTranscript, verifyCallbackSig } from '@/lib/ultravox'
+import { getTranscript, getRecordingStream, verifyCallbackSig } from '@/lib/ultravox'
 import { classifyCall } from '@/lib/openrouter'
 import { sendAlert } from '@/lib/telegram'
 import { notifySystemFailure } from '@/lib/admin-alerts'
@@ -14,6 +14,7 @@ import {
   notificationsAlreadySent,
   type CompletedClient,
 } from '@/lib/completed-notifications'
+import { getSignedRecordingUrl } from '@/lib/recording-url'
 import { normalizePhoneNA, isValidE164NA } from '@/lib/utils/phone'
 import { analyzeTranscriptServer, isEmptyInsight, type ServerClientConfig, type AnalysisMessage } from '@/lib/transcript-analysis'
 import { embedText } from '@/lib/embeddings'
@@ -387,7 +388,30 @@ export async function POST(
         console.error(`[completed] SYSTEM FAILURE ALERT: slug=${slug} endReason=${endReason} callId=${callId}`)
       }
 
-      const recordingUrl: string | null = null
+      // ── Recording upload (before Telegram so we can include the link) ──────
+      let recordingUrl: string | null = null
+      try {
+        const recordingRes = await getRecordingStream(callId)
+        if (recordingRes.ok && recordingRes.body) {
+          const arrayBuffer = await recordingRes.arrayBuffer()
+          const { error: uploadError } = await supabase.storage
+            .from('recordings')
+            .upload(`${callId}.mp3`, arrayBuffer, { contentType: 'audio/mpeg', upsert: true })
+          if (uploadError) {
+            console.error(`[completed] Recording upload failed for callId=${callId}: ${uploadError.message}`)
+          } else {
+            // S13-REC1: store path only (bucket is private). Generate signed URL for notifications.
+            const storagePath = `${callId}.mp3`
+            await supabase.from('call_logs').update({ recording_url: storagePath }).eq('ultravox_call_id', callId)
+            recordingUrl = await getSignedRecordingUrl(storagePath)
+            console.log(`[completed] Recording uploaded: callId=${callId} path=${storagePath}`)
+          }
+        } else {
+          console.warn(`[completed] Recording not available for callId=${callId} status=${recordingRes.status}`)
+        }
+      } catch (storageErr) {
+        console.error('[completed] Recording storage failed:', storageErr)
+      }
 
       // ── Notifications: skip for test/trial calls (no Telegram, SMS, or email) ──
       if (isTestCall) {

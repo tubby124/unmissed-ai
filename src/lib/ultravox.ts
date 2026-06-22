@@ -116,15 +116,6 @@ const DEFAULT_VAD = {
   frameActivationThreshold: 0.2,
 }
 
-// Outbound dials greet a confirmed human (Twilio AMD gates the bridge before
-// Ultravox joins), so the agent speaks first. Slightly easier barge-in than
-// inbound (0.2s vs 0.3s) so a lead can cut into the opener without fighting the
-// VAD. Scoped to outbound — does NOT touch DEFAULT_VAD or any other client.
-const OUTBOUND_VAD = {
-  ...DEFAULT_VAD,
-  minimumInterruptionDuration: '0.2s',
-}
-
 const DEFAULT_INACTIVITY = [
   { duration: '30s', message: "Hello? You still there?" },
   { duration: '15s', message: "I'll let you go — feel free to call back anytime. Bye!", endBehavior: 'END_BEHAVIOR_HANG_UP_SOFT' },
@@ -148,31 +139,24 @@ interface CreateCallOptions {
   tools?: object[]
   languageHint?: string
   firstSpeakerText?: string
-  /** If true, agent stays silent until human speaks (legacy outbound behavior). */
+  /** If true, agent stays silent until human speaks (required for outbound calls). */
   waitForUser?: boolean
-  /**
-   * Outbound greet-on-connect: agent speaks first after this delay (e.g. '0.4s'),
-   * interruptible. Kills the wait-for-human dead-air leg that stacked on top of
-   * the Twilio AMD classification delay. When set (and waitForUser is false),
-   * VAD defaults to OUTBOUND_VAD. Mutually exclusive with waitForUser.
-   */
-  firstSpeakerAgentDelay?: string
   /** B3: Initial call state (JSON dict) — sets workflow state for tool-to-tool tracking. */
   initialState?: Record<string, unknown>
 }
 
-export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, waitForUser, firstSpeakerAgentDelay, initialState }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, waitForUser, initialState }: CreateCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
     voice: voice || DEFAULT_VOICE,
     maxDuration: '600s',
     medium: { twilio: {} },
-    recordingEnabled: false,
+    recordingEnabled: true,
     metadata: metadata || {},
     inactivityMessages: DEFAULT_INACTIVITY,
     timeExceededMessage: "I need to wrap up — feel free to call back or text this number. Bye!",
-    vadSettings: (!waitForUser && firstSpeakerAgentDelay) ? OUTBOUND_VAD : DEFAULT_VAD,
+    vadSettings: DEFAULT_VAD,
   }
 
   if (callbackUrl) body.callbacks = { ended: { url: callbackUrl } }
@@ -182,10 +166,6 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
     body.firstSpeakerSettings = { user: {} }
   } else if (firstSpeakerText) {
     body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
-  } else if (firstSpeakerAgentDelay) {
-    // Outbound: greet first, interruptible, after a short delay so the agent
-    // doesn't clip the lead's "hello" right as Twilio bridges the call.
-    body.firstSpeakerSettings = { agent: { uninterruptible: false, delay: firstSpeakerAgentDelay } }
   }
   if (initialState) body.initialState = initialState
 
@@ -247,7 +227,7 @@ export async function createDemoCall({ systemPrompt, voice, useTwilio, maxDurati
     systemPrompt,
     voice: voice || DEFAULT_VOICE,
     maxDuration: maxDuration || '600s',
-    recordingEnabled: false,
+    recordingEnabled: true,
     inactivityMessages: DEFAULT_INACTIVITY,
     timeExceededMessage: timeExceededMessage || `hey I wanna respect your time — check out ${BRAND_NAME.replace('.', ' dot ')} whenever you're ready. take care!`,
     vadSettings: DEFAULT_VAD,
@@ -803,7 +783,7 @@ export async function createAgent({ systemPrompt, voice, tools, name, slug, nich
     voice: voice || DEFAULT_VOICE,
     maxDuration: maxDuration || '600s',
     medium: { twilio: {} },
-    recordingEnabled: false,
+    recordingEnabled: true,
     inactivityMessages: DEFAULT_INACTIVITY,
     timeExceededMessage: "I need to wrap up — feel free to call back or text this number. Bye!",
     vadSettings: DEFAULT_VAD,
@@ -938,7 +918,7 @@ export async function updateAgent(agentId: string, updates: Partial<AgentConfig>
     model: 'ultravox-v0.7',
     maxDuration: '600s',
     medium: { twilio: {} },
-    recordingEnabled: false,
+    recordingEnabled: true,
     vadSettings: DEFAULT_VAD,
     inactivityMessages: DEFAULT_INACTIVITY,
     timeExceededMessage: "I need to wrap up — feel free to call back or text this number. Bye!",
