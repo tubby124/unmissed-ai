@@ -1751,14 +1751,20 @@ export type Database = {
           caller_email: string | null
           caller_name: string | null
           caller_phone: string | null
+          campaign_ref: string | null
           converted: boolean
           demo_id: string
+          demo_variant: string | null
           duration_seconds: number | null
           ended_at: string | null
           followup_sent_at: string | null
           id: string
           in_call_sms_sent: boolean | null
           ip_hash: string | null
+          lead_ref: string | null
+          pain_point: string | null
+          prospect_city: string | null
+          shop_name: string | null
           source: string
           started_at: string
           ultravox_call_id: string | null
@@ -1767,14 +1773,20 @@ export type Database = {
           caller_email?: string | null
           caller_name?: string | null
           caller_phone?: string | null
+          campaign_ref?: string | null
           converted?: boolean
           demo_id: string
+          demo_variant?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
           followup_sent_at?: string | null
           id?: string
           in_call_sms_sent?: boolean | null
           ip_hash?: string | null
+          lead_ref?: string | null
+          pain_point?: string | null
+          prospect_city?: string | null
+          shop_name?: string | null
           source: string
           started_at?: string
           ultravox_call_id?: string | null
@@ -1783,14 +1795,20 @@ export type Database = {
           caller_email?: string | null
           caller_name?: string | null
           caller_phone?: string | null
+          campaign_ref?: string | null
           converted?: boolean
           demo_id?: string
+          demo_variant?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
           followup_sent_at?: string | null
           id?: string
           in_call_sms_sent?: boolean | null
           ip_hash?: string | null
+          lead_ref?: string | null
+          pain_point?: string | null
+          prospect_city?: string | null
+          shop_name?: string | null
           source?: string
           started_at?: string
           ultravox_call_id?: string | null
