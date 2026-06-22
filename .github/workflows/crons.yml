@@ -26,6 +26,7 @@ on:
     - cron: "45 * * * *"      # fleet-drift         — hourly :45
     - cron: "*/5 * * * *"     # scheduled-callbacks — every 5 min
     - cron: "0 */6 * * *"     # drift-check         — every 6 hours
+    - cron: "0 3 * * *"       # cleanup-recordings  — daily 03:00 UTC
   workflow_dispatch:
     inputs:
       job:
@@ -49,6 +50,7 @@ on:
           - fleet-drift
           - scheduled-callbacks
           - drift-check
+          - cleanup-recordings
 
 env:
   BASE_URL: https://endvoicemail.ai
@@ -77,6 +79,7 @@ jobs:
               "45 * * * *")      echo "job=fleet-drift"          >> $GITHUB_OUTPUT ;;
               "*/5 * * * *")     echo "job=scheduled-callbacks"  >> $GITHUB_OUTPUT ;;
               "0 */6 * * *")     echo "job=drift-check"          >> $GITHUB_OUTPUT ;;
+              "0 3 * * *")       echo "job=cleanup-recordings"   >> $GITHUB_OUTPUT ;;
               *)                 echo "job=unknown"              >> $GITHUB_OUTPUT ;;
             esac
           fi
@@ -134,11 +137,12 @@ jobs:
             fleet-drift)          call fleet-drift POST '{}' ;;
             scheduled-callbacks)  call scheduled-callbacks POST '{}' ;;
             drift-check)          call drift-check POST '{}' ;;
+            cleanup-recordings)   call cleanup-recordings POST '{}' ;;
             all)
               for name in analyze-calls daily-digest daily-digest-client weekly-digest-client \
                           reset-minutes trial-expiry follow-up-reminders notification-health \
                           cleanup-tokens minute-usage-alert demo-followup fleet-drift \
-                          scheduled-callbacks drift-check; do
+                          scheduled-callbacks drift-check cleanup-recordings; do
                 method=POST; body='{}'
                 if [ "$name" = "notification-health" ]; then method=GET; body=""; fi
                 if [ "$name" = "analyze-calls" ]; then body='{"all_clients":true}'; fi
