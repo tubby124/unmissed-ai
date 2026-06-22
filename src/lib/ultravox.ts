@@ -141,11 +141,13 @@ interface CreateCallOptions {
   firstSpeakerText?: string
   /** If true, agent stays silent until human speaks (required for outbound calls). */
   waitForUser?: boolean
+  /** Delay before agent speaks first (e.g. '0.4s'). Takes precedence over firstSpeakerText. */
+  firstSpeakerAgentDelay?: string
   /** B3: Initial call state (JSON dict) — sets workflow state for tool-to-tool tracking. */
   initialState?: Record<string, unknown>
 }
 
-export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, waitForUser, initialState }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, waitForUser, firstSpeakerAgentDelay, initialState }: CreateCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
@@ -164,6 +166,8 @@ export async function createCall({ systemPrompt, voice, metadata, callbackUrl, t
   if (languageHint) body.languageHint = languageHint
   if (waitForUser) {
     body.firstSpeakerSettings = { user: {} }
+  } else if (firstSpeakerAgentDelay) {
+    body.firstSpeakerSettings = { agent: { uninterruptible: true, delay: firstSpeakerAgentDelay } }
   } else if (firstSpeakerText) {
     body.firstSpeakerSettings = { agent: { uninterruptible: true, text: firstSpeakerText } }
   }
