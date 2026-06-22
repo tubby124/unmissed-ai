@@ -236,7 +236,9 @@ export async function POST(req: NextRequest) {
   const callbackUrl = signCallbackUrl(`${APP_URL}/api/webhook/${slug}/completed`, slug)
 
   // createCall() directly — NOT callViaAgent() — per Sonar Pro validation.
-  // Separate outbound prompt, waitForUser=true so agent waits for "Hello?" before speaking.
+  // Separate outbound prompt. Agent greets on connect (AMD has already confirmed
+  // a human before the bridge) — replaces waitForUser, which added a second
+  // dead-air leg after the AMD classification wait.
   let ultravoxCall: { joinUrl: string; callId: string }
   try {
     ultravoxCall = await createCall({
@@ -244,7 +246,7 @@ export async function POST(req: NextRequest) {
       voice: client.agent_voice_id,
       callbackUrl,
       tools,
-      waitForUser: true,
+      firstSpeakerAgentDelay: '0.4s',
       metadata: {
         caller_phone: toPhone,
         client_slug: slug,
