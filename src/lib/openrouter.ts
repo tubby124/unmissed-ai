@@ -195,7 +195,7 @@ export async function classifyCall(
           'X-Title': `${BRAND_NAME} call classifier`,
         },
         body: JSON.stringify({
-          model: 'anthropic/claude-haiku-4.5',
+          model: 'anthropic/claude-haiku-4-5',
           messages: [
             { role: 'system', content: buildSystemPrompt(businessContext, classificationHints, niche) },
             { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
