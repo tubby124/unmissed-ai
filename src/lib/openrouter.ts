@@ -139,20 +139,25 @@ export async function classifyCall(
       .filter(line => !/^Agent:\s*(hi|hello|hey)[\s,.!]/i.test(line))
       .slice(0, 4)
 
-    const deterministicSummary = meaningfulLines.length
-      ? `Classification failed (${reason}). Transcript preview: ${meaningfulLines.join(' / ').slice(0, 500)}`
-      : `Classification failed (${reason}). Transcript was present but no useful preview could be generated.`
+    // Owner-facing summary must NEVER surface the technical failure — this is a
+    // voicemail-replacement product, so show what the caller said. The reason
+    // stays in logs + next_steps for the operator. (Incident 2026-06-24: owners
+    // were getting "Classification failed (HTTP 402)" alerts for real callers.)
+    console.error(`[openrouter] classifyCall: transcript fallback — reason="${reason}"`)
+    const cleanSummary = meaningfulLines.length
+      ? `Caller reached your agent — ${meaningfulLines.join(' / ').slice(0, 480)}`
+      : 'A caller reached your agent; their message could not be auto-summarized. Check the transcript and call back if needed.'
 
     return {
       status: 'UNKNOWN',
-      summary: deterministicSummary,
+      summary: cleanSummary,
       serviceType: 'other',
       confidence: 0,
       sentiment: 'neutral',
       key_topics: [],
       next_steps: reason === 'missing OPENROUTER_API_KEY'
         ? 'Check OPENROUTER_API_KEY in Railway env vars.'
-        : 'Review call manually and check classifier logs.',
+        : `Auto-summary unavailable (${reason}). Review the transcript manually.`,
       quality_score: 0,
     }
   }
@@ -180,41 +185,67 @@ export async function classifyCall(
 
   console.log(`[openrouter] classifyCall: starting — ${transcript.length} messages, context="${businessContext || 'none'}"`)
 
-  try {
-    const abort = new AbortController()
-    const abortTimer = setTimeout(() => abort.abort(), 30_000) // 30s hard timeout
-    let res: Response
+  const requestBody = JSON.stringify({
+    model: 'anthropic/claude-haiku-4-5',
+    messages: [
+      { role: 'system', content: buildSystemPrompt(businessContext, classificationHints, niche) },
+      { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
+    ],
+    max_tokens: niche === 'auto_glass' ? 1200 : 1000,
+    temperature: 0,
+    response_format: { type: 'json_object' },
+  })
+
+  // 402 (out of credit) is transient: a momentary balance dip or billing hold
+  // clears on retry. Retry those + 429/5xx/network; fail fast on 400/401/404
+  // (config errors that won't self-heal). Incident 2026-06-24: a single 402 was
+  // dropping real calls to UNKNOWN with no retry.
+  const RETRYABLE_HTTP = new Set([402, 408, 409, 425, 429, 500, 502, 503, 504])
+  const MAX_ATTEMPTS = 3
+  let res: Response | null = null
+  let lastReason = 'classifier unavailable'
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        signal: abort.signal,
+        signal: AbortSignal.timeout(30_000),
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': BRAND_REFERER,
           'X-Title': `${BRAND_NAME} call classifier`,
         },
-        body: JSON.stringify({
-          model: 'anthropic/claude-haiku-4-5',
-          messages: [
-            { role: 'system', content: buildSystemPrompt(businessContext, classificationHints, niche) },
-            { role: 'user', content: `Classify this call:\n\n${transcriptText}` },
-          ],
-          max_tokens: niche === 'auto_glass' ? 1200 : 1000,
-          temperature: 0,
-          response_format: { type: 'json_object' },
-        }),
+        body: requestBody,
       })
-    } finally {
-      clearTimeout(abortTimer)
+      if (r.ok) {
+        res = r
+        break
+      }
+      const errBody = await r.text().catch(() => '(unreadable)')
+      lastReason = `OpenRouter HTTP ${r.status}`
+      console.error(`[openrouter] classifyCall: HTTP ${r.status} (attempt ${attempt}/${MAX_ATTEMPTS}) — ${errBody.slice(0, 200)}`)
+      if (RETRYABLE_HTTP.has(r.status) && attempt < MAX_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 700))
+        continue
+      }
+      break
+    } catch (fetchErr) {
+      lastReason = 'classifier network/timeout'
+      console.error(`[openrouter] classifyCall: fetch error (attempt ${attempt}/${MAX_ATTEMPTS}) —`, fetchErr)
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, attempt * 700))
+        continue
+      }
+      break
     }
+  }
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => '(unreadable)')
-      console.error(`[openrouter] classifyCall: HTTP ${res.status} — ${body}`)
-      return unknownFallback(`OpenRouter HTTP ${res.status}`)
-    }
+  if (!res) {
+    return unknownFallback(lastReason)
+  }
 
+  try {
     const data = await res.json()
     const content = data.choices?.[0]?.message?.content?.trim() || ''
 
