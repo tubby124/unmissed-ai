@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Phone, Check, AlertCircle, Loader2, ChevronDown } from "lucide-react"
 import { CALL_ME_WIDGET_COPY } from "@/lib/marketing-content"
 import { trackEvent } from "@/lib/analytics"
@@ -78,6 +78,9 @@ export default function CallMeNowWidget({
   const [callerEmail, setCallerEmail] = useState("")
   const [shopName, setShopName] = useState("")
   const [painPoint, setPainPoint] = useState("")
+  const [prospectCity, setProspectCity] = useState("")
+  const [campaignRef, setCampaignRef] = useState("")
+  const [leadRef, setLeadRef] = useState("")
   const [countryCode] = useState("+1")
   const [state, setState] = useState<WidgetState>("idle")
   const [errorMsg, setErrorMsg] = useState("")
@@ -89,6 +92,20 @@ export default function CallMeNowWidget({
   const emailIsValid = isValidEmail(callerEmail.trim())
   const isValid = isValidNAPhone(phone) && nameIsValid && emailIsValid
   const isWindshield = variant === "windshield"
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const params = new URLSearchParams(window.location.search)
+    const shop = params.get("shop")?.trim().slice(0, 120) || ""
+    const city = params.get("city")?.trim().slice(0, 80) || ""
+    const ref = params.get("ref")?.trim().slice(0, 80) || ""
+    const lead = params.get("lead")?.trim().slice(0, 120) || ""
+
+    if (collectShopName && shop) setShopName((current) => current || shop)
+    if (city) setProspectCity(city)
+    if (ref) setCampaignRef(ref)
+    if (lead) setLeadRef(lead)
+  }, [collectShopName])
 
   function clearError() {
     if (state === "error") {
@@ -137,6 +154,9 @@ export default function CallMeNowWidget({
           callerEmail: callerEmail.trim() || undefined,
           shopName: shopName.trim() || undefined,
           painPoint: painPoint || undefined,
+          prospectCity: prospectCity || undefined,
+          campaignRef: campaignRef || undefined,
+          leadRef: leadRef || undefined,
           demoVariant: variant,
         }),
       })
