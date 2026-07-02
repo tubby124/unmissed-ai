@@ -153,7 +153,7 @@ export default function ForAutoGlassPage() {
                   <div>
                     <p className="text-sm font-bold">Hear how your missed calls would sound</p>
                     <p className="mt-1 text-xs" style={{ color: "var(--color-text-3)" }}>
-                      Enter your name and phone. The AI calls you with a short auto-glass demo.
+                      Enter your details. The AI calls you with a short auto-glass demo tailored to your shop.
                     </p>
                   </div>
                   <span className="rounded-full px-2.5 py-1 text-xs font-bold" style={{ backgroundColor: "var(--color-accent-tint)", color: "var(--color-primary)" }}>
@@ -164,6 +164,9 @@ export default function ForAutoGlassPage() {
                   niche="auto_glass"
                   compact
                   collectName
+                  collectEmail
+                  collectShopName
+                  collectPain
                   variant="windshield"
                 />
               </div>
