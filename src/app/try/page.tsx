@@ -72,7 +72,7 @@ export default function TryPage() {
                 Let Zara call you and prove voicemail is the wrong product.
               </h1>
               <p className="max-w-xl text-lg leading-relaxed" style={{ color: "var(--color-text-2)" }}>
-                The default demo shows the core EndVoicemail promise: answer the missed caller, ask useful questions, show the owner summary, and make the next step obvious.
+                The default demo shows the core End Voicemail promise: answer the missed caller, ask useful questions, show the owner summary, and make the next step obvious.
               </p>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2">

@@ -174,12 +174,12 @@ export default function BillingTab({
     }
   }
 
-  const planLabel = isTrial ? 'Free Trial' : (entitlements.name ?? 'Plan')
+  const planLabel = isTrial ? 'Trial' : (entitlements.name ?? 'Plan')
 
   // Build comparison plan rows: trial entry (if trialing) + all PLANS
   const comparisonRows = [
     ...(isTrial
-      ? [{ id: 'trial', name: 'Free Trial', priceLabel: '$0', isCurrent: true }]
+      ? [{ id: 'trial', name: 'Trial', priceLabel: '$0', isCurrent: true }]
       : []),
     ...PUBLIC_PLANS.map(p => ({
       id: p.id,

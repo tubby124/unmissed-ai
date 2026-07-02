@@ -36,7 +36,7 @@ type ErrorKind = "rate_limit" | "retryable" | "generic"
 const FETCH_TIMEOUT_MS = 15_000
 
 const RATE_LIMIT_MESSAGE =
-  "Demo line is busy right now — try again in a bit, or start your free trial instead."
+  "Demo line is busy right now — try again in a bit, or get started with 50 activation minutes instead."
 
 function formatPhoneDisplay(raw: string): string {
   const digits = raw.replace(/\D/g, "")
@@ -388,7 +388,7 @@ export default function CallMeNowWidget({
               className="mt-2 inline-block text-xs font-semibold underline underline-offset-2"
               style={{ color: "var(--color-primary)" }}
             >
-              Start your free trial →
+              Get started — 50 activation minutes included →
             </Link>
           )}
           {errorKind === "retryable" && (

@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react"
 import { DEMOS } from "./demo-data"
 import DemoCallCard from "./DemoCallCard"
 import DemoOutcome from "./DemoOutcome"
+import CallMeNowWidget from "./CallMeNowWidget"
 import { DEMO_SECTION } from "@/lib/marketing-content"
 
 export default function DemoAudioPlayer() {
@@ -119,6 +120,30 @@ export default function DemoAudioPlayer() {
           </h2>
           <p className="text-lg" style={{ color: "var(--color-text-2)" }}>
             {DEMO_SECTION.subheadline}
+          </p>
+        </div>
+
+        {/* Live call widget — the real demo (Zara calls your phone) */}
+        <div className="max-w-md mx-auto mb-14">
+          <CallMeNowWidget niche="unmissed_demo" />
+        </div>
+
+        {/* Supporting illustration — animated sample transcript */}
+        <div className="text-center mb-8">
+          <p
+            className="text-xs font-mono uppercase tracking-widest mb-2"
+            style={{ color: "var(--color-primary)" }}
+          >
+            {DEMO_SECTION.transcriptEyebrow}
+          </p>
+          <h3
+            className="text-2xl font-bold mb-2"
+            style={{ color: "var(--color-text-1)" }}
+          >
+            {DEMO_SECTION.transcriptHeadline}
+          </h3>
+          <p className="text-base" style={{ color: "var(--color-text-2)" }}>
+            {DEMO_SECTION.transcriptSubheadline}
           </p>
         </div>
 
