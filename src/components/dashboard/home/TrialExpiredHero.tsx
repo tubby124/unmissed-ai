@@ -25,7 +25,7 @@ export default function TrialExpiredHero({ clientId, onUpgradeClick }: TrialExpi
           <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
         </svg>
       </div>
-      <h2 className="text-base font-semibold t1 mb-1">Your free trial has ended</h2>
+      <h2 className="text-base font-semibold t1 mb-1">Your trial has ended</h2>
       <p className="text-sm t3 mb-4 leading-relaxed max-w-sm mx-auto">
         Get a real phone number and start taking calls from actual customers.
       </p>

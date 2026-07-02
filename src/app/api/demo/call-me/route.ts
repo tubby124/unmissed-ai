@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
   const callerEmail = cleanText(body.callerEmail, 160)
   const shopName = cleanText(body.shopName, 120)
   const painPoint = cleanText(body.painPoint, 80)
+  const prospectCity = cleanText(body.prospectCity, 80)
+  const campaignRef = cleanText(body.campaignRef, 80)
+  const leadRef = cleanText(body.leadRef, 120)
   const demoVariant = cleanText(body.demoVariant, 40)
 
   // Public pages use marketing-facing IDs that don't always match DEMO_AGENTS keys.
@@ -215,7 +218,10 @@ Rules:
     `CALLER PHONE: ${phone}`,
     callerEmail ? `CALLER EMAIL: ${callerEmail}` : '',
     shopName ? `PROSPECT SHOP NAME: ${shopName}` : '',
+    prospectCity ? `PROSPECT CITY: ${prospectCity}` : '',
     painPoint ? `PROSPECT PAIN POINT: ${painPoint}` : '',
+    campaignRef ? `CAMPAIGN REF: ${campaignRef}` : '',
+    leadRef ? `LEAD REF: ${leadRef}` : '',
     requestedNiche ? `REQUESTED DEMO: ${requestedNiche}` : '',
     `RESOLVED DEMO: ${niche}`,
     demoVariant ? `DEMO VARIANT: ${demoVariant}` : '',
@@ -256,6 +262,9 @@ Rules:
         caller_name: callerName,
         caller_email: callerEmail,
         shop_name: shopName,
+        prospect_city: prospectCity,
+        campaign_ref: campaignRef,
+        lead_ref: leadRef,
         demo_variant: demoVariant,
       },
     })
@@ -303,6 +312,12 @@ Rules:
         caller_name: callerName,
         caller_phone: phone || null,
         caller_email: callerEmail || null,
+        shop_name: shopName || null,
+        pain_point: painPoint || null,
+        prospect_city: prospectCity || null,
+        demo_variant: demoVariant || null,
+        campaign_ref: campaignRef || null,
+        lead_ref: leadRef || null,
         ultravox_call_id: uvCall.callId,
         // demo_calls.source is constrained to browser|phone in production.
         // This route creates an outbound phone callback, so log it as phone.
@@ -322,7 +337,10 @@ Rules:
         `Caller: ${callerName} (${phone})`,
         callerEmail ? `Email: ${callerEmail}` : null,
         shopName ? `Shop: ${shopName}` : null,
+        prospectCity ? `City: ${prospectCity}` : null,
         painPoint ? `Pain: ${painPoint}` : null,
+        campaignRef ? `Campaign: ${campaignRef}` : null,
+        leadRef ? `Lead: ${leadRef}` : null,
         `Demo: ${demoVariant || niche}`,
         `Twilio SID: ${call.sid}`,
         `Ultravox: ${uvCall.callId}`,

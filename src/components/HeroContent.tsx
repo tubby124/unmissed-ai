@@ -127,7 +127,7 @@ export default function HeroContent() {
         className="mt-5"
       >
         <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>
-          {`Plans from $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo · ${TRIAL.label} · No contracts · Cancel anytime`}
+          {`Flat $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo founding rate · ${TRIAL.label} · No contracts · Cancel anytime`}
         </p>
       </motion.div>
     </div>
