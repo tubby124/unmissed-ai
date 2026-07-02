@@ -347,3 +347,10 @@ All three set destination DID `+16397393885` (Eric / Brian's AI). Same end behav
 **Verification expected:** once voicemail removal completes + all three codes accepted, have a friend call `+1 (587) 825-9408` (Brian's number) and let it ring. Eric on `+1 (639) 739-3885` should pick up after a few rings. If it still goes to Rogers voicemail, voicemail wasn't actually removed — call Rogers Business `1-866-727-2141` again.
 
 **Memory updated:** `~/.claude/projects/-Users-owner/memory/unmissed-canadian-forwarding-codes.md` — Brian's worked example logged with timestamps + the combo-vs-individual fallback rule. Reusable for any future client.
+
+## Live truth 2026-07-02 (verified vs Supabase + Stripe, supersedes older status above)
+- Trial expired 2026-07-01, cron auto-paused (DB-only; Twilio number + Ultravox agent untouched). **Re-enabled 2026-07-02**: status=active, subscription_status=trialing, trial_expires_at=2026-07-10T05:59:59Z. Cron will re-pause July 10 unless converted or manually extended.
+- **Never paid — no Stripe customer exists at all.** stripe_customer_id NULL.
+- Usage last 30d: 60 calls, 18 non-JUNK — strong value evidence. ~42 junk calls likely alerted him real-time on all 3 channels (spam filter off) = alert fatigue, probable driver of lukewarm perception.
+- Conversion playbook (decided 2026-07-02): lead with VALUE RECEIPT, not invoice — text him counts + 2-3 example real inquiries, then the $119 payment link. Discount time (first month) if needed, never cut the $119 anchor.
+- Forwarding still unverified (Rogers voicemail collision) — must be locked down before/at conversion or he churns on a half-working product.
