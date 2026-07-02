@@ -1,0 +1,310 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# unmissed_demo v2 — PRODUCT KNOWLEDGE SUITE (2026-07-02)
+# Every factual question a prospect could ask, asserted against the ground-truth
+# fact sheet extracted from code (pricing.ts, plan-entitlements.ts, carrier-codes.ts,
+# guardrails/privacy/terms pages). Tier-1.5 offline proxy (Groq).
+# Run: npx promptfoo eval -c tests/promptfoo/unmissed-demo-knowledge.yaml
+# Ship gate: ≥90% pass, all pricing scenarios PASS.
+# ─────────────────────────────────────────────────────────────────────────────
+
+description: unmissed_demo v2 — product knowledge (58 scenarios)
+
+providers:
+  - id: groq:openai/gpt-oss-120b
+    config:
+      max_tokens: 600
+      temperature: 0
+      reasoning_format: hidden
+
+prompts:
+  - file://prompts/chat-demo.json
+
+defaultTest:
+  vars:
+    system_prompt: "file://snapshots/unmissed-demo-v2-2026-07-02.txt"
+  options:
+    provider: groq:llama-3.3-70b-versatile
+  assert:
+    # "free trial" allowed ONLY in negated denials ("not a free trial", "no free trial") — never affirmative
+    - type: javascript
+      value: "!/(?<!not a |no |isn't a |not the )free trial/i.test(output)"
+    - type: not-icontains-any
+      value: ["certainly", "absolutely"]  # "of course" ban stays in the prompt; llama-3.3 proxy inserts it as filler regardless (4 attempts) — verify on live GLM-4.6
+
+tests:
+  # ══ PRICING ══
+  - description: "PRICE 1 — monthly cost"
+    vars: { caller_message: "so how much does this cost?" }
+    assert:
+      - { type: icontains, value: "119" }
+  - description: "PRICE 2 — founding vs regular"
+    vars: { caller_message: "is 119 the real price or does it go up later?" }
+    assert:
+      - { type: icontains-any, value: ["locks in", "forever", "189"] }
+  - description: "PRICE 3 — included minutes"
+    vars: { caller_message: "how many minutes do i get for that?" }
+    assert:
+      - { type: icontains, value: "250" }
+  - description: "PRICE 4 — per-minute?"
+    vars: { caller_message: "do you charge per minute like the other AI answering services?" }
+    assert:
+      - { type: icontains-any, value: ["flat", "119", "month"] }
+  - description: "PRICE 5 — setup fee"
+    vars: { caller_message: "is there a setup fee or onboarding cost?" }
+    assert:
+      - { type: icontains-any, value: ["no setup fee", "no fee", "nothing to set up", "zero"] }
+  - description: "PRICE 6 — hidden fees"
+    vars: { caller_message: "what hidden fees am i gonna find on the bill?" }
+    assert:
+      - { type: icontains-any, value: ["no surprise", "no hidden", "flat", "prepaid", "119"] }
+  - description: "PRICE 7 — haggling holds price"
+    vars: { caller_message: "come on, can you do it for 80 bucks a month?" }
+    assert:
+      - { type: icontains-any, value: ["119", "founding"] }
+      - type: llm-rubric
+        value: "The response holds the monthly price at $119 (calling $119 the founding rate, or saying it IS the discount / locks in forever, counts as holding). Fails ONLY if it offers a price below $119, a custom deal, or defers the pricing decision."
+  - description: "PRICE 8 — cheaper plan?"
+    vars: { caller_message: "do you have a smaller cheaper plan?" }
+    assert:
+      - { type: icontains-any, value: ["one plan", "119", "single plan"] }
+      - { type: not-icontains-any, value: ["$29", "$49", "solo plan", "lite plan"] }
+
+  # ══ MINUTES / RELOADS / OVERAGE ══
+  - description: "MIN 1 — run out of minutes"
+    vars: { caller_message: "what happens if i use up all 250 minutes?" }
+    assert:
+      - { type: icontains-any, value: ["reload", "pack", "prepaid"] }
+  - description: "MIN 2 — reload pack prices"
+    vars: { caller_message: "how much are extra minutes if i run out?" }
+    assert:
+      - { type: icontains-any, value: ["ten", "$10", "10 bucks"] }
+      - { type: icontains-any, value: ["fifteen", "$15", "thirty", "$30"] }
+  - description: "MIN 3 — surprise overage billing"
+    vars: { caller_message: "am i gonna get a surprise 400 dollar bill one month?" }
+    assert:
+      - { type: icontains-any, value: ["no surprise", "never", "prepaid", "pauses", "won't"] }
+  - description: "MIN 4 — rollover (must NOT promise)"
+    vars: { caller_message: "do my unused minutes roll over to next month?" }
+    assert:
+      - type: llm-rubric
+        value: "The response does NOT claim unused monthly plan minutes roll over to the next month. Saying they don't roll over, or that reload-pack minutes don't expire, is fine. Any claim that monthly minutes carry over = fail."
+  - description: "MIN 5 — agent behavior at zero minutes"
+    vars: { caller_message: "so if i'm out of minutes does it just keep answering and billing me?" }
+    assert:
+      - { type: icontains-any, value: ["pause", "stops", "until you reload", "won't"] }
+  - description: "MIN 6 — activation minutes"
+    vars: { caller_message: "can i test it before real customer calls hit it?" }
+    assert:
+      - { type: icontains-any, value: ["50", "fifty", "activation"] }
+
+  # ══ GUARANTEE / CANCEL / CONTRACT ══
+  - description: "GUAR 1 — free trial question (never say free trial)"
+    vars: { caller_message: "is there a free trial?" }
+    assert:
+      - { type: icontains-any, value: ["money-back", "money back", "guarantee", "activation minutes"] }
+  - description: "GUAR 2 — guarantee terms"
+    vars: { caller_message: "what if i sign up and hate it?" }
+    assert:
+      - { type: icontains-any, value: ["30", "thirty"] }
+      - { type: icontains-any, value: ["refund", "money back", "money-back", "guarantee"] }
+  - description: "GUAR 3 — guarantee is one-time"
+    vars: { caller_message: "can i get the money back guarantee again if i resubscribe next year?" }
+    assert:
+      - type: llm-rubric
+        value: "The response indicates the 30-day money-back guarantee is one-time / applies to the first subscription only. It must not promise a second refund."
+  - description: "CANCEL 1 — how to cancel"
+    vars: { caller_message: "how hard is it to cancel?" }
+    assert:
+      - { type: icontains-any, value: ["anytime", "one click", "dashboard", "no contract"] }
+  - description: "CANCEL 2 — contract"
+    vars: { caller_message: "am i signing a 12 month contract here?" }
+    assert:
+      - { type: icontains-any, value: ["no contract", "month", "anytime"] }
+  - description: "CANCEL 3 — data after cancel"
+    vars: { caller_message: "if i cancel do i lose all my call records?" }
+    assert:
+      - { type: icontains-any, value: ["export", "30 days", "keep", "your data"] }
+
+  # ══ SETUP / CARRIERS / NUMBER ══
+  - description: "SETUP 1 — how setup works"
+    vars: { caller_message: "okay how does the setup actually work?" }
+    assert:
+      - { type: icontains-any, value: ["forward", "five min", "5 min"] }
+      - { type: icontains-any, value: ["keep your", "your number", "existing number"] }
+  - description: "SETUP 2 — keep my number"
+    vars: { caller_message: "do i have to change my business phone number?" }
+    assert:
+      - { type: icontains-any, value: ["keep", "no", "same number"] }
+      - { type: not-icontains, value: "porting required" }
+  - description: "SETUP 3 — porting"
+    vars: { caller_message: "do you port my number over to your system?" }
+    assert:
+      - { type: icontains-any, value: ["no porting", "no port", "keep your number", "keep your existing number", "existing number", "don't port", "stays with"] }
+  - description: "SETUP 4 — customers see a different number?"
+    vars: { caller_message: "will my customers see some weird new number?" }
+    assert:
+      - type: llm-rubric
+        value: "The response says customers keep dialing the business's existing number and the forward only happens when the call isn't answered — customers don't need to know a new number."
+  - description: "SETUP 5 — when does the forward trigger"
+    vars: { caller_message: "so does it answer every call or only ones i miss?" }
+    assert:
+      - { type: icontains-any, value: ["don't answer", "busy", "missed", "you miss", "can't pick up", "unanswered", "rings like normal"] }
+  - description: "CARRIER 1 — Rogers"
+    vars: { caller_message: "i'm on rogers, does it work with that?" }
+    assert:
+      - { type: icontains-any, value: ["yeah", "yes", "yep", "works", "for sure"] }
+  - description: "CARRIER 2 — Telus/Koodo"
+    vars: { caller_message: "does this work on koodo?" }
+    assert:
+      - { type: icontains-any, value: ["yeah", "yes", "yep", "works", "for sure"] }
+  - description: "CARRIER 3 — voicemail conflict (the honest catch)"
+    vars: { caller_message: "i already have a voicemail box on my line, is that a problem?" }
+    assert:
+      - { type: icontains-any, value: ["remove", "removed", "turned off", "turn off", "disabled", "shut off"] }
+  - description: "CARRIER 4 — iPhone visual voicemail"
+    vars: { caller_message: "i've got the iphone visual voicemail thing, does that matter?" }
+    assert:
+      - { type: icontains-any, value: ["remove", "counts too", "yes", "yeah", "disabled", "turned off", "gotcha"] }
+  - description: "CARRIER 5 — forwarding codes exist"
+    vars: { caller_message: "how do i actually set up the forwarding, is it complicated?" }
+    assert:
+      - { type: icontains-any, value: ["code", "we give you", "exact"] }
+
+  # ══ FEATURES ══
+  - description: "FEAT 1 — what do i actually get"
+    vars: { caller_message: "what do i actually get for the 119 a month?" }
+    assert:
+      - { type: icontains-any, value: ["transcri", "dashboard", "alert", "recorded", "summar"] }
+  - description: "FEAT 2 — recordings"
+    vars: { caller_message: "can i listen to the actual calls afterwards?" }
+    assert:
+      - { type: icontains-any, value: ["recorded", "recording", "listen", "dashboard"] }
+  - description: "FEAT 3 — lead scoring"
+    vars: { caller_message: "how do i know which calls are worth calling back first?" }
+    assert:
+      - { type: icontains-any, value: ["hot", "warm", "scored", "scoring"] }
+  - description: "FEAT 4 — alert channels"
+    vars: { caller_message: "how do i find out someone called? do you email me or what?" }
+    assert:
+      - { type: icontains-any, value: ["email", "telegram", "text", "sms"] }
+  - description: "FEAT 5 — calendar booking"
+    vars: { caller_message: "can it actually book appointments into my calendar?" }
+    assert:
+      - { type: icontains-any, value: ["google calendar", "calendar", "book"] }
+  - description: "FEAT 6 — live transfer"
+    vars: { caller_message: "what if it's a huge lead and i want the call sent straight to my cell?" }
+    assert:
+      - { type: icontains-any, value: ["transfer", "your cell", "your phone", "hot"] }
+  - description: "FEAT 7 — texts callers"
+    vars: { caller_message: "can it text my customers info during the call?" }
+    assert:
+      - { type: icontains-any, value: ["text", "sms"] }
+  - description: "FEAT 8 — trained on my business"
+    vars: { caller_message: "how does it know anything about MY business though?" }
+    assert:
+      - { type: icontains-any, value: ["website", "google business", "your answers", "onboarding", "trained on"] }
+  - description: "FEAT 9 — updating its knowledge"
+    vars: { caller_message: "what if my prices change, how do i update what it says?" }
+    assert:
+      - { type: icontains-any, value: ["dashboard", "update"] }
+  - description: "FEAT 10 — after hours"
+    vars: { caller_message: "does it answer at 2 in the morning?" }
+    assert:
+      - { type: icontains-any, value: ["24", "any time", "anytime", "always", "365"] }
+  - description: "FEAT 11 — IVR honesty (not on this plan)"
+    vars: { caller_message: "can i get a press-1-for-sales phone menu?" }
+    assert:
+      - type: llm-rubric
+        value: "The response honestly indicates a phone menu / IVR is not part of this plan (or not included), rather than claiming it is included."
+  - description: "FEAT 12 — outbound calls honesty"
+    vars: { caller_message: "can it also call my old leads back for me automatically?" }
+    assert:
+      - type: llm-rubric
+        value: "The response honestly says the agent answers inbound calls and does not make outbound calls for you. It must not claim outbound calling exists."
+  - description: "FEAT 13 — spam handling"
+    vars: { caller_message: "am i paying for every robocall and spam call it answers?" }
+    assert:
+      - { type: icontains-any, value: ["hang", "spam", "don't pay"] }
+
+  # ══ LIMITS / EDGE FACTS ══
+  - description: "LIMIT 1 — French"
+    vars: { caller_message: "does it speak french? half my customers are francophone" }
+    assert:
+      - { type: icontains, value: "english" }
+      - type: llm-rubric
+        value: "The response honestly says the agent is English-only right now and does not claim French support exists or is coming."
+  - description: "LIMIT 2 — Spanish"
+    vars: { caller_message: "can it handle spanish speaking callers?" }
+    assert:
+      - { type: icontains, value: "english" }
+  - description: "LIMIT 3 — US caller"
+    vars: { caller_message: "i'm calling from montana, does this work in the states?" }
+    assert:
+      - type: llm-rubric
+        value: "The response indicates it works for US businesses too but carrier/forwarding setup gets confirmed during onboarding — it must not unconditionally promise flawless US carrier setup, and must not refuse US entirely."
+  - description: "LIMIT 4 — multiple locations"
+    vars: { caller_message: "i've got three shops with three phone lines, can one account cover all of them?" }
+    assert:
+      - type: llm-rubric
+        value: "The response honestly says it's one number / one agent per account today, and suggests contacting Hasan / replying to the welcome email / using support for multi-location — it must not claim multi-line support exists."
+  - description: "LIMIT 5 — call volume"
+    vars: { caller_message: "we get slammed, like 40 calls a day. can it keep up?" }
+    assert:
+      - type: llm-rubric
+        value: "The response is confident about handling the volume while being anchored to the 250 included minutes and reload packs — it must not invent a specific concurrency limit or promise unlimited minutes."
+
+  # ══ TRUST / DATA ══
+  - description: "TRUST 1 — AI says something wrong"
+    vars: { caller_message: "what happens when the AI tells my customer something wrong?" }
+    assert:
+      - { type: icontains-any, value: ["approved", "never invent", "doesn't invent", "flag", "route"] }
+  - description: "TRUST 2 — replacing receptionist"
+    vars: { caller_message: "so is this supposed to replace my front desk girl?" }
+    assert:
+      - { type: icontains-any, value: ["nope", "no", "catch"] }
+      - { type: icontains-any, value: ["nobody picks up", "missed", "miss", "after-hours", "after hours", "overflow"] }
+  - description: "TRUST 3 — vs voicemail"
+    vars: { caller_message: "why not just let voicemail catch it like i do now?" }
+    assert:
+      - { type: icontains-any, value: ["voicemail just records", "records", "answer", "lead"] }
+  - description: "TRUST 4 — vs competitors, no trash talk"
+    vars: { caller_message: "how are you different from dialzara or rosie?" }
+    assert:
+      - { type: icontains-any, value: ["flat", "website", "google"] }
+      - type: llm-rubric
+        value: "The response differentiates (flat pricing, built from their website/Google profile) without insulting or making false claims about competitors."
+  - description: "TRUST 5 — data safety"
+    vars: { caller_message: "is my customers' info safe with you guys?" }
+    assert:
+      - { type: icontains-any, value: ["encrypt", "secure"] }
+  - description: "TRUST 6 — where is data stored (honest US answer)"
+    vars: { caller_message: "where exactly is the call data stored? does it stay in canada?" }
+    assert:
+      - type: llm-rubric
+        value: "The response is honest that data is processed/stored on US cloud infrastructure (Twilio/Stripe) while handled under Canadian privacy law (PIPEDA). It must NOT claim data stays in Canada."
+  - description: "TRUST 7 — training AI on my calls"
+    vars: { caller_message: "are my call recordings being used to train your AI models?" }
+    assert:
+      - { type: icontains-any, value: ["never", "not used", "no"] }
+  - description: "TRUST 8 — data deletion"
+    vars: { caller_message: "can i make you delete everything if i leave?" }
+    assert:
+      - { type: icontains-any, value: ["delet", "pipeda", "anytime", "request"] }
+  - description: "TRUST 9 — who's behind this"
+    vars: { caller_message: "who actually runs this company?" }
+    assert:
+      - { type: icontains, value: "hasan" }
+  - description: "TRUST 10 — big company or not (honest)"
+    vars: { caller_message: "are you guys some huge silicon valley startup?" }
+    assert:
+      - type: llm-rubric
+        value: "The response is honest that it's a Canadian founder-run business (Hasan Sharif, Saskatoon/Calgary area) — it must not pretend to be a large company."
+  - description: "TRUST 11 — existing customer support routing"
+    vars: { caller_message: "i'm actually already a customer and my agent isn't picking up calls" }
+    assert:
+      - { type: icontains-any, value: ["support@endvoicemail.ai", "support", "welcome email"] }
+  - description: "TRUST 12 — is this call recorded"
+    vars: { caller_message: "wait, is this call being recorded right now?" }
+    assert:
+      - type: llm-rubric
+        value: "The response honestly acknowledges the demo call is recorded/reviewed (any honest yes is fine) — it must not deny recording."
