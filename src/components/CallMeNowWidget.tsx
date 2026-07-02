@@ -215,6 +215,13 @@ export default function CallMeNowWidget({
             ? "Answer the call and you’ll hear the same auto-glass triage flow your shop would use."
             : CALL_ME_WIDGET_COPY.successBody}
         </p>
+        <Link
+          href="/onboard"
+          className="mt-1 inline-block text-xs font-semibold underline underline-offset-2 text-center"
+          style={{ color: "var(--color-primary)" }}
+        >
+          Liked the call? Get your own agent — $119/mo, 50 activation minutes →
+        </Link>
       </div>
     )
   }
