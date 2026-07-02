@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
           clientSlug: c.slug,
           purpose: 'marketing',
           tag: 'trial_midpoint_nudge',
-          reason: `You're on a free trial of ${BRAND_NAME}.`,
+          reason: `You're on a trial of ${BRAND_NAME}.`,
           subject: `Stuck setting up your ${BRAND_NAME} agent?`,
           html: `<h2 style="margin-bottom:4px">Need a hand getting your agent live?</h2>
 <p>Hi${c.business_name ? ` ${c.business_name}` : ''},</p>
@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
           clientSlug: c.slug,
           purpose: 'marketing',
           tag: 'trial_day3_reminder',
-          reason: `You're on a free trial of ${BRAND_NAME}.`,
+          reason: `You're on a trial of ${BRAND_NAME}.`,
           subject: `Your ${BRAND_NAME} agent has 3 days left`,
           html: `<h2 style="margin-bottom:4px">3 days remaining on your trial</h2>
 <p>Hi${c.business_name ? ` ${c.business_name}` : ''},</p>
@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
           clientSlug: c.slug,
           purpose: 'marketing',
           tag: 'trial_day1_reminder',
-          reason: `You're on a free trial of ${BRAND_NAME}.`,
+          reason: `You're on a trial of ${BRAND_NAME}.`,
           subject: `Tomorrow your ${BRAND_NAME} agent pauses`,
           html: `<h2 style="margin-bottom:4px">Last day of your trial</h2>
 <p>Hi${c.business_name ? ` ${c.business_name}` : ''},</p>
@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
           clientSlug: client.slug,
           purpose: 'marketing',
           tag: 'trial_expired_conversion',
-          reason: `Your free trial of ${BRAND_NAME} just ended.`,
+          reason: `Your trial of ${BRAND_NAME} just ended.`,
           subject: `Your ${BRAND_NAME} trial has ended — activate to keep your agent`,
           html: `<h2 style="margin-bottom:4px">Your trial has ended</h2>
 <p>Hi${client.business_name ? ` ${client.business_name}` : ''},</p>

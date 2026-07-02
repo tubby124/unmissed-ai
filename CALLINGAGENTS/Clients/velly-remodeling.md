@@ -138,3 +138,9 @@ Warm/concierge. After-hours: same greeting — never says "we're closed."
 - **Niche=other works fine** as the fallback for niches we haven't scaffolded — falls back to generic NICHE_DEFAULTS in `prompt-config/niche-defaults.ts`. After Velly stabilizes, scaffold a real `renovation` niche via `/niche-new`.
 - **24/7 answering with weekday business hours is a config pattern**, not a special mode — set `business_hours_weekday`, `business_hours_weekend`, and leave `after_hours_behavior=always_answer`.
 - **Founding $29/mo + Stripe coupon FOUNDING29 = Lite price.** If transfer is needed at $29, that's a DB-level override of `selected_plan` after Stripe activation, not something the coupon does on its own.
+
+## Live truth 2026-07-02 (verified vs Supabase + Stripe, supersedes older status above)
+- **PAYING.** subscription_status=active, trial_converted=true, period ends 2026-08-01. Invoices PAID: $29 CAD on 2026-05-31 and 2026-07-01.
+- Real Stripe customer: `cus_UcXVOIu8ew1PZI` (remodelingvelly@gmail.com). The older `cus_UbbjZc7wQxeMYQ` is an ORPHAN duplicate with zero invoices — clean up in Stripe, do not cite it.
+- Usage: 1 call / 0 non-JUNK last 30d. He pays for presence (business line answered), not lead volume. No call forwarding — Twilio DID is his public line (direct-inbound mode).
+- Lesson: vault status went stale because billing changes happen via Hermes/Stripe directly. **Answer billing/status questions from Supabase+Stripe live, never from this note's frontmatter.**

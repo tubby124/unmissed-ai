@@ -102,11 +102,15 @@ export const TRUST_BAR = {
 // ─── Demo Section (DemoAudioPlayer) ─────────────────────────────────
 export const DEMO_SECTION = {
   eyebrow: 'Live Phone Demo',
-  headline: 'Watch Zara turn a missed call into a callback-ready lead.',
-  subheadline: 'This is the intended flow: ask one useful question, wait, probe, summarize the lead, then show the owner why reading a clean alert beats replaying voicemail audio.',
-  ctaLabel: 'Get a Call from Zara',
+  headline: "Don't take our word for it — get a live call from the agent in 10 seconds.",
+  subheadline: 'Enter your number and Zara calls your phone right now. Real call, real questions, and the exact owner summary you would get instead of voicemail audio.',
+  /** Supporting transcript illustration (below the live widget) */
+  transcriptEyebrow: 'Sample call flow',
+  transcriptHeadline: 'What happens on the call',
+  transcriptSubheadline: 'The flow Zara runs: ask one useful question, wait, probe, summarize the lead — a clean alert instead of replaying voicemail audio.',
+  ctaLabel: 'See the full demo page',
   ctaHref: '/try',
-  ctaSubtext: 'Real phone demo · Zara calls your phone',
+  ctaSubtext: 'More demo paths · Zara calls your phone',
 }
 
 // ─── How It Works ────────────────────────────────────────────────────
@@ -175,12 +179,12 @@ export const FAQ_ITEMS = [
   {
     question: `What do I actually get?`,
     answer:
-      `Every plan includes generous minutes, an agent trained on your trade and services, instant call notifications, and a weekly review that improves your agent from real calls. No surprise overages — you pay a flat base rate starting at $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo. Need more minutes? Prepaid reload packs are $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} extra minutes.`,
+      `One plan, everything included: generous minutes, an agent trained on your trade and services, instant call notifications, and a weekly review that improves your agent from real calls. No surprise overages — you pay a flat $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo founding rate. Need more minutes? Prepaid reload packs are $${MINUTE_RELOAD.price} for ${MINUTE_RELOAD.minutes} extra minutes.`,
   },
   {
     question: 'How are you different from Dialzara, Rosie, or My AI Front Desk?',
     answer:
-      `Three differences. First, pricing: many alternatives charge per minute or per caller — your bill rises when you're busy. We charge a flat base rate starting at $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo, with prepaid reload packs when you need extra minutes. Second, setup: they're self-serve platforms where you configure everything. We build your agent from your Google Business Profile and website during signup — you answer a few questions, we handle the rest. Third, specificity: your agent is trained on your trade, not a generic script. Booking and live call transfer are available on eligible plans.`,
+      `Three differences. First, pricing: many alternatives charge per minute or per caller — your bill rises when you're busy. We charge a flat $${getPlanDisplayMonthly(PUBLIC_PLANS[0])}/mo founding rate, with prepaid reload packs when you need extra minutes. Second, setup: they're self-serve platforms where you configure everything. We build your agent from your Google Business Profile and website during signup — you answer a few questions, we handle the rest. Third, specificity: your agent is trained on your trade, not a generic script. Booking and live call transfer are available on eligible plans.`,
   },
   {
     question: 'Is there a setup fee?',
