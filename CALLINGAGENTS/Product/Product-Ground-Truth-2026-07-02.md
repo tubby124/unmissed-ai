@@ -6,7 +6,7 @@ related: ["[[2026-07-02-demo-that-sells-SHIPPED]]"]
 updated: 2026-07-02
 ---
 > Extracted from CODE 2026-07-02 (pricing.ts, plan-entitlements.ts, carrier-codes.ts, guardrails/privacy/terms pages).
-> Use this — NOT PRICING.md (stale) — for any sales copy, prompt facts, or客 answer about the product.
+> Use this — NOT PRICING.md (stale) — for any sales copy, prompt facts, or customer answer about the product.
 > Re-verify against pricing.ts before quoting if plans have changed since this date.
 
 # End Voicemail / unmissed.ai — Product Ground-Truth Fact Sheet
