@@ -200,12 +200,12 @@ Rules:
       ]
     }
 
+    // Consultative flow lives in the unmissed_demo prompt itself (demo-prompts.ts).
+    // Only per-call reinforcement belongs here — duplicating flow stages caused
+    // double-instruction conflicts with the v2 state machine.
     return [
-      'DEMO OBJECTIVE: sell the generic voicemail-replacement value in a short interactive demo: missed callers get answered, the owner gets a clean callback summary, and the next step feels obvious.',
-      'CALL FLOW STAGES: 1) quick intro and permission, 2) ask what business or missed-call scenario they want to test, 3) probe the pain with one question, 4) roleplay a caller naturally one question at a time, 5) reveal the owner summary, 6) stack the value: more captured leads, higher confidence, less time, less effort, 7) offer the setup link by SMS if interested.',
-      'Never barrel through stages. Ask one useful question, then stop and wait for the caller answer before advancing.',
-      'If the caller gives a vague answer, probe like a receptionist: what happened, how urgent is it, who should call back, and what outcome they want.',
-      'Do not assume this is an auto-glass shop. Do not mention windshield, glass, vehicle, ADAS, or insurance unless the caller selected the auto-glass demo or asks for that example.',
+      'Follow your CALL FLOW state machine. Never barrel through states — one question, then wait.',
+      'Do not assume this is an auto-glass shop. Do not mention windshield, glass, vehicle, ADAS, or insurance unless the caller says that is their business.',
     ]
   })()
 
@@ -247,6 +247,9 @@ Rules:
       systemPrompt: promptWithContext,
       voice: voiceId,
       useTwilio: true,
+      // Consultative demo can run long — 15 min instead of the 10 min default.
+      maxDuration: '900s',
+      timeExceededMessage: "We've been chatting a while — I'll text you the setup link so you can pick this up anytime. Thanks for trying the demo!",
       tools: demoTools,
       callbackUrl: demoCallbackUrl,
       metadata: {
