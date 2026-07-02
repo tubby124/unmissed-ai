@@ -271,6 +271,18 @@ export async function POST(
       else if (!updatedRows?.length) console.error(`[completed] DB update matched 0 rows for callId=${callId} — check call_status CHECK constraint or RLS`)
       else console.log(`[completed] DB updated: callId=${callId} status=${classification.status} callState=${finalCallState ? 'PRESENT' : 'NOT_IN_PAYLOAD'}`)
 
+      // Close the demo_calls row when this completion belongs to a demo call.
+      // Phone demos never hit /api/demo/end and browser tab-closes skip it too,
+      // so this is the only reliable place duration/ended_at get written.
+      // Matches 0 rows for production calls — harmless single indexed update.
+      const { data: demoRows, error: demoCloseError } = await supabase
+        .from('demo_calls')
+        .update({ ended_at: endedAt, duration_seconds: durationSeconds })
+        .eq('ultravox_call_id', callId)
+        .select('id')
+      if (demoCloseError) console.error(`[completed] demo_calls close failed for callId=${callId}: ${demoCloseError.message}`)
+      else if (demoRows?.length) console.log(`[completed] demo_calls closed: callId=${callId} duration=${durationSeconds}s`)
+
       // Call log row ID for notification_logs FK
       const callLogId = updatedRows?.[0]?.id ?? null
       const callbackPreference = (updatedRows?.[0] as { callback_preference?: string | null } | undefined)?.callback_preference ?? null

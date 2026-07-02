@@ -56,6 +56,9 @@ export async function POST(req: NextRequest) {
   const callerEmail = cleanText(body.callerEmail, 160)
   const shopName = cleanText(body.shopName, 120)
   const painPoint = cleanText(body.painPoint, 80)
+  const prospectCity = cleanText(body.prospectCity, 80)
+  const campaignRef = cleanText(body.campaignRef, 80)
+  const leadRef = cleanText(body.leadRef, 120)
   const demoVariant = cleanText(body.demoVariant, 40)
 
   // Public pages use marketing-facing IDs that don't always match DEMO_AGENTS keys.
@@ -200,12 +203,12 @@ Rules:
       ]
     }
 
+    // Consultative flow lives in the unmissed_demo prompt itself (demo-prompts.ts).
+    // Only per-call reinforcement belongs here — duplicating flow stages caused
+    // double-instruction conflicts with the v2 state machine.
     return [
-      'DEMO OBJECTIVE: sell the generic voicemail-replacement value in a short interactive demo: missed callers get answered, the owner gets a clean callback summary, and the next step feels obvious.',
-      'CALL FLOW STAGES: 1) quick intro and permission, 2) ask what business or missed-call scenario they want to test, 3) probe the pain with one question, 4) roleplay a caller naturally one question at a time, 5) reveal the owner summary, 6) stack the value: more captured leads, higher confidence, less time, less effort, 7) offer the setup link by SMS if interested.',
-      'Never barrel through stages. Ask one useful question, then stop and wait for the caller answer before advancing.',
-      'If the caller gives a vague answer, probe like a receptionist: what happened, how urgent is it, who should call back, and what outcome they want.',
-      'Do not assume this is an auto-glass shop. Do not mention windshield, glass, vehicle, ADAS, or insurance unless the caller selected the auto-glass demo or asks for that example.',
+      'Follow your CALL FLOW state machine. Never barrel through states — one question, then wait.',
+      'Do not assume this is an auto-glass shop. Do not mention windshield, glass, vehicle, ADAS, or insurance unless the caller says that is their business.',
     ]
   })()
 
@@ -215,7 +218,10 @@ Rules:
     `CALLER PHONE: ${phone}`,
     callerEmail ? `CALLER EMAIL: ${callerEmail}` : '',
     shopName ? `PROSPECT SHOP NAME: ${shopName}` : '',
+    prospectCity ? `PROSPECT CITY: ${prospectCity}` : '',
     painPoint ? `PROSPECT PAIN POINT: ${painPoint}` : '',
+    campaignRef ? `CAMPAIGN REF: ${campaignRef}` : '',
+    leadRef ? `LEAD REF: ${leadRef}` : '',
     requestedNiche ? `REQUESTED DEMO: ${requestedNiche}` : '',
     `RESOLVED DEMO: ${niche}`,
     demoVariant ? `DEMO VARIANT: ${demoVariant}` : '',
@@ -247,6 +253,9 @@ Rules:
       systemPrompt: promptWithContext,
       voice: voiceId,
       useTwilio: true,
+      // Consultative demo can run long — 15 min instead of the 10 min default.
+      maxDuration: '900s',
+      timeExceededMessage: "We've been chatting a while — I'll text you the setup link so you can pick this up anytime. Thanks for trying the demo!",
       tools: demoTools,
       callbackUrl: demoCallbackUrl,
       metadata: {
@@ -256,6 +265,9 @@ Rules:
         caller_name: callerName,
         caller_email: callerEmail,
         shop_name: shopName,
+        prospect_city: prospectCity,
+        campaign_ref: campaignRef,
+        lead_ref: leadRef,
         demo_variant: demoVariant,
       },
     })
@@ -303,6 +315,12 @@ Rules:
         caller_name: callerName,
         caller_phone: phone || null,
         caller_email: callerEmail || null,
+        shop_name: shopName || null,
+        pain_point: painPoint || null,
+        prospect_city: prospectCity || null,
+        demo_variant: demoVariant || null,
+        campaign_ref: campaignRef || null,
+        lead_ref: leadRef || null,
         ultravox_call_id: uvCall.callId,
         // demo_calls.source is constrained to browser|phone in production.
         // This route creates an outbound phone callback, so log it as phone.
@@ -322,7 +340,10 @@ Rules:
         `Caller: ${callerName} (${phone})`,
         callerEmail ? `Email: ${callerEmail}` : null,
         shopName ? `Shop: ${shopName}` : null,
+        prospectCity ? `City: ${prospectCity}` : null,
         painPoint ? `Pain: ${painPoint}` : null,
+        campaignRef ? `Campaign: ${campaignRef}` : null,
+        leadRef ? `Lead: ${leadRef}` : null,
         `Demo: ${demoVariant || niche}`,
         `Twilio SID: ${call.sid}`,
         `Ultravox: ${uvCall.callId}`,
