@@ -116,10 +116,15 @@ async function tgGetWebhookInfo(): Promise<TelegramWebhookInfoResult> {
   }
 }
 
-async function tgGetChat(chatId: string): Promise<TelegramGetChatResult> {
+async function tgGetChat(chatId: string, botToken?: string | null): Promise<TelegramGetChatResult> {
   try {
     // GET with query — chat_id can be negative for groups, so encode it.
-    const url = `${TG_BASE}/getChat?chat_id=${encodeURIComponent(chatId)}`
+    // Per-client bots: notifications are sent with the CLIENT's bot token
+    // (completed-notifications.ts uses client.telegram_bot_token), so the
+    // probe must use the same bot or it 400s "chat not found" on healthy
+    // chats. Falls back to the global env bot when the client has none.
+    const base = botToken ? `https://api.telegram.org/bot${botToken}` : TG_BASE
+    const url = `${base}/getChat?chat_id=${encodeURIComponent(chatId)}`
     const res = await fetch(url, { signal: AbortSignal.timeout(10_000) })
     const body = (await res.json().catch(() => ({}))) as Partial<TelegramGetChatResult>
     if (!res.ok) {
@@ -161,16 +166,19 @@ async function sendOwnerAlert(chatId: string, message: string): Promise<boolean>
 // ─── Supabase fetches ─────────────────────────────────────────────────────
 
 async function fetchClients(sb: SupabaseClient): Promise<TelegramHealthClientRow[]> {
+  // Only active clients — paused/expired trials keep stale chat_ids around
+  // and their alert paths don't matter (nothing is sent to them).
   const { data, error } = await sb
     .from('clients')
-    .select('slug, telegram_chat_id')
+    .select('slug, telegram_chat_id, telegram_bot_token')
     .not('telegram_chat_id', 'is', null)
+    .eq('status', 'active')
     .order('slug')
   if (error) throw new Error(`clients fetch failed: ${error.message}`)
-  type Row = { slug: string; telegram_chat_id: string | null }
+  type Row = { slug: string; telegram_chat_id: string | null; telegram_bot_token: string | null }
   return ((data ?? []) as Row[])
     .filter(r => !!r.telegram_chat_id)
-    .map(r => ({ slug: r.slug, telegram_chat_id: r.telegram_chat_id }))
+    .map(r => ({ slug: r.slug, telegram_chat_id: r.telegram_chat_id, telegram_bot_token: r.telegram_bot_token }))
 }
 
 async function fetchNotificationLogStats(sb: SupabaseClient): Promise<NotificationLogStats> {
@@ -281,7 +289,7 @@ async function main(): Promise<number> {
     const chatResults = new Map<string, TelegramGetChatResult>()
     for (const c of clients) {
       if (!c.telegram_chat_id) continue
-      const res = await tgGetChat(c.telegram_chat_id)
+      const res = await tgGetChat(c.telegram_chat_id, c.telegram_bot_token)
       chatResults.set(c.slug, res)
       if (!res.ok) {
         console.log(`  [PROBE] ${c.slug} chat_id=${c.telegram_chat_id} → HTTP ${res.error_code} (${res.description ?? 'no description'})`)

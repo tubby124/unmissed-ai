@@ -87,6 +87,9 @@ export interface TelegramGetChatResult {
 export interface TelegramHealthClientRow {
   slug: string
   telegram_chat_id: string | null
+  /** Per-client bot token — client alerts are sent with THIS bot, not the
+   *  global env bot, so probes must use it too (null = global bot). */
+  telegram_bot_token?: string | null
 }
 
 /** Aggregated notification_logs counts for the recent_send_failure_rate check. */
