@@ -252,8 +252,10 @@ export async function POST(req: NextRequest) {
     const parentSub = invoice.parent?.subscription_details?.subscription
     const subId = typeof parentSub === 'string' ? parentSub : (parentSub as Stripe.Subscription | undefined)?.id ?? null
 
-    // Only handle subscription renewals — skip initial trial invoice
-    if (subId && invoice.billing_reason === 'subscription_cycle') {
+    // Handle renewals AND the first paid invoice (subscription_create) —
+    // both must zero usage so the paid month starts fresh. Previously only
+    // subscription_cycle matched, so trial→paid conversions kept trial usage.
+    if (subId && (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_create')) {
       const { data: cl } = await adminSupa
         .from('clients')
         .select('id, slug, business_name, niche, selected_plan')
@@ -261,6 +263,7 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (cl) {
+        const isFirstInvoice = invoice.billing_reason === 'subscription_create'
         const sub = await getStripe().subscriptions.retrieve(subId)
         const minuteLimit = getEffectiveMinuteLimit(cl.selected_plan, 'active', cl.niche)
         const tierLabel = getTierLabel(cl.selected_plan ?? null)
@@ -280,7 +283,7 @@ export async function POST(req: NextRequest) {
           effective_monthly_rate: effectiveRate,
         }).eq('id', cl.id)
 
-        console.log(`[stripe-webhook] Subscription renewed for ${cl.slug} — ${tierLabel} ${minuteLimit} min/mo, reset usage`)
+        console.log(`[stripe-webhook] Subscription ${isFirstInvoice ? 'started' : 'renewed'} for ${cl.slug} — ${tierLabel} ${minuteLimit} min/mo, reset usage`)
 
         // Telegram notification
         try {
@@ -293,7 +296,7 @@ export async function POST(req: NextRequest) {
             await sendAlert(
               adminCl.telegram_bot_token as string,
               adminCl.telegram_chat_id as string,
-              `💰 Subscription renewed: ${cl.business_name} (${cl.slug})\n` +
+              `💰 Subscription ${isFirstInvoice ? 'started' : 'renewed'}: ${cl.business_name} (${cl.slug})\n` +
               `Plan: ${tierLabel} — ${minuteLimit} min\n` +
               `Next renewal: ${new Date((sub.items.data[0]?.current_period_end ?? 0) * 1000).toLocaleDateString()}`
             )
@@ -813,6 +816,15 @@ export async function POST(req: NextRequest) {
       subscription_status: 'active',
       trial_converted: true,
       status: 'active',
+      // Paid month starts fresh — don't carry trial usage into the first
+      // billing cycle. Done here (not only in invoice.payment_succeeded)
+      // because that handler can fire before stripe_subscription_id is
+      // written to the row, making its lookup a no-op on first payment.
+      minutes_used_this_month: 0,
+      seconds_used_this_month: 0,
+      minute_warning_80_sent_at: null,
+      minute_warning_100_sent_at: null,
+      grace_period_end: null,
     }
     if (customerId) updatePayload.stripe_customer_id = customerId
     if (subscriptionId) updatePayload.stripe_subscription_id = subscriptionId
