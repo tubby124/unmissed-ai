@@ -8,12 +8,20 @@ plan: core
 tags:
   - client
   - propertymanagement
+  - comped
 related:
   - Features/Booking
-updated: 2026-03-31
+updated: 2026-07-07
 ---
 
 # Urban Vibe — Ray / Alisha (Beauty Salon)
+
+## Live truth 2026-07-07 (verified — CURRENT)
+
+- **Comped client** — `effective_monthly_rate=0` (set 2026-07-07). No Stripe billing; intentional. Ray is a strategic referral source, not a revenue account.
+- **Usage: 98 calls last 30d** — heaviest real usage in the fleet.
+- **Referral value**: Ray connected Brian, the $119/mo prospect at [[calgary-property-leasing]].
+- **Telegram alerts healthy** — per-client bot posting to group "Urban Vibe AI" (chat `-1003821528827`).
 
 ## Identity
 | Field | Value |

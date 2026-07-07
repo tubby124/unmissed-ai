@@ -16,13 +16,23 @@ related:
   - Decisions/Knowledge-Threshold-Loosening-2026-04-25
   - Decisions/2026-04-29-voicemail-removal-required-for-cf
   - 00-Inbox/2026-06-02-brian-prompt-slimming-handoff
-updated: 2026-06-03
+updated: 2026-07-07
 shipped: 2026-04-25
 ---
 
 # Calgary Edmonton Property Leasing — Brian Demo
 
 > Renamed 2026-04-25 from "Calgary Property Leasing". Slug retained.
+
+## 2026-07-07 — $119/mo payment link SENT + trial extended to July 15 (CURRENT)
+
+Supersedes the "re-pause July 10" line in the 2026-07-02 section below.
+
+- **Payment link created and sent to Brian today**: https://buy.stripe.com/bJe14fdzueIDg1DbTm2VG02 (`plink_1TqetS0tFbm4ZBYUNTccsgI5`), $119/mo CAD, metadata `client=calgary-property-leasing`, `anchor_day=1` — per [[../../docs/runbooks/concierge-payment-link]] contract, the Stripe webhook activates him automatically on payment.
+- Delivered via **email** (Gmail msg `19f3e311d61c5946`) and **Telegram** (chat `8653350958`).
+- **Trial extended to 2026-07-15** (`trial_expires_at`). Cron will re-pause July 15 unless he pays or the trial is extended again.
+- **Webhook usage-reset bug FIXED in commit `b135efad`** — `subscription_create` invoices now reset usage counters (the 2026-04-26 "trial → paid first-invoice reset bug" open item is closed), and the concierge branch zeroes usage directly. No manual usage zeroing needed when Brian converts.
+- Referral source: Ray at [[urban-vibe]] connected Brian originally.
 
 ## 2026-06-04 — Identity-tier architecture PUSHED LIVE
 

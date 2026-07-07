@@ -1,19 +1,19 @@
 ---
 type: client
-status: paused-unpaid
+status: active-paying
 slug: velly-remodeling
 ultravox_agent_id: 2164eda9-... (full UUID in Supabase clients row)
 voice_id: aa601962-1cbd-4bbd-9d96-3c7a93c3414a
 voice_style_preset: casual_friendly
 twilio_did: +13069887699
 plan: founding-29
-tags: [client, renovation, concierge, founding, paused]
+tags: [client, renovation, concierge, founding, paying]
 related:
   - Architecture/Control-Plane-Mutation-Contract
   - Features/Transfer
   - Product/Concierge-Onboarding-SOP
   - Tracker/D456
-updated: 2026-05-29
+updated: 2026-07-07
 ---
 
 # Velly Remodeling — Samantha (Renovation / New Build / Basement Suites)
@@ -22,7 +22,9 @@ updated: 2026-05-29
 > Owner Kausar Imam is Hasan's uncle — $29/mo founding rate forever, 100-min cap.
 > Agent renamed Eric → **Samantha** (sometime before 2026-05-29; confirmed in both `agent_name` column and `system_prompt` body, zero "Eric" references remain).
 
-## Current state — 2026-05-29 (post-reactivation)
+## Current state — 2026-05-29 (post-reactivation) — SUPERSEDED, see "Live truth 2026-07-07" below
+
+> ⚠️ Everything in this section ("never charged", "awaiting payment", "trialing", plan-drift cleanup steps) is STALE. Kausar converted and is paying. Do not act on this section.
 
 | | |
 |---|---|
@@ -144,3 +146,11 @@ Warm/concierge. After-hours: same greeting — never says "we're closed."
 - Real Stripe customer: `cus_UcXVOIu8ew1PZI` (remodelingvelly@gmail.com). The older `cus_UbbjZc7wQxeMYQ` is an ORPHAN duplicate with zero invoices — clean up in Stripe, do not cite it.
 - Usage: 1 call / 0 non-JUNK last 30d. He pays for presence (business line answered), not lead volume. No call forwarding — Twilio DID is his public line (direct-inbound mode).
 - Lesson: vault status went stale because billing changes happen via Hermes/Stripe directly. **Answer billing/status questions from Supabase+Stripe live, never from this note's frontmatter.**
+
+## Live truth 2026-07-07 (verified vs Supabase + Stripe — CURRENT)
+
+- **PAYING — active Stripe subscription `sub_1TdIQU0tFbm4ZBYUozzheOb7`**, $29 CAD/mo on `price_1TRKma0tFbm4ZBYUJi5p69s4`.
+- Charges succeeded: **2026-05-31** and **2026-07-01**. Next renewal: **2026-08-01**.
+- `trial_converted=true`. `effective_monthly_rate=29` (set 2026-07-07).
+- **DB `selected_plan='lite'` with 100-min cap is CORRECT and intended.** The price→plan map treats the $29 founding price as `lite`; "Core Founding" is a marketing label only. **Do NOT "fix" the plan to `core`.** This supersedes the "drift from intended Core/100-min" note and the "webhook auto-flips selected_plan=core" cleanup steps in the 2026-05-29 section and the Plan combo section above.
+- Supersedes all "never charged / awaiting payment" language elsewhere in this note.
