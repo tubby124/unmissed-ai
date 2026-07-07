@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { validateSignature } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
 import { APP_URL } from '@/lib/app-url'
+import { analyzeVoicemailAudio } from '@/lib/voicemail-transcription'
 
 /**
  * S14b: Voicemail recording status callback.
@@ -78,6 +79,7 @@ export async function POST(
 
   // Download recording from Twilio and upload to Supabase storage
   let storagePath: string | null = null
+  let audioBuffer: Buffer | null = null
   try {
     const audioUrl = `${recordingUrl}.mp3`
     const audioRes = await fetch(audioUrl, {
@@ -87,7 +89,7 @@ export async function POST(
       signal: AbortSignal.timeout(30_000),
     })
     if (audioRes.ok) {
-      const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
+      audioBuffer = Buffer.from(await audioRes.arrayBuffer())
       const fileName = `vm-${recordingSid}.mp3`
       const { error: uploadErr } = await supabase.storage
         .from('recordings')
@@ -108,16 +110,38 @@ export async function POST(
   // Determine if caller chose voicemail via IVR or if it was a fallback
   const wasIvrChoice = (callLog.ai_summary || '').includes('IVR')
 
-  // Update call_log with recording + duration
+  // Fetch client before the update — business_name feeds transcription context
+  const { data: client } = await supabase
+    .from('clients')
+    .select('business_name, telegram_bot_token, telegram_chat_id, telegram_chat_id_2')
+    .eq('id', callLog.client_id)
+    .single()
+
+  // Transcribe + summarize the voicemail (Gemini Flash via OpenRouter).
+  // Fail-soft: null keeps the legacy static summary.
+  const analysis = audioBuffer
+    ? await analyzeVoicemailAudio(audioBuffer, { businessName: client?.business_name })
+    : null
+  if (analysis) {
+    console.log(`[voicemail] Transcribed ${recordingSid}: urgency=${analysis.urgency} summary="${analysis.summary.slice(0, 80)}"`)
+  }
+
+  const staticSummary = wasIvrChoice
+    ? `Caller chose voicemail via IVR menu (${recordingDuration}s)`
+    : `Voicemail (${recordingDuration}s) — AI agent was unavailable`
+  const aiSummary = analysis
+    ? `${analysis.urgency === 'urgent' ? '🚨 ' : ''}${analysis.summary}`
+    : staticSummary
+
+  // Update call_log with recording + duration + real summary/transcript
   const { error: updateErr } = await supabase
     .from('call_logs')
     .update({
       recording_url: storagePath,
       duration_seconds: recordingDuration,
       ended_at: new Date().toISOString(),
-      ai_summary: wasIvrChoice
-        ? `Caller chose voicemail via IVR menu (${recordingDuration}s)`
-        : `Voicemail (${recordingDuration}s) — AI agent was unavailable`,
+      ai_summary: aiSummary,
+      ...(analysis?.transcript ? { transcript: analysis.transcript } : {}),
     })
     .eq('id', callLog.id)
 
@@ -126,30 +150,20 @@ export async function POST(
   }
 
   // Notify client via Telegram
-  const { data: client } = await supabase
-    .from('clients')
-    .select('business_name, telegram_bot_token, telegram_chat_id, telegram_chat_id_2')
-    .eq('id', callLog.client_id)
-    .single()
-
   if (client?.telegram_bot_token && client?.telegram_chat_id) {
     const callerDisplay = callLog.caller_phone || 'Unknown'
-    const msg = wasIvrChoice
-      ? [
-          `<b>VOICEMAIL</b> [${slug}]`,
-          `Caller: ${callerDisplay}`,
-          `Duration: ${recordingDuration}s`,
-          ``,
-          `Caller chose to leave a voicemail. Check your dashboard to listen.`,
-        ].join('\n')
-      : [
-          `<b>VOICEMAIL</b> [${slug}]`,
-          `Caller: ${callerDisplay}`,
-          `Duration: ${recordingDuration}s`,
-          ``,
-          `Your AI agent was temporarily unavailable. The caller left a voicemail.`,
-          `Check your dashboard to listen to the recording.`,
-        ].join('\n')
+    const contextLine = wasIvrChoice
+      ? `Caller chose to leave a voicemail.`
+      : `Your AI agent was temporarily unavailable. The caller left a voicemail.`
+    const msg = [
+      `<b>${analysis?.urgency === 'urgent' ? '🚨 URGENT ' : ''}VOICEMAIL</b> [${slug}]`,
+      `Caller: ${callerDisplay}`,
+      `Duration: ${recordingDuration}s`,
+      ``,
+      ...(analysis
+        ? [`<b>Summary:</b> ${analysis.summary}`, ``, `Full transcript + recording in your dashboard.`]
+        : [contextLine, `Check your dashboard to listen to the recording.`]),
+    ].join('\n')
 
     sendAlert(
       client.telegram_bot_token,
@@ -164,7 +178,8 @@ export async function POST(
   const opChat = process.env.TELEGRAM_OPERATOR_CHAT_ID ?? process.env.TELEGRAM_CHAT_ID
   if (opToken && opChat) {
     sendAlert(opToken, opChat,
-      `Voicemail captured [${slug}] — caller=${callLog.caller_phone || 'unknown'} duration=${recordingDuration}s stored=${!!storagePath}`
+      `Voicemail captured [${slug}] — caller=${callLog.caller_phone || 'unknown'} duration=${recordingDuration}s stored=${!!storagePath}` +
+      (analysis ? ` transcribed=yes urgency=${analysis.urgency}` : ' transcribed=no')
     ).catch(e => console.error(`[voicemail] Operator alert failed:`, e))
   }
 
