@@ -107,6 +107,19 @@ export default async function AdminDashboardPage() {
             </span>
           </a>
           <a
+            href="/dashboard/admin/clients"
+            className="rounded-xl px-4 py-3 flex flex-col gap-1 min-w-[220px] flex-1 sm:flex-none"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+            }}
+          >
+            <span className="text-[13px] font-semibold" style={{ color: 'var(--color-text-1)' }}>Client Roster</span>
+            <span className="text-[11px]" style={{ color: 'var(--color-text-3)' }}>
+              MRR, billing state, call activity, and stale-client flags — with pause/resume
+            </span>
+          </a>
+          <a
             href="/dashboard/admin/harness"
             className="rounded-xl px-4 py-3 flex flex-col gap-1 min-w-[220px] flex-1 sm:flex-none"
             style={{

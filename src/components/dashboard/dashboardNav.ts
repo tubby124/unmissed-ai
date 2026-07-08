@@ -38,6 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   // Phase 2 — admin Command Center landing. Top of group 4.
   { href: '/dashboard/admin', label: 'Admin', adminOnly: true, group: 4, iconName: 'command-center' },
   { href: '/dashboard/clients', label: 'Clients', adminOnly: true, group: 4, iconName: 'users' },
+  { href: '/dashboard/admin/clients', label: 'Roster', adminOnly: true, group: 4, iconName: 'users' },
   { href: '/dashboard/campaigns', label: 'Performance', adminOnly: true, group: 4, iconName: 'chart-columns' },
   { href: '/dashboard/demos', label: 'Demos', adminOnly: true, group: 4, iconName: 'activity' },
   { href: '/dashboard/intake', label: 'Intake', adminOnly: true, group: 4, iconName: 'inbox' },

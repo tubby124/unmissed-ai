@@ -12,6 +12,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:capabilities": "npx tsx --test src/lib/__tests__/capabilities.test.ts",
+    "test:roster-billing": "npx tsx --test src/lib/__tests__/roster-billing.test.ts",
     "test:agent-context": "npx tsx --test src/lib/__tests__/agent-context.test.ts",
     "test:client-agent-config": "npx tsx --test src/lib/__tests__/build-client-agent-config.test.ts",
     "test:knowledge-summary": "npx tsx --test src/lib/__tests__/knowledge-summary.test.ts",
