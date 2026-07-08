@@ -82,3 +82,14 @@ jobs:
           else
             npx tsx scripts/telegram-health-check.ts
           fi
+
+      # The watchdog itself dying (missing secret, npm/tsx error, Supabase
+      # unreachable) previously failed only in the Actions UI — drift would
+      # accumulate while the check looked green. Same pattern as uptime-check.
+      - name: Telegram alert on workflow failure
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_OWNER_CHAT_ID }}" \
+            --data-urlencode "text=🔴 Watchdog FAILED (the check itself broke): telegram-health-check — endvoicemail.ai. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            > /dev/null

@@ -37,3 +37,13 @@ jobs:
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+
+      # A red build on main = Railway deploys nothing and prod silently runs
+      # stale code. Surface it like every other watchdog.
+      - name: Telegram alert on workflow failure
+        if: failure()
+        run: |
+          curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_OWNER_CHAT_ID }}" \
+            --data-urlencode "text=🔴 Build FAILED on main — Railway is still serving the previous deploy. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            > /dev/null
