@@ -233,7 +233,9 @@ export async function POST(req: NextRequest) {
         voice: client.agent_voice_id,
         callbackUrl,
         tools,
-        waitForUser: true,
+        // Outbound: greet on connect (AMD already confirmed a human). Replaces
+        // waitForUser:true, which stacked a second dead-air leg after AMD.
+        firstSpeakerAgentDelay: '0.4s',
         metadata: {
           caller_phone: toPhone,
           client_slug: slug,
