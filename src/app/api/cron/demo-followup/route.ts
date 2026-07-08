@@ -21,7 +21,20 @@ interface DemoCallRow {
   caller_email: string | null
   caller_name: string | null
   demo_id: string | null
+  shop_name: string | null
+  prospect_city: string | null
+  demo_variant: string | null
+  campaign_ref: string | null
   ended_at: string | null
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 export async function POST(req: NextRequest) {
@@ -41,7 +54,7 @@ export async function POST(req: NextRequest) {
 
   const { data: candidates, error } = await svc
     .from('demo_calls')
-    .select('id, caller_email, caller_name, demo_id, ended_at')
+    .select('id, caller_email, caller_name, demo_id, shop_name, prospect_city, demo_variant, campaign_ref, ended_at')
     .not('caller_email', 'is', null)
     .is('followup_sent_at', null)
     .gte('ended_at', dayAgo)
@@ -67,7 +80,6 @@ export async function POST(req: NextRequest) {
     .in('contact_email', candidateEmails)
   const clientEmails = new Set((existingClients ?? []).map((c) => (c.contact_email as string | null)?.toLowerCase()).filter(Boolean))
 
-  const onboardUrl = `${APP_URL}/onboard`
   const sent: { id: string; email: string }[] = []
   const skipped: { id: string; reason: string }[] = []
 
@@ -80,22 +92,42 @@ export async function POST(req: NextRequest) {
       continue
     }
 
-    const greeting = c.caller_name ? `Hi ${c.caller_name},` : 'Hi there,'
+    const greeting = c.caller_name ? `Hi ${escapeHtml(c.caller_name)},` : 'Hi there,'
+    const isAutoGlass = c.demo_id === 'auto_glass' || c.demo_variant === 'windshield' || c.campaign_ref?.startsWith('glass-')
+    const onboardUrl = isAutoGlass ? `${APP_URL}/onboard?niche=auto_glass` : `${APP_URL}/onboard`
+    const shopLine = c.shop_name
+      ? ` for ${escapeHtml(c.shop_name)}${c.prospect_city ? ` in ${escapeHtml(c.prospect_city)}` : ''}`
+      : ''
+    const subject = isAutoGlass
+      ? `Your auto-glass missed-call demo${c.shop_name ? ` for ${c.shop_name}` : ''}`
+      : `That demo you just tried — get the real thing in 10 min`
+    const reason = isAutoGlass
+      ? `You requested the ${BRAND_NAME} auto-glass demo call.`
+      : `You tried the ${BRAND_NAME} demo on our homepage.`
+    const html = isAutoGlass
+      ? `<h2 style="margin-bottom:4px">Your auto-glass demo recap</h2>
+<p>${greeting}</p>
+<p>Thanks for trying the live demo${shopLine}. That same flow can answer missed, busy, and after-hours windshield calls, collect the vehicle and damage details, then send you a clean callback summary.</p>
+<p><strong>Setup is simple:</strong> keep your current number, forward missed calls to the AI line, and start catching quote requests that would normally disappear into voicemail.</p>
+<a href="${onboardUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Set up my auto-glass agent</a>
+<p style="font-size:14px;color:#555"><strong>No setup fee.</strong> AI Receptionist is $119/month CAD with 250 included minutes, 50 activation minutes, and a 30-day money-back guarantee.</p>
+<p style="font-size:14px;color:#555">Reply to this email with questions — Hasan answers personally.</p>`
+      : `<h2 style="margin-bottom:4px">Liked talking to ${BRAND_NAME}?</h2>
+<p>${greeting}</p>
+<p>Thanks for trying the demo. The agent you just spoke with is the same one we'd set up for your business — it answers forwarded missed calls, captures lead details, and sends you the summary after the call.</p>
+<p><strong>Setup takes about 10 minutes.</strong> You forward your line, we train it on your services, and it's live for your next missed call.</p>
+<a href="${onboardUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Get my agent live</a>
+<p style="font-size:14px;color:#555"><strong>50 activation minutes included.</strong> Card required to activate your AI number. Cancel anytime if it doesn't earn its keep.</p>
+<p style="font-size:14px;color:#555">Reply to this email with questions — Hasan answers personally.</p>`
 
     const result = await sendBrandedEmail({
       to: email,
       purpose: 'marketing',
       tag: 'demo_followup',
       recipientEmail: email,
-      reason: `You tried the ${BRAND_NAME} demo on our homepage.`,
-      subject: `That demo you just tried — get the real thing in 10 min`,
-      html: `<h2 style="margin-bottom:4px">Liked talking to ${BRAND_NAME}?</h2>
-<p>${greeting}</p>
-<p>Thanks for trying the demo. The agent you just spoke with is the same one we'd set up for your business — it answers forwarded missed calls, captures lead details, and sends you the summary after the call.</p>
-<p><strong>Setup takes about 10 minutes.</strong> You forward your line, we train it on your services, and it's live for your next missed call.</p>
-<a href="${onboardUrl}" style="display:inline-block;background:#4f46e5;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Get my agent live</a>
-<p style="font-size:14px;color:#555"><strong>50 activation minutes included.</strong> Card required to activate your AI number. Cancel anytime if it doesn't earn its keep.</p>
-<p style="font-size:14px;color:#555">Reply to this email with questions — Hasan answers personally.</p>`,
+      reason,
+      subject,
+      html,
     })
 
     if (result.ok) {
