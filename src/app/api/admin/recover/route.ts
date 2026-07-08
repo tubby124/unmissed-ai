@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { getTranscript } from '@/lib/ultravox'
 import { classifyCall } from '@/lib/openrouter'
 
@@ -10,6 +10,34 @@ export async function POST(req: NextRequest) {
   if (!callId) return new NextResponse('Missing callId', { status: 400 })
 
   const supabase = createServiceClient()
+
+  // ── Auth gate (BEFORE any external API spend) ──────────────────────────
+  // Accepted: Bearer ADMIN_PASSWORD (scripts/ops), OR a session user who is
+  // an admin, OR a member of the client that owns this call — CallsList
+  // auto-recovers stuck calls from regular owners' dashboards.
+  const { data: callRow } = await supabase
+    .from('call_logs')
+    .select('client_id, seconds_counted')
+    .eq('ultravox_call_id', callId)
+    .maybeSingle()
+  if (!callRow) return new NextResponse('Unknown callId', { status: 404 })
+
+  const authHeader = req.headers.get('authorization') || ''
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const bearerOk = !!process.env.ADMIN_PASSWORD && bearer === process.env.ADMIN_PASSWORD
+  if (!bearerOk) {
+    const sessionClient = await createServerClient()
+    const { data: { user } } = await sessionClient.auth.getUser()
+    if (!user) return new NextResponse('Unauthorized', { status: 401 })
+    const { data: memberships } = await supabase
+      .from('client_users')
+      .select('role, client_id')
+      .eq('user_id', user.id)
+    const allowed = (memberships ?? []).some(
+      m => m.role === 'admin' || m.client_id === callRow.client_id
+    )
+    if (!allowed) return new NextResponse('Forbidden', { status: 403 })
+  }
 
   // Fetch call details from Ultravox to get duration + endReason
   let durationSeconds = 0
@@ -78,6 +106,22 @@ export async function POST(req: NextRequest) {
   if (error) {
     console.error('[recover] DB update failed:', error.message)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  }
+
+  // Bill the recovered minutes — recovered calls previously never counted
+  // usage (a lost /completed webhook meant free minutes). Same guard as the
+  // completed webhook: seconds_counted flag prevents double-billing.
+  if (durationSeconds > 0 && !callRow.seconds_counted) {
+    const { error: rpcError } = await supabase.rpc('increment_seconds_used', {
+      p_client_id: callRow.client_id,
+      p_seconds: durationSeconds,
+    })
+    if (rpcError) {
+      console.error('[recover] Seconds increment failed:', rpcError.message)
+    } else {
+      await supabase.from('call_logs').update({ seconds_counted: true }).eq('ultravox_call_id', callId)
+      console.log(`[recover] Seconds incremented: clientId=${callRow.client_id} +${durationSeconds}s`)
+    }
   }
 
   return NextResponse.json({
