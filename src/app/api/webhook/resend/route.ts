@@ -154,6 +154,16 @@ export async function POST(req: NextRequest) {
       const reason = (event as { data?: { reason?: string; bounce?: { message?: string } } }).data
       const failMsg = reason?.bounce?.message ?? reason?.reason ?? newStatus
       updatePayload.error = String(failMsg).slice(0, 1000)
+
+      // Operator alert — notification-health only scans status='failed', so
+      // bounces/complaints on lifecycle emails (payment failed, welcome,
+      // trial expiry) were invisible. Volume is a handful/month; alert all.
+      const { notifySystemFailure } = await import('@/lib/admin-alerts')
+      await notifySystemFailure(
+        `Email ${newStatus}: "${event.data?.subject ?? '(no subject)'}" → ${toEmail ?? 'unknown recipient'}`,
+        failMsg,
+        supabase,
+      ).catch(() => {})
     }
     const { error: nlErr } = await supabase
       .from('notification_logs')

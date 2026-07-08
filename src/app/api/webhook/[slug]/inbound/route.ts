@@ -4,6 +4,7 @@ import { createCall, callViaAgent, signCallbackUrl } from '@/lib/ultravox'
 import { defaultCallState } from '@/lib/call-state'
 import { validateSignature, buildStreamTwiml, buildVoicemailTwiml, buildIvrGatherTwiml } from '@/lib/twilio'
 import { sendAlert } from '@/lib/telegram'
+import { notifySystemFailure } from '@/lib/admin-alerts'
 import { buildAgentContext, type ClientRow, type PriorCall, type ContactProfile } from '@/lib/agent-context'
 import { measurePromptLength, PROMPT_CHAR_HARD_MAX, PROMPT_CHAR_TARGET } from '@/lib/knowledge-summary'
 import { getPlanEntitlements } from '@/lib/plan-entitlements'
@@ -146,6 +147,23 @@ export async function POST(
   // ── Grace period enforcement ──────────────────────────────────────────────
   if (graceEnd && new Date(graceEnd) < new Date()) {
     console.warn(`[inbound] GRACE EXPIRED: slug=${slug}, grace_period_end=${graceEnd}`)
+    // This is a dead line for a (formerly) paying client — the single worst
+    // silent-churn signal in the system. Tell both the client and the
+    // operator on every dropped call; volume on a blocked line is low and
+    // a repeated ping for dropped revenue is a feature, not noise.
+    if (client.telegram_bot_token && client.telegram_chat_id) {
+      sendAlert(
+        client.telegram_bot_token as string,
+        client.telegram_chat_id as string,
+        `🚫 Call blocked — your payment grace period has ended.\nCaller: ${callerPhone}\nUpdate your payment method in the dashboard to resume answering calls.`
+      ).catch((e) => console.error(`[inbound] Grace-expired client alert failed for slug=${slug}:`, e))
+    }
+    notifySystemFailure(
+      `Grace-expired call block: ${slug}`,
+      `Caller ${callerPhone} dropped — grace_period_end=${graceEnd}. Client is losing calls until payment is fixed or the number is released.`,
+      supabase,
+      client.id as string,
+    ).catch(() => {})
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response><Say>This number is temporarily unavailable. Please try again later.</Say></Response>`
     return new NextResponse(twiml, { headers: { 'Content-Type': 'text/xml' } })
