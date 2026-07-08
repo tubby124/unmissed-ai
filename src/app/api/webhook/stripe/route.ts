@@ -429,7 +429,7 @@ export async function POST(req: NextRequest) {
     const sub = event.data.object as Stripe.Subscription
     const { data: cl } = await adminSupa
       .from('clients')
-      .select('id, slug, business_name')
+      .select('id, slug, business_name, twilio_number')
       .eq('stripe_subscription_id', sub.id)
       .single()
 
@@ -474,6 +474,21 @@ export async function POST(req: NextRequest) {
             error: String(tgErr).slice(0, 1000),
           })
         } catch { /* never let logging break the webhook */ }
+      }
+
+      // Churn flow: ask the operator whether to release the Twilio number.
+      // Never auto-release — canceled clients are win-back leads and their
+      // number is the win-back asset. Failure here must not break the webhook.
+      try {
+        const { promptNumberRelease } = await import('@/lib/telegram/operator-actions')
+        await promptNumberRelease(adminSupa, {
+          id: cl.id as string,
+          slug: cl.slug as string,
+          business_name: (cl.business_name as string | null) ?? null,
+          twilio_number: (cl.twilio_number as string | null) ?? null,
+        }, 'subscription canceled')
+      } catch (relErr) {
+        console.error('[stripe-webhook] Number-release prompt failed:', relErr)
       }
     }
 

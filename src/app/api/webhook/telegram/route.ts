@@ -36,8 +36,12 @@ import {
   resolvePendingAction,
   cancelPendingAction,
   type PendingActionKind,
+  type PendingActionPayload,
   type PendingActionRow,
+  type ReleaseNumberPayload,
 } from '@/lib/telegram/pending-actions'
+import { isOperatorChat } from '@/lib/telegram/operator-actions'
+import { releaseClientNumber } from '@/lib/release-number'
 import { updateLeadStatusForClient } from '@/lib/calls/lead-status'
 import { handleLearningLoopDecision } from '@/lib/learning-loop/approval'
 
@@ -290,7 +294,10 @@ async function handleConfirmOrCancel(
   }
 
   const action: PendingActionRow | null = await resolvePendingAction(supa, token, chatId)
-  if (!action) {
+  // Kind guard: release tokens live in the same table but must only be
+  // redeemed via rel:/keep: — a release token presented as cf: is treated
+  // as expired (same surface, no info leak).
+  if (!action || action.action_kind === 'release_twilio_number') {
     await answerCallbackQuery(callbackQueryId, { text: 'That confirmation expired.' })
     await sendTelegramMessage(
       chatId,
@@ -300,20 +307,21 @@ async function handleConfirmOrCancel(
     return
   }
 
-  const name = action.payload.name ?? 'the lead'
+  const payload = action.payload as PendingActionPayload
+  const name = payload.name ?? 'the lead'
 
   // Both action kinds end at lead_status='called_back'. cb:<id> additionally
   // surfaces the phone number in the prior reply so the owner can tap-to-call;
   // mk:<id> just flips the status. The DB write is identical.
   const result = await updateLeadStatusForClient(
     supa,
-    action.payload.call_id,
+    payload.call_id,
     action.client_id,
     'called_back',
   )
 
   if (!result.ok) {
-    console.warn(`[telegram-webhook] lead_status mutator failed code=${result.code} client=${action.client_id} call=${action.payload.call_id}`)
+    console.warn(`[telegram-webhook] lead_status mutator failed code=${result.code} client=${action.client_id} call=${payload.call_id}`)
     await answerCallbackQuery(callbackQueryId, { text: "Couldn't save that — try again." })
     await sendTelegramMessage(
       chatId,
@@ -330,6 +338,59 @@ async function handleConfirmOrCancel(
     chatId,
     `✅ <b>${escapeHtml(name)}</b> marked called back.`,
     { reply_markup: buildQuickActionsKeyboard() },
+  )
+}
+
+/**
+ * Churn flow: rel:<token> releases a canceled client's Twilio number back
+ * to inventory; keep:<token> holds it for win-back. Tokens are created by
+ * promptNumberRelease() (Stripe subscription.deleted) with a 72h TTL and
+ * chat_id = operator chat, so resolvePendingAction() already scopes
+ * redemption to the operator. The explicit isOperatorChat() check is
+ * belt-and-suspenders against env misconfiguration.
+ */
+async function handleNumberReleaseTap(
+  supa: SupabaseClient,
+  callbackQueryId: string,
+  chatId: number,
+  code: string,
+): Promise<void> {
+  const isRelease = code.startsWith('rel:')
+  const token = code.slice(isRelease ? 4 : 5).trim()
+  if (!token || !isOperatorChat(chatId)) {
+    await answerCallbackQuery(callbackQueryId, { text: "I didn't catch that." })
+    return
+  }
+
+  if (!isRelease) {
+    await cancelPendingAction(supa, token, chatId)
+    await answerCallbackQuery(callbackQueryId, { text: 'Number kept.' })
+    await sendTelegramMessage(chatId, '📞 Number kept — the line stays configured for win-back. Release later from the admin dashboard if needed.')
+    return
+  }
+
+  const action = await resolvePendingAction(supa, token, chatId)
+  if (!action || action.action_kind !== 'release_twilio_number') {
+    await answerCallbackQuery(callbackQueryId, { text: 'That confirmation expired.' })
+    await sendTelegramMessage(chatId, 'That release prompt expired (72h). Release the number from the admin dashboard instead.')
+    return
+  }
+
+  const payload = action.payload as ReleaseNumberPayload
+  const label = `${payload.business_name ?? payload.slug} (${payload.slug})`
+
+  const result = await releaseClientNumber(supa, action.client_id)
+  if (!result.ok) {
+    console.error(`[telegram-webhook] number release failed for ${payload.slug}: ${result.error}`)
+    await answerCallbackQuery(callbackQueryId, { text: "Release failed — see logs." })
+    await sendTelegramMessage(chatId, `⚠️ Couldn't release ${escapeHtml(payload.number)} for <b>${escapeHtml(label)}</b>: ${escapeHtml(result.error ?? 'unknown error')}. Try the admin dashboard.`)
+    return
+  }
+
+  await answerCallbackQuery(callbackQueryId, { text: 'Number released ✅' })
+  await sendTelegramMessage(
+    chatId,
+    `📴 Released <b>${escapeHtml(result.phoneNumber ?? payload.number)}</b> from <b>${escapeHtml(label)}</b>.\n${escapeHtml(result.note ?? '')}`,
   )
 }
 
@@ -381,6 +442,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         await sendTelegramMessage(chatId, "I couldn't process that suggestion. Try again later.", {
           reply_markup: buildQuickActionsKeyboard(),
         })
+      }
+      return new NextResponse('OK', { status: 200 })
+    }
+
+    // ── Churn flow: rel:<uuid> release number / keep:<uuid> hold it ────────
+    if (code.startsWith('rel:') || code.startsWith('keep:')) {
+      try {
+        await handleNumberReleaseTap(adminSupa, cq.id, chatId, code)
+      } catch (err) {
+        console.error(`[telegram-webhook] rel/keep error chatId=${chatId}: ${(err as Error).message}`)
+        await answerCallbackQuery(cq.id)
       }
       return new NextResponse('OK', { status: 200 })
     }

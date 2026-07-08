@@ -25,12 +25,12 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export type PendingActionKind = 'mark_called_back' | 'call_back_lead'
+export type PendingActionKind = 'mark_called_back' | 'call_back_lead' | 'release_twilio_number'
 
 /**
  * Payload shape stored in the `payload` jsonb column.
  *
- * Both kinds carry call_id (the call_logs row to mutate), name (for the
+ * Lead kinds carry call_id (the call_logs row to mutate), name (for the
  * confirm/toast text), and the lead's phone (mostly used by call_back_lead
  * to make tap-to-call easy in the reply, but harmless on either kind).
  */
@@ -40,10 +40,21 @@ export interface PendingActionPayload {
   phone: string | null
 }
 
+/**
+ * Payload for 'release_twilio_number' (churn flow). Created by the Stripe
+ * subscription.deleted handler; redeemed from the operator chat via
+ * rel:<token> / kept via keep:<token>.
+ */
+export interface ReleaseNumberPayload {
+  number: string
+  slug: string
+  business_name: string | null
+}
+
 export interface PendingActionRow {
   client_id: string
   action_kind: PendingActionKind
-  payload: PendingActionPayload
+  payload: PendingActionPayload | ReleaseNumberPayload
 }
 
 const TTL_SECONDS = 60
@@ -58,10 +69,12 @@ export async function createPendingAction(
     client_id: string
     chat_id: number
     kind: PendingActionKind
-    payload: PendingActionPayload
+    payload: PendingActionPayload | ReleaseNumberPayload
+    /** Override the default 60s TTL (e.g. churn release prompts use 72h). */
+    ttlSeconds?: number
   },
 ): Promise<string | null> {
-  const expiresAt = new Date(Date.now() + TTL_SECONDS * 1000).toISOString()
+  const expiresAt = new Date(Date.now() + (params.ttlSeconds ?? TTL_SECONDS) * 1000).toISOString()
   const { data, error } = await supa
     .from('telegram_pending_actions')
     .insert({
@@ -144,7 +157,7 @@ export async function resolvePendingAction(
   return {
     client_id: data.client_id as string,
     action_kind: data.action_kind as PendingActionKind,
-    payload: data.payload as PendingActionPayload,
+    payload: data.payload as PendingActionPayload | ReleaseNumberPayload,
   }
 }
 
