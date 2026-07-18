@@ -18,8 +18,7 @@
  *   npx tsx scripts/twilio-ownership-check.ts --dry-run  # log only — no DB writes, no Telegram
  *
  * Exit codes:
- *   0 — no findings
- *   1 — P1 only
+ *   0 — no P0 findings (clean or P1-only; P1s are persisted for review)
  *   2 — at least one P0 (calls failing) OR setup/env error
  *
  * Idempotency: harness-writer keys on (harness, check_name, client_slug). Re-runs
@@ -178,7 +177,6 @@ async function main(): Promise<number> {
   if (DRY_RUN) {
     console.log('[twilio-ownership] DRY RUN — skipping recordFindings + Telegram')
     if (p0.length > 0) return 2
-    if (p1.length > 0) return 1
     return 0
   }
 
@@ -202,7 +200,9 @@ async function main(): Promise<number> {
     }
     return 2
   }
-  if (p1.length > 0) return 1
+  if (p1.length > 0) {
+    console.log('[twilio-ownership] P1 findings recorded for review; not failing watchdog run')
+  }
   return 0
 }
 
