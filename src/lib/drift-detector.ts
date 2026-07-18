@@ -13,6 +13,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { PROMPT_CHAR_HARD_MAX } from './knowledge-summary'
 
 export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 
@@ -32,7 +33,8 @@ export interface FleetReport {
 }
 
 const REQUIRED_HOST = 'https://endvoicemail.ai'
-const PROMPT_CHAR_HARD_MAX = 21000
+// Must match current production fallback wiring.
+const SHARED_VOICE_FALLBACK_URL = 'https://fallback.endvoicemail.ai/voice'
 const LAST_SYNC_STALE_DAYS = 14
 const PROPERTY_MGMT_NICHES = ['property_management', 'property-management']
 
@@ -55,6 +57,78 @@ interface TwilioNumber {
   voiceUrl: string | null
   voiceFallbackUrl: string | null
   smsUrl: string | null
+}
+
+type TwilioUrls = Pick<TwilioNumber, 'voiceUrl' | 'voiceFallbackUrl' | 'smsUrl'>
+
+/** Pure URL audit. The voice fallback intentionally uses an independent CF Worker. */
+export function auditTwilioUrls(slug: string, urls: TwilioUrls): Finding[] {
+  const findings: Finding[] = []
+  const primaryUrls = [
+    ['voice_url', `/api/webhook/${slug}/inbound`, urls.voiceUrl],
+    ['sms_url', `/api/webhook/${slug}/sms-inbound`, urls.smsUrl],
+  ] as const
+
+  for (const [field, expectedPath, actual] of primaryUrls) {
+    if (!actual) {
+      if (field === 'voice_url') {
+        findings.push({
+          severity: 'CRITICAL',
+          client_slug: slug,
+          dimension: `twilio_${field}`,
+          expected: `${REQUIRED_HOST}${expectedPath}`,
+          actual: '(empty)',
+        })
+      }
+      continue
+    }
+
+    if (!actual.startsWith(REQUIRED_HOST)) {
+      findings.push({
+        severity: field === 'voice_url' ? 'CRITICAL' : 'HIGH',
+        client_slug: slug,
+        dimension: `twilio_${field}_host`,
+        expected: REQUIRED_HOST,
+        actual: safeOrigin(actual),
+        note: 'unexpected host',
+      })
+    }
+    if (!actual.includes(`/${slug}/`)) {
+      findings.push({
+        severity: 'HIGH',
+        client_slug: slug,
+        dimension: `twilio_${field}_slug`,
+        expected: `…/${slug}/…`,
+        actual,
+      })
+    }
+  }
+
+  if (urls.voiceFallbackUrl !== SHARED_VOICE_FALLBACK_URL) {
+    findings.push({
+      severity: 'HIGH',
+      client_slug: slug,
+      dimension: 'twilio_voice_fallback_url',
+      expected: SHARED_VOICE_FALLBACK_URL,
+      actual: urls.voiceFallbackUrl ?? '(empty)',
+      note: 'fallback must use the independent Cloudflare Worker',
+    })
+  }
+
+  return findings
+}
+
+/** Pure prompt-length audit using the same hard limit as runtime provisioning. */
+export function auditPromptLength(slug: string, promptLen: number): Finding[] {
+  if (promptLen <= PROMPT_CHAR_HARD_MAX) return []
+  return [{
+    severity: 'HIGH',
+    client_slug: slug,
+    dimension: 'prompt_length',
+    expected: `≤ ${PROMPT_CHAR_HARD_MAX} chars`,
+    actual: `${promptLen} chars`,
+    note: 'Promote content to KB or trim niche template',
+  }]
 }
 
 interface UltravoxToolEntry {
@@ -126,9 +200,6 @@ function auditClient(
 ): Finding[] {
   const findings: Finding[] = []
   const slug = client.slug
-  const expectedVoicePath = `/api/webhook/${slug}/inbound`
-  const expectedFallbackPath = `/api/webhook/${slug}/fallback`
-  const expectedSmsPath = `/api/webhook/${slug}/sms-inbound`
 
   // ── Twilio config ───────────────────────────────────────────────
   if (client.twilio_number) {
@@ -136,23 +207,7 @@ function auditClient(
     if (!tw) {
       findings.push({ severity: 'CRITICAL', client_slug: slug, dimension: 'twilio_number_missing', expected: client.twilio_number, actual: '(not found on Twilio account)' })
     } else {
-      for (const [field, expectedPath, actual] of [
-        ['voice_url', expectedVoicePath, tw.voiceUrl],
-        ['voice_fallback_url', expectedFallbackPath, tw.voiceFallbackUrl],
-        ['sms_url', expectedSmsPath, tw.smsUrl],
-      ] as const) {
-        if (!actual) {
-          if (field === 'voice_url') findings.push({ severity: 'CRITICAL', client_slug: slug, dimension: `twilio_${field}`, expected: `${REQUIRED_HOST}${expectedPath}`, actual: '(empty)' })
-          continue
-        }
-        if (!actual.startsWith(REQUIRED_HOST)) {
-          const sev: Severity = field === 'voice_url' ? 'CRITICAL' : 'HIGH'
-          findings.push({ severity: sev, client_slug: slug, dimension: `twilio_${field}_host`, expected: REQUIRED_HOST, actual: safeOrigin(actual), note: 'unexpected host' })
-        }
-        if (!actual.includes(`/${slug}/`)) {
-          findings.push({ severity: 'HIGH', client_slug: slug, dimension: `twilio_${field}_slug`, expected: `…/${slug}/…`, actual })
-        }
-      }
+      findings.push(...auditTwilioUrls(slug, tw))
     }
   }
 
@@ -171,10 +226,7 @@ function auditClient(
   }
 
   // ── Prompt length ───────────────────────────────────────────────
-  const promptLen = client.system_prompt?.length ?? 0
-  if (promptLen > PROMPT_CHAR_HARD_MAX) {
-    findings.push({ severity: 'HIGH', client_slug: slug, dimension: 'prompt_length', expected: `≤ ${PROMPT_CHAR_HARD_MAX} chars`, actual: `${promptLen} chars`, note: 'Promote content to KB or trim niche template' })
-  }
+  findings.push(...auditPromptLength(slug, client.system_prompt?.length ?? 0))
 
   // ── last_agent_sync_at recency ───────────────────────────────────
   if (client.last_agent_sync_at) {
