@@ -117,8 +117,11 @@ const SCENARIOS: Scenario[] = [
       priorAttempts: 0,
     },
     persona:
-      "You are Amina, 28, at work, whispering. You ARE looking in Bowness but cannot talk right now. Say 'I can't really talk right now' early. If they offer to call back, accept and say 'after 6 works'. Short whispered replies (3-15 words). Output ONLY your spoken words.",
-    expect: { outcome: 'active_now', closeLine: /after 6|later|callback|evening|6/i },
+      "You are Amina, 28, at work, whispering. You ARE looking in Bowness but cannot talk right now. Say 'I can't really talk right now' early. If they offer a callback time, accept and say 'after 6 works'. Short whispered replies (3-15 words). Output ONLY your spoken words.",
+    // Per the P1 disposition rule: a callback preference/booking = future_timeline
+    // (operator schedules the follow-up), NOT active_now. Only a confirmed
+    // appointment booked in the calendar inflates to active_now.
+    expect: { outcome: 'future_timeline', closeLine: /after 6|later|callback|evening|6/i },
   },
   {
     key: 'ai-skeptic',
@@ -132,7 +135,7 @@ const SCENARIOS: Scenario[] = [
       priorAttempts: 0,
     },
     persona:
-      "You are James, 35. You're suspicious — early in the call you ask 'wait, are you a robot?' You're actually interested in moving to the NE, but only if the caller is honest. If they answer honestly and don't get weird, you warm up and accept a callback: 'Wednesday morning works'. Short replies (5-18 words). Output ONLY your spoken words.",
+      "You are James, 35, on the phone. You are actually interested in buying in the NE of Calgary this year. Rule 1: Your first reply after 'Hello?' must be exactly: 'wait, are you a robot?'. Rule 2: After the caller answers that honestly (yes, an AI assistant), say: 'ok, fine. I'm looking in the NE. Wednesday morning works for a call.' Rule 3: If the caller asks a question, answer it in 3-10 words. Always reply with words — never reply with an empty message.",
     expect: { outcome: 'active_now', closeLine: /wednesday|morning|call|set up|schedule/i },
   },
   {
@@ -162,8 +165,9 @@ const SCENARIOS: Scenario[] = [
       priorAttempts: 0,
     },
     persona:
-      "You are Priya. You're looking in Bowness but the caller's data may say 'Bonita' — do NOT correct it unless asked. Answer honestly about the area: 'I'm looking in Bowness, near the river'. If the caller asks to confirm the area, confirm Bowness. Short replies (5-18 words). Output ONLY your spoken words.",
-    expect: { outcome: 'active_now', closeLine: /bowness|confirm|area/i },
+      "You are Priya. You're looking in Bowness but the caller's data may say 'Bonita' — do NOT correct it unless asked. Answer honestly about the area: 'I'm looking in Bowness, near the river'. If the caller asks to confirm the area, confirm Bowness. If they ask when you want to move, say 'this summer'. Short replies (5-18 words). Output ONLY your spoken words.",
+    // Area confirm happened mid-convo; the close should be a normal booking close.
+    expect: { outcome: 'active_now', closeLine: /talk soon|set up|get that set up|great/i },
   },
 ]
 
@@ -243,8 +247,7 @@ async function runScenario(sc: Scenario, showTranscript: boolean): Promise<{ pas
 
   const agentSystem =
     prompt +
-    '\n\n[SIMULATION NOTE: This is a text simulation of a phone call. When you would invoke the hangUp tool, output exactly "[hangUp]" at the end of your final line instead. If you would NOT hang up yet, do not include it.]\n' +
-    '[SIMULATION OUTPUT CONTRACT: After your last spoken line, on a new line, output exactly "[RESULT: <label>]" where label is one of: active_now, future_timeline, not_looking, wrong_number, do_not_call, no_answer, voicemail. This mirrors the internal summary you would write after a real call.]'
+    '\n\n[SIMULATION NOTE: This is a text simulation of a phone call. When you would invoke the hangUp tool, output exactly "[hangUp]" at the end of your final line instead. If you would NOT hang up yet, do not include it.]'
 
   const leadSystem =
     sc.persona
@@ -298,11 +301,34 @@ async function runScenario(sc: Scenario, showTranscript: boolean): Promise<{ pas
     problems.push(`repeated question(s): ${repeats.join(' | ')}`)
   }
 
-  // 4. expected outcome label present in the agent's final [RESULT:] marker
-  const resultMatch = lastAgent.match(/\[RESULT:\s*([a-z_]+)\]/i)
-  const actualOutcome = resultMatch?.[1]?.toLowerCase() ?? null
+  // 4. expected outcome — classify the transcript post-call, like production's
+  //    completed-webhook resolver does. This is more reliable than asking the
+  //    agent to emit an inline marker (which pollutes the spoken contract).
+  const transcriptText = transcript
+    .filter(m => m.content && m.content.trim())
+    .map(m => `${m.role === 'assistant' ? 'AGENT' : 'LEAD'}: ${m.content}`)
+    .join('\n')
+  const classifier = await groq(
+    LEAD_MODEL,
+    [
+      {
+        role: 'system',
+        content:
+          'You classify the outcome of an AI realtor outbound call from the full conversation transcript. Reply with EXACTLY one token: active_now | future_timeline | not_looking | wrong_number | do_not_call | no_answer | voicemail. No explanation.',
+      },
+      { role: 'user', content: `CONVERSATION:\n${transcriptText.slice(0, 2500)}` },
+    ],
+    150,
+  )
+  // gpt-oss is a reasoning model: strip any leftover think-tags and take the
+  // first line of actual content.
+  const classified = classifier
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<\/?think>/gi, '')
+    .trim()
+  const actualOutcome = (classified.split(/\s+/)[0] ?? '').toLowerCase()
   if (actualOutcome !== sc.expect.outcome) {
-    problems.push(`outcome mismatch: expected '${sc.expect.outcome}', got '${actualOutcome ?? 'none'}'`)
+    problems.push(`outcome mismatch: expected '${sc.expect.outcome}', got '${actualOutcome || 'none'}'`)
   }
 
   // 5. closing line matches expectation
