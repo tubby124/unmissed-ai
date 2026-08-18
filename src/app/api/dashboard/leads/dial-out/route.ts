@@ -3,26 +3,11 @@ import { createServerClient, createServiceClient } from '@/lib/supabase/server'
 import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { outboundBookingReady, appendOutboundBookingTools, buildOutboundDateBlock } from '@/lib/outbound-call-assembly'
-import { assembleOutboundPrompt, type OutboundTone } from '@/lib/outbound-prompt-builder'
+import { assembleOutboundPrompt, resolveOutboundPrompt, type OutboundTone } from '@/lib/outbound-prompt-builder'
+import { buildRealtorOutboundPrompt, resolveRealtorLeadContext, REALTOR_LOFTY_REVIVAL_MODE } from '@/lib/realtor-outbound-prompt'
 import { validateOutboundVmScript } from '@/lib/outbound-safety'
 import { APP_URL } from '@/lib/app-url'
 import twilio from 'twilio'
-
-/** Substitute outbound prompt placeholders with per-lead values at call time. */
-function resolveOutboundPrompt(template: string, vars: {
-  leadName: string
-  leadPhone: string
-  leadNotes: string
-  businessName: string
-  agentName: string
-}): string {
-  return template
-    .replace(/\{\{LEAD_NAME\}\}/g, vars.leadName)
-    .replace(/\{\{LEAD_PHONE\}\}/g, vars.leadPhone)
-    .replace(/\{\{LEAD_NOTES\}\}/g, vars.leadNotes)
-    .replace(/\{\{BUSINESS_NAME\}\}/g, vars.businessName)
-    .replace(/\{\{AGENT_NAME\}\}/g, vars.agentName)
-}
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerClient()
@@ -46,7 +31,7 @@ export async function POST(req: NextRequest) {
   // Fetch the campaign lead
   const { data: lead } = await supabase
     .from('campaign_leads')
-    .select('id, phone, name, notes, client_id')
+    .select('id, phone, name, notes, client_id, source, external_ref, call_count, lead_status, status')
     .eq('id', lead_id)
     .single()
 
@@ -129,7 +114,18 @@ export async function POST(req: NextRequest) {
   let outboundPrompt = client.outbound_prompt as string | null
   let vmScript = (client.outbound_vm_script as string | null) ?? null
 
-  if (selectedTemplate) {
+  const realtorContext = resolveRealtorLeadContext({
+    name: (lead.name as string | null) ?? null,
+    source: (lead.source as string | null) ?? null,
+    externalRef: ((lead as { external_ref?: string | number | null }).external_ref) ?? null,
+    pipelineStage: (lead.lead_status as string | null) ?? (lead.status as string | null) ?? null,
+    priorAttempts: (lead.call_count as number | null) ?? 0,
+  })
+  const outboundCallMode: 'generic' | typeof REALTOR_LOFTY_REVIVAL_MODE = realtorContext ? REALTOR_LOFTY_REVIVAL_MODE : 'generic'
+
+  if (realtorContext) {
+    outboundPrompt = buildRealtorOutboundPrompt(realtorContext)
+  } else if (selectedTemplate) {
     vmScript = selectedTemplate.vm_script
     outboundPrompt = assembleOutboundPrompt({
       goal: selectedTemplate.goal,
@@ -250,6 +246,7 @@ export async function POST(req: NextRequest) {
         client_slug: slug,
         client_id: client.id,
         lead_id: lead.id,
+        ...(realtorContext ? { call_mode: outboundCallMode, lofty_lead_id: realtorContext.loftyLeadId } : {}),
         source: 'outbound',
       },
     })

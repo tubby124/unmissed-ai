@@ -24,25 +24,12 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { outboundBookingReady, appendOutboundBookingTools, buildOutboundDateBlock } from '@/lib/outbound-call-assembly'
+import { resolveOutboundPrompt } from '@/lib/outbound-prompt-builder'
+import { buildRealtorOutboundPrompt, resolveRealtorLeadContext, REALTOR_LOFTY_REVIVAL_MODE } from '@/lib/realtor-outbound-prompt'
 import { APP_URL } from '@/lib/app-url'
 import { sendAlert } from '@/lib/telegram'
 import { validateOutboundVmScript } from '@/lib/outbound-safety'
 import twilio from 'twilio'
-
-function resolveOutboundPrompt(template: string, vars: {
-  leadName: string
-  leadPhone: string
-  leadNotes: string
-  businessName: string
-  agentName: string
-}): string {
-  return template
-    .replace(/\{\{LEAD_NAME\}\}/g, vars.leadName)
-    .replace(/\{\{LEAD_PHONE\}\}/g, vars.leadPhone)
-    .replace(/\{\{LEAD_NOTES\}\}/g, vars.leadNotes)
-    .replace(/\{\{BUSINESS_NAME\}\}/g, vars.businessName)
-    .replace(/\{\{AGENT_NAME\}\}/g, vars.agentName)
-}
 
 export const maxDuration = 60
 
@@ -59,7 +46,7 @@ export async function POST(req: NextRequest) {
   // Find leads due for callback — exclude statuses that indicate active/completed/dnc
   const { data: leads, error: leadsErr } = await svc
     .from('campaign_leads')
-    .select('id, phone, name, notes, client_id, scheduled_callback_at, call_count, disposition')
+    .select('id, phone, name, notes, client_id, scheduled_callback_at, call_count, disposition, source, external_ref, lead_status, status')
     .lte('scheduled_callback_at', now)
     .not('status', 'in', '("called","completed","calling","dnc")')
     .limit(20)
@@ -147,7 +134,19 @@ export async function POST(req: NextRequest) {
       continue
     }
 
-    if (!client.outbound_prompt) {
+    const realtorContext = resolveRealtorLeadContext({
+      name: (lead.name as string | null) ?? null,
+      source: (lead.source as string | null) ?? null,
+      externalRef: ((lead as { external_ref?: string | number | null }).external_ref) ?? null,
+      pipelineStage: (lead.lead_status as string | null) ?? (lead.status as string | null) ?? null,
+      priorAttempts: (lead.call_count as number | null) ?? 0,
+    })
+    const outboundCallMode: 'generic' | typeof REALTOR_LOFTY_REVIVAL_MODE = realtorContext ? REALTOR_LOFTY_REVIVAL_MODE : 'generic'
+    const outboundPrompt = realtorContext
+      ? buildRealtorOutboundPrompt(realtorContext)
+      : ((client.outbound_prompt as string | null) ?? null)
+
+    if (!outboundPrompt) {
       console.warn(`[scheduled-callbacks] Client ${slug} has no outbound_prompt — skipping lead ${lead.id}`)
       await svc.from('campaign_leads').update({ status: 'queued' }).eq('id', lead.id)
       stats.skipped++
@@ -195,7 +194,7 @@ export async function POST(req: NextRequest) {
     const corpusAvailable = client.knowledge_backend === 'pgvector'
     const ctx = buildAgentContext(clientRow, toPhone, [], new Date(), corpusAvailable)
 
-    const resolvedPrompt = resolveOutboundPrompt(client.outbound_prompt as string, {
+    const resolvedPrompt = resolveOutboundPrompt(outboundPrompt, {
       leadName: (lead.name as string | null) ?? 'there',
       leadPhone: toPhone,
       leadNotes: (lead.notes as string | null) ?? '',
@@ -239,6 +238,7 @@ export async function POST(req: NextRequest) {
           client_slug: slug,
           client_id: client.id,
           lead_id: lead.id,
+          ...(realtorContext ? { call_mode: outboundCallMode, lofty_lead_id: realtorContext.loftyLeadId } : {}),
           source: 'scheduled_callback',
         },
       })

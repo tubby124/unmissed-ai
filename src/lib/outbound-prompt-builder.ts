@@ -10,6 +10,33 @@
  */
 
 export type OutboundTone = 'warm' | 'professional' | 'direct' | 'flirty' | 'busty' | 'custom'
+export type OutboundCallMode = 'generic' | 'realtor_lofty_revival'
+
+export interface OutboundPromptVars {
+  leadName: string
+  leadPhone: string
+  leadNotes: string
+  businessName: string
+  agentName: string
+}
+
+export function firstNameFromLeadName(leadName: string): string {
+  const trimmed = leadName.trim()
+  if (!trimmed || trimmed.toLowerCase() === 'there') return 'there'
+  return trimmed.split(/\s+/)[0] || 'there'
+}
+
+/** Substitute outbound prompt placeholders with per-lead values at call time. */
+export function resolveOutboundPrompt(template: string, vars: OutboundPromptVars): string {
+  const firstName = firstNameFromLeadName(vars.leadName)
+  return template
+    .replace(/\{\{LEAD_FIRST_NAME\}\}/g, firstName)
+    .replace(/\{\{LEAD_NAME\}\}/g, vars.leadName)
+    .replace(/\{\{LEAD_PHONE\}\}/g, vars.leadPhone)
+    .replace(/\{\{LEAD_NOTES\}\}/g, vars.leadNotes)
+    .replace(/\{\{BUSINESS_NAME\}\}/g, vars.businessName)
+    .replace(/\{\{AGENT_NAME\}\}/g, vars.agentName)
+}
 
 export interface OutboundPromptFields {
   goal: string
