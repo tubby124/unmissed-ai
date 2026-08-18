@@ -509,6 +509,49 @@ function textHasAnyToken(text: string, tokens: string[]): boolean {
   return tokens.some(token => normalized.includes(token))
 }
 
+function cleanText(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+/**
+ * Realtor Lofty revival confirmations must be anchored to a concrete callback
+ * or appointment time. Broad callback_preference buckets like "afternoon" are
+ * operator scheduling inputs, not confirmed appointments.
+ */
+export function isConcreteRealtorCallbackTime(value: string | null | undefined): boolean {
+  const candidate = cleanText(value)
+  if (!candidate) return false
+
+  const normalized = candidate.toLowerCase().replace(/\s+/g, ' ').trim()
+  const broadPeriodOnly = /^(?:anytime\s+)?(?:(?:this|tomorrow|today|next)\s+)?(?:in\s+the\s+)?(?:morning|afternoon|evening)$/i
+  if (broadPeriodOnly.test(normalized)) return false
+
+  // ISO-ish date-time strings are unambiguous enough when they include a time.
+  if (/^\d{4}-\d{2}-\d{2}[t\s]\d{2}:\d{2}/i.test(candidate) && !Number.isNaN(Date.parse(candidate))) {
+    return true
+  }
+
+  const hasAmPmTime = /\b(?:1[0-2]|0?[1-9])(?:[:.]\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)\b/i.test(candidate)
+  const hasTwentyFourHourTime = /\b(?:[01]?\d|2[0-3]):[0-5]\d\b/.test(candidate)
+  const hasNamedExactTime = /\b(?:noon|midnight)\b/i.test(candidate)
+
+  return hasAmPmTime || hasTwentyFourHourTime || hasNamedExactTime
+}
+
+export function resolveRealtorCallbackConfirmationTime(params: {
+  appointmentTime?: string | null
+  callbackPreference?: string | null
+}): string | null {
+  const appointmentTime = cleanText(params.appointmentTime)
+  if (appointmentTime && isConcreteRealtorCallbackTime(appointmentTime)) return appointmentTime
+
+  const callbackPreference = cleanText(params.callbackPreference)
+  if (callbackPreference && isConcreteRealtorCallbackTime(callbackPreference)) return callbackPreference
+
+  return null
+}
+
 function resolveRealtorOutboundSmsOutcome(params: {
   classification: Classification
   metadata: Record<string, string>
@@ -534,7 +577,10 @@ function resolveRealtorOutboundSmsOutcome(params: {
   }
 
   const cd = classification.caller_data
-  if (cd?.booked || cd?.appointment_time || callbackPreference) return 'booked'
+  if (cd?.booked || resolveRealtorCallbackConfirmationTime({
+    appointmentTime: cd?.appointment_time ?? null,
+    callbackPreference,
+  })) return 'booked'
 
   const missed = classification.status === 'MISSED' || classification.status === 'VOICEMAIL' || endReason === 'unjoined'
   return missed ? 'missed' : 'answered'
@@ -635,11 +681,20 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
       }
     }
 
+    const realtorCallbackTime = campaignType === 'realtor_lofty_revival'
+      ? resolveRealtorCallbackConfirmationTime({
+          appointmentTime: cd?.appointment_time ?? null,
+          callbackPreference,
+        })
+      : null
+
     smsBody = getOutboundLeadSmsTemplate(outcome, {
       businessName: client.business_name || 'our office',
       agentName: client.agent_name ?? null,
       callerName: cd?.caller_name ?? null,
-      appointmentTime: cd?.appointment_time ?? callbackPreference ?? null,
+      appointmentTime: campaignType === 'realtor_lofty_revival'
+        ? realtorCallbackTime
+        : cd?.appointment_time ?? callbackPreference ?? null,
       campaignType,
       sendMissedCallText: metadataFlag(metadata.sendMissedCallText),
       verifiedSearchUrl: metadata.verified_search_url ?? metadata.verifiedSearchUrl ?? null,

@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { getOutboundLeadSmsTemplate } from '../sms-templates.js'
+import { resolveRealtorCallbackConfirmationTime } from '../completed-notifications.js'
 
 // Post-call SMS lanes for outbound lead-qualification calls.
 // Generic outbound behavior stays intact; realtor_lofty_revival is a stricter,
@@ -51,6 +52,16 @@ describe('getOutboundLeadSmsTemplate — generic outbound', () => {
       assert.doesNotMatch(body!, /thanks for calling/i)
       assert.doesNotMatch(body!, /missed your call/i)
     }
+  })
+
+  it('generic booked SMS still preserves broad verbal timing behavior', () => {
+    const body = getOutboundLeadSmsTemplate('booked', {
+      ...base,
+      callerName: 'Alex',
+      appointmentTime: 'afternoon',
+    })
+    assert.ok(body)
+    assert.match(body!, /for afternoon/)
   })
 
   it('falls back gracefully when agentName is missing', () => {
@@ -105,6 +116,42 @@ describe('getOutboundLeadSmsTemplate — realtor_lofty_revival safety policy', (
     assert.match(body!, /Jacob/)
     assert.match(body!, /confirming your requested callback for Friday at 3 PM/i)
     assert.match(body!, /Reply STOP to opt out/)
+  })
+
+  it('completed webhook adapter rejects afternoon-only callback preference for Realtor confirmation SMS', () => {
+    const appointmentTime = resolveRealtorCallbackConfirmationTime({
+      appointmentTime: null,
+      callbackPreference: 'afternoon',
+    })
+    assert.equal(appointmentTime, null)
+    assert.equal(getOutboundLeadSmsTemplate('booked', {
+      ...realtor,
+      callerName: 'Jacob',
+      appointmentTime,
+    }), null)
+  })
+
+  it('completed webhook adapter allows concrete Realtor callback times through to confirmation SMS', () => {
+    const appointmentTime = resolveRealtorCallbackConfirmationTime({
+      appointmentTime: null,
+      callbackPreference: 'Friday at 3 PM',
+    })
+    assert.equal(appointmentTime, 'Friday at 3 PM')
+
+    const body = getOutboundLeadSmsTemplate('booked', {
+      ...realtor,
+      callerName: 'Jacob',
+      appointmentTime,
+    })
+    assert.ok(body)
+    assert.match(body!, /confirming your requested callback for Friday at 3 PM/i)
+  })
+
+  it('completed webhook adapter prefers structured concrete appointment time over broad callback preference', () => {
+    assert.equal(resolveRealtorCallbackConfirmationTime({
+      appointmentTime: '2026-08-21T15:00:00-06:00',
+      callbackPreference: 'afternoon',
+    }), '2026-08-21T15:00:00-06:00')
   })
 
   it('verified listing/search link text requires both supplied URL and honest name', () => {

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   // Find leads due for callback — exclude statuses that indicate active/completed/dnc
   const { data: leads, error: leadsErr } = await svc
     .from('campaign_leads')
-    .select('id, phone, name, notes, client_id, scheduled_callback_at, call_count, disposition, source, external_ref, lead_status, status')
+    .select('id, phone, name, notes, client_id, scheduled_callback_at, call_count, disposition, source, external_ref, lofty_lead_id, lead_status, status')
     .lte('scheduled_callback_at', now)
     .not('status', 'in', '("called","completed","calling","dnc")')
     .limit(20)
@@ -139,7 +139,9 @@ export async function POST(req: NextRequest) {
       clientNiche: (client.niche as string | null) ?? null,
       name: (lead.name as string | null) ?? null,
       source: (lead.source as string | null) ?? null,
-      externalRef: ((lead as { external_ref?: string | number | null }).external_ref) ?? null,
+      externalRef: ((lead as { lofty_lead_id?: string | number | null; external_ref?: string | number | null }).lofty_lead_id)
+        ?? ((lead as { external_ref?: string | number | null }).external_ref)
+        ?? null,
       pipelineStage: (lead.lead_status as string | null) ?? (lead.status as string | null) ?? null,
       priorAttempts: (lead.call_count as number | null) ?? 0,
     })

@@ -25,7 +25,8 @@
  *   name?: string,
  *   email?: string,             // lets the calendar book route invite the lead as event attendee
  *   notes?: string,             // becomes {{LEAD_NOTES}} in the outbound prompt
- *   external_ref?: string,      // source system lead id (outcome writeback key)
+ *   external_ref?: string,      // website/source-system correlation id (UUIDs allowed; not a Lofty CRM id)
+ *   lofty_lead_id?: string,    // numeric Lofty CRM lead id for Aisha writeback only
  *   source?: string             // e.g. "hasansharif.ca/get-the-list-calgary"
  * }
  */
@@ -35,6 +36,7 @@ import { createHash, timingSafeEqual } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
 import { normalizePhoneNA, isValidE164NA } from '@/lib/utils/phone'
 import { APP_URL } from '@/lib/app-url'
+import { isNumericSafeLoftyLeadId } from '@/lib/realtor-outbound-prompt'
 
 export const maxDuration = 60
 
@@ -105,6 +107,7 @@ export async function POST(req: NextRequest) {
     email?: unknown
     notes?: unknown
     external_ref?: unknown
+    lofty_lead_id?: unknown
     source?: unknown
   }
   try {
@@ -121,6 +124,10 @@ export async function POST(req: NextRequest) {
   const email = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail) ? rawEmail : null
   const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, 2000) : null
   const externalRef = typeof body.external_ref === 'string' ? body.external_ref.trim().slice(0, 100) : null
+  const rawLoftyLeadId = typeof body.lofty_lead_id === 'string' || typeof body.lofty_lead_id === 'number'
+    ? String(body.lofty_lead_id).trim()
+    : ''
+  const loftyLeadId = isNumericSafeLoftyLeadId(rawLoftyLeadId) ? rawLoftyLeadId : null
   const source = typeof body.source === 'string' ? body.source.trim().slice(0, 200) : 'external'
 
   if (!slug) return NextResponse.json({ error: 'client_slug required' }, { status: 400 })
@@ -206,6 +213,7 @@ export async function POST(req: NextRequest) {
       status: 'queued', // campaign_leads_status_check: queued|called|dnc|calling|completed
       source,
       external_ref: externalRef,
+      lofty_lead_id: loftyLeadId,
       scheduled_callback_at: scheduledFor.toISOString(),
       added_at: now.toISOString(),
     })

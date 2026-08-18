@@ -25,6 +25,7 @@ import { persistTranscript } from '@/lib/call-transcripts'
 import { generateLessonsFromInsight } from '@/lib/lesson-generator'
 import { buildCalgaryPlaceEvidence, extractCalgaryPlaceEvidenceFromTranscript } from '@/lib/calgary-place-normalization'
 import { REALTOR_LOFTY_REVIVAL_MODE } from '@/lib/realtor-outbound-prompt'
+import { writeCompletedCallToLofty } from '@/lib/lofty-writeback'
 
 export const maxDuration = 120
 
@@ -343,6 +344,35 @@ export async function POST(
           .update(leadUpdates)
           .eq('id', metadata.lead_id)
         console.log(`[completed] outbound lead ${metadata.lead_id} disposition=${disposition}${disposition === 'answered' ? ' status=completed' : ''}`)
+
+        // ── Numeric Lofty lead writeback (strict Hasan Realtor/Aisha mode) ──
+        // This is intentionally separate from the website UUID external_ref
+        // webhook path below. DNC/wrong-number outcomes are persisted before
+        // this route reaches EndVoicemail follow-up notifications.
+        const loftyResult = await writeCompletedCallToLofty({
+          supabase,
+          client: { id: client.id, slug, niche: client.niche, business_name: client.business_name },
+          metadata,
+          campaignLeadId: metadata.lead_id,
+          callLogId,
+          callId,
+          endedAt,
+          classification,
+          endReason,
+          callbackPreference,
+        })
+        if (!loftyResult.ok) {
+          console.error(`[completed] Lofty writeback visible retry needed: callId=${callId} leadId=${metadata.lead_id} reason=${loftyResult.reason}`)
+          await notifySystemFailure(
+            `Lofty writeback retry needed: callId=${callId} leadId=${metadata.lead_id}`,
+            new Error(loftyResult.reason),
+            supabase,
+          ).catch((e) => console.error('[completed] Lofty writeback operator alert failed:', e))
+        } else if (!loftyResult.skipped) {
+          console.log(`[completed] Lofty writeback success: callId=${callId} loftyLeadId=${loftyResult.loftyLeadId} disposition=${loftyResult.disposition}`)
+        } else if (isRealtorLoftyCall) {
+          console.log(`[completed] Lofty writeback skipped: callId=${callId} reason=${loftyResult.reason}`)
+        }
 
         // ── External outcome writeback (hasansharif.ca speed-to-lead) ──────
         // Leads created via /api/external/lead-call carry an external_ref.

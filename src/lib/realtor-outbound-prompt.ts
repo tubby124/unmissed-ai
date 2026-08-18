@@ -46,7 +46,7 @@ function cleanString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
 }
 
-export function isNumericSafeLoftyLeadId(value: unknown): boolean {
+export function isNumericSafeLoftyLeadId(value: unknown): value is string {
   if (typeof value === 'number') return Number.isSafeInteger(value) && value > 0
   if (typeof value !== 'string') return false
   const trimmed = value.trim()

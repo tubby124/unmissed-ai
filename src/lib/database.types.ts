@@ -637,6 +637,7 @@ export type Database = {
           last_call_log_id: string | null
           last_called_at: string | null
           lead_status: string | null
+          lofty_lead_id: string | null
           name: string | null
           notes: string | null
           phone: string
@@ -653,6 +654,7 @@ export type Database = {
           last_call_log_id?: string | null
           last_called_at?: string | null
           lead_status?: string | null
+          lofty_lead_id?: string | null
           name?: string | null
           notes?: string | null
           phone: string
@@ -669,6 +671,7 @@ export type Database = {
           last_call_log_id?: string | null
           last_called_at?: string | null
           lead_status?: string | null
+          lofty_lead_id?: string | null
           name?: string | null
           notes?: string | null
           phone?: string
