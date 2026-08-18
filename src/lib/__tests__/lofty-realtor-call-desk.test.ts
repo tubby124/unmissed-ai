@@ -206,6 +206,16 @@ describe('Lofty/Aisha realtor outbound call desk contract', () => {
       source: 'lofty_buyer_revival',
       externalRef: '987654321',
     }), null)
+    // Negative source gating: substring matches must NOT trigger realtor mode.
+    // Allow-list only — not_lofty / non-lofty-import / lofty_backup stay generic.
+    for (const badSource of ['not_lofty', 'non-lofty-import', 'lofty_backup', 'unrelated', '']) {
+      assert.equal(resolveRealtorLeadContext({
+        clientSlug: 'hasan-sharif',
+        clientNiche: 'real_estate',
+        source: badSource,
+        externalRef: '987654321',
+      }), null, `source ${JSON.stringify(badSource)} must not resolve`)
+    }
   })
 
   it('uses the exact caller-respectful opener with current lead placeholder resolution', async () => {

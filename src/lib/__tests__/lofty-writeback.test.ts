@@ -190,5 +190,10 @@ describe('lofty-writeback numeric Lofty adapter', () => {
     // Summary quoting the opener “should I close the loop?” must not downgrade
     // a lead that actually booked — concrete booking evidence wins.
     assert.equal(resolveLoftyWritebackDisposition({ classification: { status: 'HOT', summary: 'They asked to close the loop', caller_data: { booked: true, appointment_time: '2026-08-20T15:00:00.000Z' } } }), 'active_now')
+    // A vague callback preference (morning/afternoon/evening) is NOT a booking —
+    // it must not inflate the lead to active_now; it stays future timeline for
+    // operator scheduling.
+    assert.equal(resolveLoftyWritebackDisposition({ classification: { status: 'WARM', summary: 'wants to hear options' }, callbackPreference: 'afternoon' }), 'future_timeline')
+    assert.equal(resolveLoftyWritebackDisposition({ classification: { status: 'HOT', caller_data: { appointment_time: '2026-08-21T10:00:00.000Z' }, summary: 'afternoon works' } }), 'active_now')
   })
 })

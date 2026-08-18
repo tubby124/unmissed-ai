@@ -56,7 +56,13 @@ export function isNumericSafeLoftyLeadId(value: unknown): value is string {
 export function isLoftyRevivalSource(source: unknown): boolean {
   if (typeof source !== 'string') return false
   const normalized = source.trim().toLowerCase()
-  return normalized === 'lofty' || normalized.includes('lofty')
+  // Strict allow-list, NOT substring or prefix matching: 'not_lofty',
+  // 'non-lofty-import', 'lofty_backup', 'lofty_buyer' all stay generic.
+  // Only explicitly named revival campaign sources trigger the realtor mode.
+  return normalized === 'lofty'
+    || normalized === 'lofty_revival'
+    || normalized === 'lofty_buyer_revival'
+    || normalized === 'lofty_seller_revival'
 }
 
 export function isHasanSharifRealEstateClient(input: Pick<RealtorLeadMetadataInput, 'clientSlug' | 'clientNiche'>): boolean {

@@ -91,14 +91,18 @@ export function resolveLoftyWritebackDisposition(params: {
   // Concrete booking/callback evidence wins over summary phrasing. The
   // opener itself says “should I close the loop?”, so that phrase must never
   // classify a booked/active lead as not-looking.
-  const hasBooking = classification.caller_data?.booked === true
+  const hasConfirmedBooking = classification.caller_data?.booked === true
     || Boolean(classification.caller_data?.appointment_time)
-    || Boolean(callbackPreference)
-  if (hasBooking) return 'active_now'
+  if (hasConfirmedBooking) return 'active_now'
 
   if (hasAny(searchable, ['not_looking', 'not looking', 'no longer looking'])) return 'not_looking'
   if (hasAny(searchable, ['active_now', 'active now', 'ready now', 'looking now'])) return 'active_now'
   if (hasAny(searchable, ['future_timeline', 'future timeline', 'later this year', 'next year'])) return 'future_timeline'
+
+  // A vague callback preference (morning/afternoon/evening) is NOT a booking.
+  // It means the operator still has to schedule — classify as future timeline
+  // so the lead is not inflated to active_now in the CRM.
+  if (callbackPreference) return 'future_timeline'
 
   if (classification.status === 'MISSED' || endReason === 'unjoined') return 'no_answer'
   if (classification.status === 'VOICEMAIL') return 'voicemail'
