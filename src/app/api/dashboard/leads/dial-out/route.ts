@@ -115,6 +115,8 @@ export async function POST(req: NextRequest) {
   let vmScript = (client.outbound_vm_script as string | null) ?? null
 
   const realtorContext = resolveRealtorLeadContext({
+    clientSlug: (client.slug as string | null) ?? null,
+    clientNiche: (client.niche as string | null) ?? null,
     name: (lead.name as string | null) ?? null,
     source: (lead.source as string | null) ?? null,
     externalRef: ((lead as { external_ref?: string | number | null }).external_ref) ?? null,
@@ -201,15 +203,17 @@ export async function POST(req: NextRequest) {
   const resolvedPrompt = resolveOutboundPrompt(outboundPrompt, {
     leadName: (lead.name as string | null) ?? 'there',
     leadPhone: toPhone,
-    leadNotes: (lead.notes as string | null) ?? '',
+    leadNotes: realtorContext ? '' : ((lead.notes as string | null) ?? ''),
     businessName,
     agentName,
   })
 
-  // Append knowledge/business facts block if available
+  // Append generic knowledge/business facts blocks only for the generic outbound path.
   let fullPrompt = resolvedPrompt
-  if (ctx.knowledge.block) fullPrompt += `\n\n${ctx.knowledge.block}`
-  if (ctx.assembled.contextDataBlock) fullPrompt += `\n\n${ctx.assembled.contextDataBlock}`
+  if (!realtorContext) {
+    if (ctx.knowledge.block) fullPrompt += `\n\n${ctx.knowledge.block}`
+    if (ctx.assembled.contextDataBlock) fullPrompt += `\n\n${ctx.assembled.contextDataBlock}`
+  }
 
   // Build tools — hangUp must be present, client.tools may already include it
   const clientTools = Array.isArray(client.tools) ? (client.tools as Record<string, unknown>[]) : []

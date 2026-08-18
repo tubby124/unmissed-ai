@@ -28,6 +28,8 @@ export const REALTOR_OUTBOUND_RESULT_LABELS = [
 export type RealtorOutboundResultLabel = typeof REALTOR_OUTBOUND_RESULT_LABELS[number]
 
 export type RealtorLeadMetadataInput = {
+  clientSlug?: string | null
+  clientNiche?: string | null
   name?: string | null
   source?: string | null
   externalRef?: string | number | null
@@ -55,11 +57,18 @@ export function isLoftyRevivalSource(source: unknown): boolean {
   return normalized === 'lofty' || normalized.includes('lofty')
 }
 
+export function isHasanSharifRealEstateClient(input: Pick<RealtorLeadMetadataInput, 'clientSlug' | 'clientNiche'>): boolean {
+  const slug = typeof input.clientSlug === 'string' ? input.clientSlug.trim().toLowerCase() : ''
+  const niche = typeof input.clientNiche === 'string' ? input.clientNiche.trim().toLowerCase() : ''
+  return slug === 'hasan-sharif' && (niche === 'real_estate' || niche === 'real-estate' || niche === 'real estate')
+}
+
 function normalizeLeadType(value: RealtorLeadMetadataInput['leadType']): RealtorLeadContext['leadType'] | undefined {
   return value === 'buyer' || value === 'seller' || value === 'unknown' ? value : undefined
 }
 
 export function resolveRealtorLeadContext(input: RealtorLeadMetadataInput): RealtorLeadContext | null {
+  if (!isHasanSharifRealEstateClient(input)) return null
   if (!isLoftyRevivalSource(input.source)) return null
   if (!isNumericSafeLoftyLeadId(input.externalRef)) return null
 
@@ -110,7 +119,6 @@ Pipeline stage: ${pipelineStage}
 Prior automated attempts: ${context.priorAttempts}
 Raw area from source: ${area}
 Pronunciation hints: ${pronunciationHints}
-Notes: {{LEAD_NOTES}}
 
 ## LIVE CALL CONTRACT
 

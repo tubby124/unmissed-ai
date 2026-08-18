@@ -29,6 +29,8 @@ type RealtorOutboundPromptModule = {
     priorAttempts: number
   }) => string
   resolveRealtorLeadContext: (input: {
+    clientSlug?: string | null
+    clientNiche?: string | null
     name?: string | null
     source?: string | null
     externalRef?: string | number | null
@@ -149,10 +151,12 @@ describe('Lofty/Aisha realtor outbound call desk contract', () => {
     assert.doesNotMatch(prompt, /flirty|busty/i)
   })
 
-  it('resolves Lofty realtor mode only from structured numeric lead metadata', async () => {
+  it('resolves Lofty realtor mode only from strict Hasan real-estate structured numeric lead metadata', async () => {
     const { resolveRealtorLeadContext } = await loadRealtorOutboundPrompt()
 
     assert.deepEqual(resolveRealtorLeadContext({
+      clientSlug: 'hasan-sharif',
+      clientNiche: 'real_estate',
       name: 'Birhanu Example',
       source: 'lofty_buyer_revival',
       externalRef: '987654321',
@@ -166,8 +170,35 @@ describe('Lofty/Aisha realtor outbound call desk contract', () => {
       priorAttempts: 2,
     })
 
-    assert.equal(resolveRealtorLeadContext({ source: 'lofty_buyer_revival', externalRef: 'not-a-number' }), null)
-    assert.equal(resolveRealtorLeadContext({ source: 'generic_campaign', externalRef: '987654321' }), null)
+    assert.equal(resolveRealtorLeadContext({
+      clientSlug: 'hasan-sharif',
+      clientNiche: 'real_estate',
+      source: 'lofty_buyer_revival',
+      externalRef: 'not-a-number',
+    }), null)
+    assert.equal(resolveRealtorLeadContext({
+      clientSlug: 'hasan-sharif',
+      clientNiche: 'real_estate',
+      source: 'generic_campaign',
+      externalRef: '987654321',
+    }), null)
+    assert.equal(resolveRealtorLeadContext({
+      clientNiche: 'real_estate',
+      source: 'lofty_buyer_revival',
+      externalRef: '987654321',
+    }), null)
+    assert.equal(resolveRealtorLeadContext({
+      clientSlug: 'wrong-client',
+      clientNiche: 'real_estate',
+      source: 'lofty_buyer_revival',
+      externalRef: '987654321',
+    }), null)
+    assert.equal(resolveRealtorLeadContext({
+      clientSlug: 'hasan-sharif',
+      clientNiche: 'voicemail',
+      source: 'lofty_buyer_revival',
+      externalRef: '987654321',
+    }), null)
   })
 
   it('uses the exact caller-respectful opener with current lead placeholder resolution', async () => {

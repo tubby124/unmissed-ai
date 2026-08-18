@@ -135,6 +135,8 @@ export async function POST(req: NextRequest) {
     }
 
     const realtorContext = resolveRealtorLeadContext({
+      clientSlug: (client.slug as string | null) ?? null,
+      clientNiche: (client.niche as string | null) ?? null,
       name: (lead.name as string | null) ?? null,
       source: (lead.source as string | null) ?? null,
       externalRef: ((lead as { external_ref?: string | number | null }).external_ref) ?? null,
@@ -197,14 +199,16 @@ export async function POST(req: NextRequest) {
     const resolvedPrompt = resolveOutboundPrompt(outboundPrompt, {
       leadName: (lead.name as string | null) ?? 'there',
       leadPhone: toPhone,
-      leadNotes: (lead.notes as string | null) ?? '',
+      leadNotes: realtorContext ? '' : ((lead.notes as string | null) ?? ''),
       businessName,
       agentName,
     })
 
     let fullPrompt = resolvedPrompt
-    if (ctx.knowledge.block) fullPrompt += `\n\n${ctx.knowledge.block}`
-    if (ctx.assembled.contextDataBlock) fullPrompt += `\n\n${ctx.assembled.contextDataBlock}`
+    if (!realtorContext) {
+      if (ctx.knowledge.block) fullPrompt += `\n\n${ctx.knowledge.block}`
+      if (ctx.assembled.contextDataBlock) fullPrompt += `\n\n${ctx.assembled.contextDataBlock}`
+    }
 
     // hangUp must be present exactly once — clients.tools may already include it
     // in any of the three wire shapes (same dedup as dashboard dial-out).
