@@ -88,12 +88,13 @@ test('realtor prompt: anti-repetition rules are present and hard', async () => {
   }
   const prompt = mod.buildRealtorOutboundPrompt(ctx)
 
-  // Never ask a question twice.
-  assert.match(prompt, /[Nn]ever ask .{0,12}question twice/)
+  // No question may be asked twice — positive framing per research (short
+  // positive principles beat long negative lists in voice prompts).
+  assert.match(prompt, /[Ee]very turn must add something new/)
   // No re-introduction / re-stating purpose after the opener.
-  assert.match(prompt, /[Nn]ever re-(introduce|state)/)
+  assert.match(prompt, /After the opener, you are done introducing/)
   // No recap-echo ("so just to confirm…", "to summarize").
-  assert.match(prompt, /no .*recap/i)
+  assert.match(prompt, /No recap, no confirmation loop/)
   assert.doesNotMatch(prompt, /summarize (it|the call|the conversation) in one sentence/)
 })
 
@@ -131,6 +132,14 @@ test('realtor prompt: human-sounding mechanics (anti-robot)', async () => {
 
   // Short sentences / plain language guidance.
   assert.match(prompt, /short sentence/i)
+  // Voice-not-screen: no lists/bullets/stage directions.
+  assert.match(prompt, /voice, not screen/i)
+  assert.match(prompt, /stage directions/i)
+  // Talk less than the lead (Gong 43:57 golden ratio).
+  assert.match(prompt, /45%/)
+  // Outcome-specific, question-free closing lines.
+  assert.match(prompt, /CLOSING LINES/)
+  assert.match(prompt, /question-free/)
   // No AI-isms in the contract.
   assert.doesNotMatch(prompt, /as an AI/)
   assert.doesNotMatch(prompt, /I['’]d be happy to assist/i)
