@@ -1,0 +1,7 @@
+{
+  "durationSeconds": 125,
+  "turnCount": 18,
+  "intendedArea": "Bowness",
+  "source": "outbound_lofty_simulation",
+  "classifierCorruptionTokens": ["Bonita", "Bonas"]
+}
