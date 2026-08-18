@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useAdminClient } from '@/contexts/AdminClientContext'
-import { Plus, Phone, Save, Trash2, Star, ChevronDown, ChevronUp, Eye } from 'lucide-react'
+import { Plus, Phone, Save, Trash2, Star, ChevronDown, ChevronUp, Eye, ListChecks } from 'lucide-react'
 import LeadQueue from '@/components/dashboard/outbound/LeadQueue'
 import OutboundHistoryTab from '@/components/dashboard/outbound/OutboundHistoryTab'
+import CallOutcomeDesk from '@/components/dashboard/outbound/CallOutcomeDesk'
 import ClientSelector from '@/components/dashboard/ClientSelector'
 
 interface Template {
@@ -23,7 +24,7 @@ interface Template {
   is_default: boolean
 }
 
-type TabView = 'templates' | 'composer' | 'history'
+type TabView = 'templates' | 'composer' | 'history' | 'outcomes'
 
 const TONES: Record<string, { label: string; color: string }> = {
   warm: { label: 'Warm', color: '#22c55e' },
@@ -192,6 +193,7 @@ Opening: "${formOpening || 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...
           { key: 'templates' as TabView, label: 'Templates', icon: <Star className="h-3.5 w-3.5" /> },
           { key: 'composer' as TabView, label: 'Call Composer', icon: <Phone className="h-3.5 w-3.5" /> },
           { key: 'history' as TabView, label: 'History', icon: <Eye className="h-3.5 w-3.5" /> },
+          { key: 'outcomes' as TabView, label: 'Outcomes', icon: <ListChecks className="h-3.5 w-3.5" /> },
         ]).map(tab => (
           <button
             key={tab.key}
@@ -413,6 +415,11 @@ Opening: "${formOpening || 'Hi, this is {{AGENT_NAME}} from {{BUSINESS_NAME}}...
       {/* History Tab — real outbound call log */}
       {activeTab === 'history' && (
         <OutboundHistoryTab clientId={clientId} />
+      )}
+
+      {/* Outcomes Tab — operator call-result desk (Lofty campaign) */}
+      {activeTab === 'outcomes' && (
+        <CallOutcomeDesk clientId={clientId} />
       )}
     </div>
   )

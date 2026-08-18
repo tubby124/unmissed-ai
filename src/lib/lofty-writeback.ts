@@ -113,6 +113,36 @@ export function isSuppressingLoftyDisposition(disposition: LoftyWritebackDisposi
   return disposition === 'do_not_call' || disposition === 'wrong_number'
 }
 
+export type LoftyWritebackState = 'synced' | 'failed' | 'pending' | 'n/a'
+
+/**
+ * Derive the operator-facing Lofty writeback state for a campaign lead from
+ * the idempotency/failure markers that `writeCompletedCallToLofty` leaves in
+ * `notes`.
+ *
+ *   - 'n/a'     — lead has no numeric Lofty lead id (writeback never applies)
+ *   - 'pending' — numeric Lofty lead id present but no marker yet (call ended,
+ *                 writeback has not run, or was skipped)
+ *   - 'failed'  — the most recent marker is a retry-needed failure marker
+ *   - 'synced'  — the most recent marker is a successful writeback marker
+ *
+ * A later successful retry appends its success marker AFTER the older failure
+ * marker, so state is decided by last-occurrence position, not mere presence.
+ */
+export function resolveLoftyWritebackState(params: {
+  notes: string | null | undefined
+  loftyLeadId: string | null | undefined
+}): LoftyWritebackState {
+  const leadId = clean(params.loftyLeadId)
+  if (!isNumericSafeLoftyLeadId(leadId)) return 'n/a'
+
+  const notes = typeof params.notes === 'string' ? params.notes : ''
+  const successIdx = notes.lastIndexOf(LOFTY_WRITEBACK_MARKER_PREFIX)
+  const failureIdx = notes.lastIndexOf(LOFTY_WRITEBACK_FAILURE_PREFIX)
+  if (successIdx === -1 && failureIdx === -1) return 'pending'
+  return failureIdx > successIdx ? 'failed' : 'synced'
+}
+
 export function shouldAttemptLoftyWriteback(input: Pick<CompletedLoftyWritebackInput, 'client' | 'metadata' | 'campaignLeadId'>): boolean {
   return !!input.campaignLeadId
     && input.metadata.call_mode === REALTOR_LOFTY_REVIVAL_MODE

@@ -6,6 +6,8 @@ import { outboundBookingReady, appendOutboundBookingTools, buildOutboundDateBloc
 import { assembleOutboundPrompt, resolveOutboundPrompt, type OutboundTone } from '@/lib/outbound-prompt-builder'
 import { buildRealtorOutboundPrompt, resolveRealtorLeadContext, REALTOR_LOFTY_REVIVAL_MODE } from '@/lib/realtor-outbound-prompt'
 import { validateOutboundVmScript } from '@/lib/outbound-safety'
+import { withinCallingWindow, resolveCallingWindowConfig, DEFAULT_TIMEZONE } from '@/lib/outbound-window'
+import { isTerminallyBlocked } from '@/lib/outbound-attempts'
 import { APP_URL } from '@/lib/app-url'
 import twilio from 'twilio'
 
@@ -31,7 +33,7 @@ export async function POST(req: NextRequest) {
   // Fetch the campaign lead
   const { data: lead } = await supabase
     .from('campaign_leads')
-    .select('id, phone, name, notes, client_id, source, external_ref, call_count, lead_status, status')
+    .select('id, phone, name, notes, client_id, source, external_ref, call_count, lead_status, status, disposition')
     .eq('id', lead_id)
     .single()
 
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
   // Fetch client config — include outbound_prompt + structured fields + all context fields
   const { data: client } = await supabase
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, outbound_allowed_start, outbound_allowed_end, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at, service_areas, booking_enabled, calendar_auth_status, selected_plan, subscription_status')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_goal, outbound_opening, outbound_vm_script, outbound_tone, outbound_allowed_start, outbound_allowed_end, outbound_allowed_days, outbound_time_window_start, outbound_time_window_end, outbound_max_attempts, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, recording_consent_acknowledged_at, service_areas, booking_enabled, calendar_auth_status, selected_plan, subscription_status')
     .eq('id', clientId)
     .single()
 
@@ -63,19 +65,25 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Check outbound calling hours restriction
-  if (client.outbound_allowed_start && client.outbound_allowed_end) {
-    const now = new Date()
-    const currentMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
-    const startParts = (client.outbound_allowed_start as string).split(':').map(Number)
-    const endParts = (client.outbound_allowed_end as string).split(':').map(Number)
-    const startMinutes = startParts[0] * 60 + (startParts[1] || 0)
-    const endMinutes = endParts[0] * 60 + (endParts[1] || 0)
-    if (currentMinutes < startMinutes || currentMinutes > endMinutes) {
-      return NextResponse.json({
-        error: `Outbound calling is restricted to ${client.outbound_allowed_start}–${client.outbound_allowed_end} UTC.`,
-      }, { status: 403 })
-    }
+  // DNC / wrong-number: terminate immediately. A suppressed lead must never be
+  // dialed — not even by an explicit manual operator action.
+  if (isTerminallyBlocked({ status: lead.status, disposition: lead.disposition })) {
+    return NextResponse.json(
+      { error: 'This lead is on the do-not-call list and cannot be dialed.' },
+      { status: 409 },
+    )
+  }
+
+  // Timezone-aware calling window — evaluated in the client's local time,
+  // DST-safe, honoring outbound_allowed_days + the configured window (or the
+  // default weekday/weekend windows when none is set).
+  const clientTz = (client.timezone as string | null) || DEFAULT_TIMEZONE
+  const windowConfig = resolveCallingWindowConfig(client)
+  if (!withinCallingWindow(clientTz, new Date(), windowConfig)) {
+    return NextResponse.json(
+      { error: 'Outbound calling is outside the client\'s allowed calling window.' },
+      { status: 403 },
+    )
   }
 
   const svc = createServiceClient()

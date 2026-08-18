@@ -29,6 +29,8 @@ import { buildRealtorOutboundPrompt, resolveRealtorLeadContext, REALTOR_LOFTY_RE
 import { APP_URL } from '@/lib/app-url'
 import { sendAlert } from '@/lib/telegram'
 import { validateOutboundVmScript } from '@/lib/outbound-safety'
+import { withinCallingWindow, resolveCallingWindowConfig, DEFAULT_TIMEZONE } from '@/lib/outbound-window'
+import { shouldAttemptAutomatedCall, isTerminallyBlocked } from '@/lib/outbound-attempts'
 import twilio from 'twilio'
 
 export const maxDuration = 60
@@ -46,7 +48,7 @@ export async function POST(req: NextRequest) {
   // Find leads due for callback — exclude statuses that indicate active/completed/dnc
   const { data: leads, error: leadsErr } = await svc
     .from('campaign_leads')
-    .select('id, phone, name, notes, client_id, scheduled_callback_at, call_count, disposition, source, external_ref, lofty_lead_id, lead_status, status')
+    .select('id, phone, name, notes, client_id, scheduled_callback_at, call_count, last_called_at, disposition, source, external_ref, lofty_lead_id, lead_status, status')
     .lte('scheduled_callback_at', now)
     .not('status', 'in', '("called","completed","calling","dnc")')
     .limit(20)
@@ -75,7 +77,7 @@ export async function POST(req: NextRequest) {
   const clientIds = [...new Set(leads.map(l => l.client_id).filter(Boolean))] as string[]
   const { data: clients } = await svc
     .from('clients')
-    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_vm_script, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, booking_enabled, calendar_auth_status, selected_plan, subscription_status')
+    .select('id, slug, business_name, agent_name, agent_voice_id, outbound_prompt, outbound_vm_script, outbound_allowed_start, outbound_allowed_end, outbound_allowed_days, outbound_time_window_start, outbound_time_window_end, outbound_max_attempts, recording_consent_acknowledged_at, twilio_number, tools, context_data, context_data_label, business_facts, extra_qa, timezone, knowledge_backend, injected_note, business_hours_weekday, business_hours_weekend, after_hours_behavior, after_hours_emergency_phone, niche, telegram_bot_token, telegram_chat_id, telegram_chat_id_2, booking_enabled, calendar_auth_status, selected_plan, subscription_status')
     .in('id', clientIds)
 
   const clientMap = new Map((clients ?? []).map(c => [c.id as string, c]))
@@ -122,14 +124,50 @@ export async function POST(req: NextRequest) {
     }
     const stats = clientStats.get(clientId)!
 
-    // D99: Retry cap — after 3 failed attempts, mark as dnc
-    const callCount = (lead.call_count as number | null) ?? 0
-    if (callCount >= 3 && (lead.disposition as string | null) !== 'answered') {
-      console.log(`[scheduled-callbacks] Lead ${lead.id} hit retry cap (call_count=${callCount}) — marking dnc`)
+    // Task 8 gates — shared window + consent + attempt rules (same as manual dial-out).
+    // Order: terminal dispositions terminate immediately; consent and window are
+    // non-dial conditions (roll back to queued so a later cron tick retries);
+    // attempt cap terminates.
+    if (isTerminallyBlocked(lead)) {
+      console.log(`[scheduled-callbacks] Lead ${lead.id} terminally blocked (dnc/wrong-number) — marking dnc`)
       await svc
         .from('campaign_leads')
         .update({ status: 'dnc', scheduled_callback_at: null })
         .eq('id', lead.id)
+      stats.skipped++
+      continue
+    }
+
+    if (!client.recording_consent_acknowledged_at) {
+      console.warn(`[scheduled-callbacks] Client ${slug} has no recording consent — skipping lead ${lead.id}`)
+      await svc.from('campaign_leads').update({ status: 'queued' }).eq('id', lead.id)
+      stats.skipped++
+      continue
+    }
+
+    const tz = (client.timezone as string | null) || DEFAULT_TIMEZONE
+    const windowConfig = resolveCallingWindowConfig(client)
+    if (!withinCallingWindow(tz, new Date(), windowConfig)) {
+      console.log(`[scheduled-callbacks] Outside calling window (${tz}) — deferring lead ${lead.id}`)
+      await svc.from('campaign_leads').update({ status: 'queued' }).eq('id', lead.id)
+      stats.skipped++
+      continue
+    }
+
+    const attemptGate = shouldAttemptAutomatedCall(lead, {
+      maxAttempts: client.outbound_max_attempts as number | null | undefined,
+    })
+    if (!attemptGate.allowed) {
+      if (attemptGate.reason === 'attempt_cap' || attemptGate.reason === 'dnc' || attemptGate.reason === 'wrong_number') {
+        console.log(`[scheduled-callbacks] Lead ${lead.id} ${attemptGate.reason} — marking dnc`)
+        await svc
+          .from('campaign_leads')
+          .update({ status: 'dnc', scheduled_callback_at: null })
+          .eq('id', lead.id)
+      } else {
+        console.log(`[scheduled-callbacks] Lead ${lead.id} not attemptable (${attemptGate.reason}) — rolling back to queued`)
+        await svc.from('campaign_leads').update({ status: 'queued' }).eq('id', lead.id)
+      }
       stats.skipped++
       continue
     }
