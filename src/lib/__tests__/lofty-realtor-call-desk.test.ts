@@ -11,9 +11,23 @@ const baseline = JSON.parse(readFileSync(fixtureUrl, 'utf8')) as {
   classifierCorruptionTokens: string[]
 }
 
-type RealtorCallDeskModule = {
-  MAX_DEFAULT_OUTBOUND_SECONDS?: number
-  normalizeCalgaryPlace?: (value: string) => string | null
+type CalgaryPlaceNormalizationModule = {
+  BOWNESS_CLARIFICATION_QUESTION: string
+  buildCalgaryPlaceEvidence: (value?: string | null) => {
+    raw: string | null
+    canonicalArea: string | null
+    needsConfirmation: boolean
+    spokenClarification: string | null
+    pronunciationHints: string[]
+  }
+  extractCalgaryPlaceEvidenceFromTranscript: (transcriptText: string) => {
+    raw: string | null
+    canonicalArea: string | null
+    needsConfirmation: boolean
+    spokenClarification: string | null
+    pronunciationHints: string[]
+  }
+  normalizeCalgaryPlace: (value: string) => string | null
 }
 
 type RealtorOutboundPromptModule = {
@@ -71,15 +85,8 @@ type SmsTemplatesModule = {
   ) => string | null
 }
 
-async function loadRealtorCallDesk(): Promise<RealtorCallDeskModule> {
-  try {
-    const modulePath = '../lofty-realtor-call-desk.js'
-    return await import(modulePath)
-  } catch (error) {
-    assert.fail(
-      `Expected realtor outbound call desk utilities at src/lib/lofty-realtor-call-desk.ts: ${error instanceof Error ? error.message : String(error)}`
-    )
-  }
+async function loadCalgaryPlaceNormalization(): Promise<CalgaryPlaceNormalizationModule> {
+  return await import('../calgary-place-normalization.js')
 }
 
 async function loadSmsTemplates(): Promise<SmsTemplatesModule> {
@@ -222,18 +229,101 @@ describe('Lofty/Aisha realtor outbound call desk contract', () => {
     )
   })
 
-  it('normalizes a valid Calgary community without classifier drift', async () => {
-    const { normalizeCalgaryPlace } = await loadRealtorCallDesk()
-    assert.equal(typeof normalizeCalgaryPlace, 'function')
-    assert.equal(normalizeCalgaryPlace!('Bowness'), 'Bowness')
+  it('normalizes only the approved Bowness Calgary community without classifier drift', async () => {
+    const { normalizeCalgaryPlace, buildCalgaryPlaceEvidence } = await loadCalgaryPlaceNormalization()
+    assert.equal(normalizeCalgaryPlace('Bowness'), 'Bowness')
+    assert.equal(normalizeCalgaryPlace('  bowness  '), 'Bowness')
+    assert.equal(normalizeCalgaryPlace('BOWNESS'), 'Bowness')
+
+    assert.deepEqual(buildCalgaryPlaceEvidence('Bowness'), {
+      raw: 'Bowness',
+      canonicalArea: 'Bowness',
+      needsConfirmation: false,
+      spokenClarification: null,
+      pronunciationHints: ['Bowness = BOH-ness'],
+    })
   })
 
-  it('rejects corrupted Calgary place tokens from the self-test', async () => {
-    const { normalizeCalgaryPlace } = await loadRealtorCallDesk()
-    assert.equal(typeof normalizeCalgaryPlace, 'function')
+  it('keeps corrupted or unmatched Calgary place tokens raw and confirmation-only', async () => {
+    const { BOWNESS_CLARIFICATION_QUESTION, normalizeCalgaryPlace, buildCalgaryPlaceEvidence } = await loadCalgaryPlaceNormalization()
+    assert.equal(BOWNESS_CLARIFICATION_QUESTION, 'Just to confirm, did you mean Bowness (BOH-ness), or somewhere else?')
     for (const token of baseline.classifierCorruptionTokens) {
-      assert.equal(normalizeCalgaryPlace!(token), null, `${token} must not normalize to ${baseline.intendedArea}`)
+      assert.equal(normalizeCalgaryPlace(token), null, `${token} must not normalize to ${baseline.intendedArea}`)
+      assert.deepEqual(buildCalgaryPlaceEvidence(token), {
+        raw: token,
+        canonicalArea: null,
+        needsConfirmation: true,
+        spokenClarification: BOWNESS_CLARIFICATION_QUESTION,
+        pronunciationHints: [],
+      })
     }
+    assert.equal(normalizeCalgaryPlace('Bowness Heights'), null)
+    assert.equal(normalizeCalgaryPlace(''), null)
+    assert.deepEqual(buildCalgaryPlaceEvidence('  Somewhere Else  '), {
+      raw: 'Somewhere Else',
+      canonicalArea: null,
+      needsConfirmation: true,
+      spokenClarification: BOWNESS_CLARIFICATION_QUESTION,
+      pronunciationHints: [],
+    })
+  })
+
+  it('uses Bowness pronunciation only for canonical Bowness and asks exact area clarification otherwise', async () => {
+    const { BOWNESS_CLARIFICATION_QUESTION } = await loadCalgaryPlaceNormalization()
+    const { buildRealtorOutboundPrompt } = await loadRealtorOutboundPrompt()
+
+    const bownessPrompt = buildRealtorOutboundPrompt({
+      loftyLeadId: '123456789012345',
+      name: 'Birhanu Example',
+      rawArea: 'Bowness',
+      priorAttempts: 1,
+    })
+    assert.match(bownessPrompt, /Canonical approved area: Bowness/)
+    assert.match(bownessPrompt, /Pronunciation hints: Bowness = BOH-ness/)
+    assert.doesNotMatch(bownessPrompt, /Area confirmation required: yes/)
+
+    const corruptedPrompt = buildRealtorOutboundPrompt({
+      loftyLeadId: '123456789012345',
+      name: 'Birhanu Example',
+      rawArea: 'Bonita',
+      pronunciationHints: ['Bonita = BOH-ness'],
+      priorAttempts: 1,
+    })
+    assert.match(corruptedPrompt, /Raw area from source \(verbatim evidence only\): Bonita/)
+    assert.match(corruptedPrompt, /Canonical approved area: none/)
+    assert.match(corruptedPrompt, /Area confirmation required: yes/)
+    assert.ok(corruptedPrompt.includes(BOWNESS_CLARIFICATION_QUESTION))
+    assert.doesNotMatch(corruptedPrompt, /Bonita = BOH-ness/)
+  })
+
+  it('extracts only raw transcript place evidence and does not canonicalize drift tokens', async () => {
+    const { extractCalgaryPlaceEvidenceFromTranscript } = await loadCalgaryPlaceNormalization()
+
+    assert.deepEqual(extractCalgaryPlaceEvidenceFromTranscript('Caller said they were looking around Bonas.'), {
+      raw: 'Bonas',
+      canonicalArea: null,
+      needsConfirmation: true,
+      spokenClarification: 'Just to confirm, did you mean Bowness (BOH-ness), or somewhere else?',
+      pronunciationHints: [],
+    })
+    assert.deepEqual(extractCalgaryPlaceEvidenceFromTranscript('Caller confirmed Bowness.'), {
+      raw: 'Bowness',
+      canonicalArea: 'Bowness',
+      needsConfirmation: false,
+      spokenClarification: null,
+      pronunciationHints: ['Bowness = BOH-ness'],
+    })
+  })
+
+  it('completed webhook keeps realtor transcript evidence separate from CRM/writeback areas', () => {
+    const route = readFileSync(new URL('../../app/api/webhook/[slug]/completed/route.ts', import.meta.url), 'utf8')
+    assert.match(route, /extractCalgaryPlaceEvidenceFromTranscript\(transcriptRawText\)/)
+    assert.match(route, /serviceRequested = isRealtorLoftyCall \? null/)
+    assert.match(route, /place_evidence:/)
+    assert.match(route, /raw_transcript_area: realtorTranscriptPlaceEvidence\.raw/)
+    assert.match(route, /canonical_crm_area: realtorTranscriptPlaceEvidence\.canonicalArea/)
+    assert.doesNotMatch(route, /area:\s*classification/)
+    assert.doesNotMatch(route, /canonical_crm_area:\s*classification/)
   })
 
   it('does not send missed-call SMS for realtor outbound Lofty leads', async () => {

@@ -23,6 +23,8 @@ import { tryAcquireSuggestionLock, fetchRecentInsights, isFailedCall, generateAn
 import { generateFaqSuggestions } from '@/lib/faq-suggestion-generator'
 import { persistTranscript } from '@/lib/call-transcripts'
 import { generateLessonsFromInsight } from '@/lib/lesson-generator'
+import { buildCalgaryPlaceEvidence, extractCalgaryPlaceEvidenceFromTranscript } from '@/lib/calgary-place-normalization'
+import { REALTOR_LOFTY_REVIVAL_MODE } from '@/lib/realtor-outbound-prompt'
 
 export const maxDuration = 120
 
@@ -238,6 +240,15 @@ export async function POST(
         console.log(`[completed] Classification: callId=${callId} status=${classification.status} confidence=${classification.confidence} summary="${classification.summary.slice(0, 80)}"`)
       }
 
+      const isRealtorLoftyCall = metadata.call_mode === REALTOR_LOFTY_REVIVAL_MODE
+      const transcriptRawText = transcript
+        .map((message: { text?: string }) => message.text ?? '')
+        .filter(Boolean)
+        .join('\n')
+      const realtorTranscriptPlaceEvidence = isRealtorLoftyCall
+        ? extractCalgaryPlaceEvidenceFromTranscript(transcriptRawText)
+        : buildCalgaryPlaceEvidence(null)
+
       // Update call_log with full data
       const { data: updatedRows, error: updateError } = await supabase
         .from('call_logs')
@@ -292,7 +303,7 @@ export async function POST(
       if (normalizedPhone && callLogId) {
         const cd = classification.caller_data
         const nd = classification.niche_data
-        const serviceRequested = cd?.service_requested ?? nd?.requested_service ?? null
+        const serviceRequested = isRealtorLoftyCall ? null : (cd?.service_requested ?? nd?.requested_service ?? null)
         const { data: contactId, error: contactErr } = await supabase
           .rpc('upsert_client_contact', {
             p_client_id: client.id,
@@ -362,6 +373,13 @@ export async function POST(
                 sentiment: classification.sentiment ?? null,
                 booked: classification.caller_data?.booked ?? false,
                 callback_preference: classification.caller_data?.callback_preference ?? null,
+                ...(isRealtorLoftyCall ? {
+                  place_evidence: {
+                    raw_transcript_area: realtorTranscriptPlaceEvidence.raw,
+                    canonical_crm_area: realtorTranscriptPlaceEvidence.canonicalArea,
+                    needs_confirmation: realtorTranscriptPlaceEvidence.needsConfirmation,
+                  },
+                } : {}),
                 duration_seconds: durationSeconds,
                 ended_at: endedAt,
               })

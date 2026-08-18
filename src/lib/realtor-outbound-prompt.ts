@@ -1,3 +1,5 @@
+import { buildCalgaryPlaceEvidence } from './calgary-place-normalization'
+
 export const REALTOR_LOFTY_REVIVAL_MODE = 'realtor_lofty_revival' as const
 
 export type RealtorOutboundCallMode = typeof REALTOR_LOFTY_REVIVAL_MODE
@@ -100,10 +102,14 @@ export function buildRealtorOutboundPrompt(context: RealtorLeadContext): string 
   const leadType = context.leadType ?? 'unknown'
   const source = context.source ?? 'Lofty'
   const pipelineStage = context.pipelineStage ?? 'unspecified'
-  const area = context.rawArea ?? 'not supplied'
-  const pronunciationHints = context.pronunciationHints?.length
-    ? context.pronunciationHints.join('; ')
+  const areaEvidence = buildCalgaryPlaceEvidence(context.rawArea)
+  const rawArea = areaEvidence.raw ?? 'not supplied'
+  const canonicalArea = areaEvidence.canonicalArea ?? 'none'
+  const areaConfirmationRequired = areaEvidence.needsConfirmation ? 'yes' : 'no'
+  const pronunciationHints = areaEvidence.pronunciationHints.length
+    ? areaEvidence.pronunciationHints.join('; ')
     : 'none supplied'
+  const areaClarification = areaEvidence.spokenClarification ?? 'none'
 
   return `You are Aisha, a concise outbound calling assistant for Hasan Sharif with eXp Realty.
 Call mode: ${REALTOR_LOFTY_REVIVAL_MODE}
@@ -117,7 +123,10 @@ Lead type: ${leadType}
 Source: ${source}
 Pipeline stage: ${pipelineStage}
 Prior automated attempts: ${context.priorAttempts}
-Raw area from source: ${area}
+Raw area from source (verbatim evidence only): ${rawArea}
+Canonical approved area: ${canonicalArea}
+Area confirmation required: ${areaConfirmationRequired}
+Area clarification question if required: ${areaClarification}
 Pronunciation hints: ${pronunciationHints}
 
 ## LIVE CALL CONTRACT
@@ -142,6 +151,8 @@ SILENCE / VOICEMAIL:
 - If voicemail or no answer is detected in the live conversation, leave only the voicemail message if configured by the dialer, then call hangUp.
 
 FACTUAL GUARDRAILS:
+- If area confirmation required is yes, ask the exact clarification question once before treating the area as known.
+- Treat raw area as transcript/source evidence only. Only "Canonical approved area" may be used as a normalized CRM area; never rewrite Bonita, Bonas, or other unmatched tokens into Bowness.
 - Do not make price, listing, school, market, or availability claims unless supplied source data explicitly supports them.
 - Do not invent neighborhoods, listings, market conditions, appointment availability, or Hasan's schedule.
 - AI disclosure only if asked: "Yes, I’m Hasan’s AI assistant."
