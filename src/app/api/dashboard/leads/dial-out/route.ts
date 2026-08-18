@@ -4,7 +4,7 @@ import { createCall, signCallbackUrl } from '@/lib/ultravox'
 import { buildAgentContext, type ClientRow } from '@/lib/agent-context'
 import { outboundBookingReady, appendOutboundBookingTools, buildOutboundDateBlock } from '@/lib/outbound-call-assembly'
 import { assembleOutboundPrompt, resolveOutboundPrompt, type OutboundTone } from '@/lib/outbound-prompt-builder'
-import { buildRealtorOutboundPrompt, resolveRealtorLeadContext, REALTOR_LOFTY_REVIVAL_MODE } from '@/lib/realtor-outbound-prompt'
+import { buildRealtorOutboundPrompt, resolveRealtorLeadContext, REALTOR_LOFTY_REVIVAL_MODE, REALTOR_OUTBOUND_MAX_DURATION } from '@/lib/realtor-outbound-prompt'
 import { validateOutboundVmScript } from '@/lib/outbound-safety'
 import { withinCallingWindow, resolveCallingWindowConfig, DEFAULT_TIMEZONE } from '@/lib/outbound-window'
 import { isTerminallyBlocked } from '@/lib/outbound-attempts'
@@ -253,6 +253,9 @@ export async function POST(req: NextRequest) {
       callbackUrl,
       tools,
       waitForUser: true,
+      // Realtor revival: generous safety ceiling (not the target — the prompt
+      // ends the call naturally ~60-75s). Prevents an unbounded runaway call.
+      maxDuration: realtorContext ? REALTOR_OUTBOUND_MAX_DURATION : undefined,
       metadata: {
         caller_phone: toPhone,
         client_slug: slug,

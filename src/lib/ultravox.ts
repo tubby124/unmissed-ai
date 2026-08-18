@@ -137,6 +137,9 @@ interface CreateCallOptions {
   metadata?: Record<string, string>
   callbackUrl?: string
   tools?: object[]
+  /** Hard safety ceiling on call duration (e.g. '180s'). The prompt sets the
+   *  conversational target; this only prevents an unbounded runaway call. */
+  maxDuration?: string
   languageHint?: string
   firstSpeakerText?: string
   /** If true, agent stays silent until human speaks (required for outbound calls). */
@@ -147,12 +150,12 @@ interface CreateCallOptions {
   initialState?: Record<string, unknown>
 }
 
-export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, waitForUser, firstSpeakerAgentDelay, initialState }: CreateCallOptions) {
+export async function createCall({ systemPrompt, voice, metadata, callbackUrl, tools, languageHint, firstSpeakerText, waitForUser, firstSpeakerAgentDelay, initialState, maxDuration }: CreateCallOptions) {
   const body: Record<string, unknown> = {
     model: 'ultravox-v0.7',
     systemPrompt,
     voice: voice || DEFAULT_VOICE,
-    maxDuration: '600s',
+    maxDuration: maxDuration || '600s',
     medium: { twilio: {} },
     recordingEnabled: true,
     metadata: metadata || {},
