@@ -33,6 +33,8 @@
     "test:scenarios:report": "npm run test:scenarios; node scripts/write-scenario-results.mjs",
     "test:all": "npx tsx --test src/lib/__tests__/*.test.ts",
     "test:canary": "npx tsx ../tests/canary/eval-harness.ts",
+    "test:aisha:lab": "npx tsx scripts/aisha-realtor-script-lab.ts",
+    "test:aisha:lab:scenario": "npx tsx scripts/aisha-realtor-script-lab.ts --scenario",
     "test:smoke": "bash scripts/smoke-test.sh",
     "db:types": "npx supabase gen types typescript --project-id qwhvblomlgeapzhnuwlb > src/lib/database.types.ts",
     "test:ui": "npx playwright test",

@@ -25,9 +25,8 @@
 import { buildRealtorOutboundPrompt, type RealtorLeadContext } from '../src/lib/realtor-outbound-prompt'
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
-// Agent proxy: fast small model (close to Ultravox's voice-model profile).
-// Lead proxy: larger model for realistic role-play. Both need reasoning_effort
-// low + generous max_tokens because these are reasoning models.
+// Agent proxy: gpt-oss-20b with tool_choice none + tool-use retry (fast,
+// close to Ultravox's voice-model profile). Lead proxy: gpt-oss-120b.
 const AGENT_MODEL = 'openai/gpt-oss-20b'
 const LEAD_MODEL = 'openai/gpt-oss-120b'
 
@@ -183,16 +182,35 @@ function parseArgs() {
 async function groq(model: string, messages: Msg[], maxTokens = 120): Promise<string> {
   const key = process.env.GROQ_API_KEY
   if (!key) throw new Error('GROQ_API_KEY not set')
+  const isOpenAI = model.startsWith('openai/')
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetch(GROQ_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.7, reasoning_effort: 'low' }),
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens: maxTokens,
+        temperature: 0.7,
+        ...(isOpenAI ? { reasoning_effort: 'low', tools: [], tool_choice: 'none' as const } : {}),
+      }),
       signal: AbortSignal.timeout(60_000),
     })
     if (res.status === 429) {
       await new Promise(r => setTimeout(r, 4000 * (attempt + 1)))
       continue
+    }
+    if (res.status === 400) {
+      // gpt-oss sometimes emits a tool call despite tool_choice none. Remind it.
+      const body = await res.text()
+      if (/tool_use_failed|Tool choice is none/i.test(body)) {
+        messages = [
+          ...messages,
+          { role: 'user', content: 'IMPORTANT: Do not call any tools. Reply with plain text only.' } as Msg,
+        ]
+        continue
+      }
+      throw new Error(`Groq ${model} HTTP 400: ${body.slice(0, 200)}`)
     }
     if (!res.ok) throw new Error(`Groq ${model} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`)
     const json = (await res.json()) as { choices?: { message?: { content?: string | null } }[] }
