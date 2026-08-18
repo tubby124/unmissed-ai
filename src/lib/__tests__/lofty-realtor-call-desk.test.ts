@@ -306,6 +306,13 @@ describe('Lofty/Aisha realtor outbound call desk contract', () => {
       spokenClarification: 'Just to confirm, did you mean Bowness (BOH-ness), or somewhere else?',
       pronunciationHints: [],
     })
+    assert.deepEqual(extractCalgaryPlaceEvidenceFromTranscript('Caller mentioned Bowness Heights as the area.'), {
+      raw: 'Bowness Heights',
+      canonicalArea: null,
+      needsConfirmation: true,
+      spokenClarification: 'Just to confirm, did you mean Bowness (BOH-ness), or somewhere else?',
+      pronunciationHints: [],
+    })
     assert.deepEqual(extractCalgaryPlaceEvidenceFromTranscript('Caller confirmed Bowness.'), {
       raw: 'Bowness',
       canonicalArea: 'Bowness',

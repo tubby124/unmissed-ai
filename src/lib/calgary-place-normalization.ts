@@ -65,10 +65,18 @@ export function buildCalgaryPlaceEvidence(value?: string | null): CalgaryPlaceEv
   }
 }
 
+const TRANSCRIPT_PLACE_TOKEN_PATTERN = /\b(Bowness|Bonita|Bonas)\b/i
+const TRANSCRIPT_PLACE_PHRASE_PATTERN = /\b(Bowness|Bonita|Bonas)\s+(Heights|Hill|Hills|Ridge|Park|Lake|Lakes|Meadows|Valley|View|Woods|Creek|Springs|Crossing|Landing|Point|Pointe|Estates|Glen|Grove|Village|Gardens|Green|Greens|Bay|Terrace|Place|Ranch|Rise)\b/i
+
 export function extractCalgaryPlaceEvidenceFromTranscript(transcriptText: string): CalgaryPlaceEvidence {
   const cleaned = cleanPlace(transcriptText)
   if (!cleaned) return buildCalgaryPlaceEvidence(null)
 
-  const match = cleaned.match(/\b(Bowness|Bonita|Bonas)\b/i)
+  const phraseMatch = cleaned.match(TRANSCRIPT_PLACE_PHRASE_PATTERN)
+  if (phraseMatch?.[0]) {
+    return buildCalgaryPlaceEvidence(phraseMatch[0])
+  }
+
+  const match = cleaned.match(TRANSCRIPT_PLACE_TOKEN_PATTERN)
   return buildCalgaryPlaceEvidence(match?.[1] ?? null)
 }
