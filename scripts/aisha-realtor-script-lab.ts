@@ -136,7 +136,9 @@ const SCENARIOS: Scenario[] = [
     },
     persona:
       "You are James, 35, on the phone. You are actually interested in buying in the NE of Calgary this year. Rule 1: Your first reply after 'Hello?' must be exactly: 'wait, are you a robot?'. Rule 2: After the caller answers that honestly (yes, an AI assistant), say: 'ok, fine. I'm looking in the NE. Wednesday morning works for a call.' Rule 3: If the caller asks a question, answer it in 3-10 words. Always reply with words — never reply with an empty message.",
-    expect: { outcome: 'active_now', closeLine: /wednesday|morning|call|set up|schedule/i },
+    // A callback for Wednesday morning = future_timeline per the P1 disposition
+    // rule (confirmed callback scheduled later, not an immediate booking).
+    expect: { outcome: 'future_timeline', closeLine: /wednesday|morning|10|set up|check back/i },
   },
   {
     key: 'do-not-call',
@@ -314,7 +316,7 @@ async function runScenario(sc: Scenario, showTranscript: boolean): Promise<{ pas
       {
         role: 'system',
         content:
-          'You classify the outcome of an AI realtor outbound call from the full conversation transcript. Reply with EXACTLY one token: active_now | future_timeline | not_looking | wrong_number | do_not_call | no_answer | voicemail. No explanation.',
+          'You classify the outcome of an AI realtor outbound call from the full conversation transcript. Rules: a confirmed callback scheduled later = future_timeline (not active_now). A booked/immediate appointment or actively-looking-now with a next step = active_now. Someone who bought / not interested = not_looking. Wrong number = wrong_number. Asked to be removed = do_not_call. Reply with EXACTLY one token: active_now | future_timeline | not_looking | wrong_number | do_not_call | no_answer | voicemail. No explanation.',
       },
       { role: 'user', content: `CONVERSATION:\n${transcriptText.slice(0, 2500)}` },
     ],
