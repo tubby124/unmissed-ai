@@ -55,13 +55,16 @@ type OutboundPromptBuilderModule = {
 
 type SmsTemplatesModule = {
   getOutboundLeadSmsTemplate?: (
-    outcome: 'booked' | 'missed' | 'answered',
+    outcome: 'booked' | 'missed' | 'answered' | 'not_looking' | 'wrong_number' | 'do_not_call' | 'requested_listing',
     config: {
       businessName: string
       agentName?: string | null
       callerName?: string | null
       appointmentTime?: string | null
-      context?: 'realtor' | 'generic'
+      campaignType?: 'realtor_lofty_revival' | 'generic'
+      sendMissedCallText?: boolean
+      verifiedSearchUrl?: string | null
+      verifiedSearchName?: string | null
     }
   ) => string | null
 }
@@ -209,9 +212,56 @@ describe('Lofty/Aisha realtor outbound call desk contract', () => {
       getOutboundLeadSmsTemplate!('missed', {
         businessName: 'Realtor office',
         agentName: 'Aisha',
-        context: 'realtor',
+        campaignType: 'realtor_lofty_revival',
       }),
       null
     )
+  })
+
+  it('uses only explicit opt-in truthful no-answer copy for realtor Lofty revival', async () => {
+    const { getOutboundLeadSmsTemplate } = await loadSmsTemplates()
+    const body = getOutboundLeadSmsTemplate!('missed', {
+      businessName: 'Realtor office',
+      agentName: 'Aisha',
+      callerName: 'Birhanu Example',
+      campaignType: 'realtor_lofty_revival',
+      sendMissedCallText: true,
+    })
+    assert.equal(
+      body,
+      'Hi Birhanu, Aisha called for Hasan Sharif with eXp Realty about your home search. No rush—reply here if you’re still planning a move, or reply STOP to opt out.'
+    )
+    assert.doesNotMatch(body!, /Thanks for calling|home list just landed/i)
+  })
+
+  it('requires actual callback time before realtor confirmation SMS', async () => {
+    const { getOutboundLeadSmsTemplate } = await loadSmsTemplates()
+    assert.equal(getOutboundLeadSmsTemplate!('booked', {
+      businessName: 'Realtor office',
+      agentName: 'Aisha',
+      callerName: 'Birhanu Example',
+      campaignType: 'realtor_lofty_revival',
+    }), null)
+
+    const body = getOutboundLeadSmsTemplate!('booked', {
+      businessName: 'Realtor office',
+      agentName: 'Aisha',
+      callerName: 'Birhanu Example',
+      appointmentTime: 'Friday at 3 PM',
+      campaignType: 'realtor_lofty_revival',
+    })
+    assert.match(body!, /confirming your requested callback for Friday at 3 PM/i)
+    assert.doesNotMatch(body!, /Thanks for calling|home list just landed/i)
+  })
+
+  it('suppresses realtor DNC wrong-number and not-looking dispositions', async () => {
+    const { getOutboundLeadSmsTemplate } = await loadSmsTemplates()
+    for (const outcome of ['do_not_call', 'wrong_number', 'not_looking'] as const) {
+      assert.equal(getOutboundLeadSmsTemplate!(outcome, {
+        businessName: 'Realtor office',
+        agentName: 'Aisha',
+        campaignType: 'realtor_lofty_revival',
+      }), null)
+    }
   })
 })

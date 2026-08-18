@@ -7,7 +7,7 @@
 
 import { sendAlert } from '@/lib/telegram'
 import { formatTelegramMessage, type TelegramStyle } from '@/lib/telegram-formats'
-import { getSmsTemplate, getOutboundLeadSmsTemplate } from '@/lib/sms-templates'
+import { getSmsTemplate, getOutboundLeadSmsTemplate, type OutboundLeadSmsOutcome } from '@/lib/sms-templates'
 import twilio from 'twilio'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { APP_URL } from '@/lib/app-url'
@@ -500,8 +500,48 @@ function buildPmNotificationMessage(params: {
 
 // ── SMS Follow-Up ────────────────────────────────────────────────────────────
 
+function metadataFlag(value: string | undefined): boolean {
+  return value === 'true' || value === '1' || value === 'yes'
+}
+
+function textHasAnyToken(text: string, tokens: string[]): boolean {
+  const normalized = text.toLowerCase()
+  return tokens.some(token => normalized.includes(token))
+}
+
+function resolveRealtorOutboundSmsOutcome(params: {
+  classification: Classification
+  metadata: Record<string, string>
+  endReason?: string | null
+  callbackPreference?: string | null
+}): OutboundLeadSmsOutcome {
+  const { classification, metadata, endReason, callbackPreference } = params
+  const explicit = metadata.realtor_outcome || metadata.outbound_result || metadata.disposition || metadata.lead_status
+  const searchable = [
+    explicit,
+    classification.serviceType,
+    classification.summary,
+    classification.next_steps,
+    ...(classification.key_topics || []),
+  ].filter(Boolean).join(' ')
+
+  if (textHasAnyToken(searchable, ['do_not_call', 'do not call', 'dnc', 'stop calling', 'remove me'])) return 'do_not_call'
+  if (textHasAnyToken(searchable, ['wrong_number', 'wrong number'])) return 'wrong_number'
+  if (textHasAnyToken(searchable, ['not_looking', 'not looking', 'no longer looking', 'close the loop'])) return 'not_looking'
+
+  if (metadata.sms_outcome === 'requested_listing' || metadata.sendVerifiedSearchLink === 'true') {
+    return 'requested_listing'
+  }
+
+  const cd = classification.caller_data
+  if (cd?.booked || cd?.appointment_time || callbackPreference) return 'booked'
+
+  const missed = classification.status === 'MISSED' || classification.status === 'VOICEMAIL' || endReason === 'unjoined'
+  return missed ? 'missed' : 'answered'
+}
+
 export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
-  const { supabase, client, slug, callId, callLogId, callerPhone, classification, metadata } = ctx
+  const { supabase, client, slug, callId, callLogId, callerPhone, classification, metadata, callbackPreference, endReason } = ctx
 
   if (!client.sms_enabled || callerPhone === 'unknown') return
 
@@ -572,8 +612,14 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
     }
 
     const cd = classification.caller_data
-    const missed = classification.status === 'MISSED' || classification.status === 'VOICEMAIL' || ctx.endReason === 'unjoined'
-    const outcome: 'booked' | 'missed' | 'answered' = cd?.booked ? 'booked' : missed ? 'missed' : 'answered'
+    const campaignType = metadata.call_mode === 'realtor_lofty_revival' ? 'realtor_lofty_revival' : 'generic'
+    const outcome: OutboundLeadSmsOutcome = campaignType === 'realtor_lofty_revival'
+      ? resolveRealtorOutboundSmsOutcome({ classification, metadata, endReason, callbackPreference })
+      : cd?.booked
+        ? 'booked'
+        : (classification.status === 'MISSED' || classification.status === 'VOICEMAIL' || endReason === 'unjoined')
+          ? 'missed'
+          : 'answered'
 
     // A REAL calendar booking already texted the lead from the book route
     // (confirmation + calendar link). Lane 2 here only covers verbal-only
@@ -593,10 +639,14 @@ export async function sendSmsFollowUp(ctx: NotificationContext): Promise<void> {
       businessName: client.business_name || 'our office',
       agentName: client.agent_name ?? null,
       callerName: cd?.caller_name ?? null,
-      appointmentTime: cd?.appointment_time ?? null,
+      appointmentTime: cd?.appointment_time ?? callbackPreference ?? null,
+      campaignType,
+      sendMissedCallText: metadataFlag(metadata.sendMissedCallText),
+      verifiedSearchUrl: metadata.verified_search_url ?? metadata.verifiedSearchUrl ?? null,
+      verifiedSearchName: metadata.verified_search_name ?? metadata.verifiedSearchName ?? null,
     })
     if (!smsBody) {
-      console.log(`[completed] Outbound lead SMS suppressed (answered, not booked): callId=${callId} status=${classification.status}`)
+      console.log(`[completed] Outbound lead SMS suppressed: callId=${callId} status=${classification.status} outcome=${outcome} campaignType=${campaignType}`)
       return
     }
     if (outcome === 'missed') {

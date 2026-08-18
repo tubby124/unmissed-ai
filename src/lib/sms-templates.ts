@@ -64,12 +64,95 @@ export function getSmsTemplate(
 
 // ── Outbound lead-qualification SMS ─────────────────────────────────────────
 
+export type OutboundLeadSmsOutcome =
+  | 'booked'
+  | 'missed'
+  | 'answered'
+  | 'not_looking'
+  | 'wrong_number'
+  | 'do_not_call'
+  | 'requested_listing'
+
+export type OutboundLeadSmsCampaignType = 'generic' | 'realtor_lofty_revival'
+
 export interface OutboundLeadSmsConfig {
   businessName: string
   agentName?: string | null
   callerName?: string | null
   /** Free-text slot the lead verbally agreed to, e.g. "tomorrow evening" */
   appointmentTime?: string | null
+  /** Explicit campaign/mode; defaults to existing generic outbound behavior. */
+  campaignType?: OutboundLeadSmsCampaignType | null
+  /** Realtor mode only: opt-in flag required before no-answer texts are sent. */
+  sendMissedCallText?: boolean | null
+  /** Realtor mode only: verified listing/search link details, if actually supplied. */
+  verifiedSearchUrl?: string | null
+  verifiedSearchName?: string | null
+}
+
+const REALTOR_NO_ANSWER_TEXT = "Hi {name}, Aisha called for Hasan Sharif with eXp Realty about your home search. No rush—reply here if you’re still planning a move, or reply STOP to opt out."
+
+function clean(value: string | null | undefined): string | null {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+function verifiedHttpUrl(value: string | null | undefined): string | null {
+  const candidate = clean(value)
+  if (!candidate) return null
+  try {
+    const url = new URL(candidate)
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+function firstNameOrThere(name: string | null | undefined): string {
+  const trimmed = clean(name)
+  return trimmed ? trimmed.split(/\s+/)[0] : 'there'
+}
+
+function realtorNoAnswerText(name: string | null | undefined): string {
+  return REALTOR_NO_ANSWER_TEXT.replace('{name}', firstNameOrThere(name))
+}
+
+function getRealtorLoftyRevivalSmsTemplate(
+  outcome: OutboundLeadSmsOutcome,
+  config: OutboundLeadSmsConfig
+): string | null {
+  const name = config.callerName ? ` ${config.callerName}` : ''
+  const when = clean(config.appointmentTime)
+
+  // Suppression-only dispositions: do not send marketing or re-engagement SMS.
+  if (outcome === 'do_not_call' || outcome === 'wrong_number' || outcome === 'not_looking') return null
+
+  // Answered/no booking gets no automatic text in Lofty revival mode.
+  if (outcome === 'answered') return null
+
+  // No-answer is opt-in per campaign only, using truthful neutral copy.
+  if (outcome === 'missed') {
+    return config.sendMissedCallText === true ? realtorNoAnswerText(config.callerName) : null
+  }
+
+  // Confirmation is allowed only from an actually captured callback/booking time.
+  if (outcome === 'booked') {
+    if (!when) return null
+    return `Hi${name}, it's Aisha for Hasan Sharif with eXp Realty — confirming your requested callback for ${when}. Reply here if you need to reschedule. Reply STOP to opt out.`
+  }
+
+  // Listing/search-link SMS is allowed only when an explicit verified URL + name
+  // are supplied by upstream source data. Never fabricate a list or imply it was
+  // sent unless this verified data exists.
+  if (outcome === 'requested_listing') {
+    const url = verifiedHttpUrl(config.verifiedSearchUrl)
+    const searchName = clean(config.verifiedSearchName)
+    if (!url || !searchName) return null
+    return `Hi${name}, it's Aisha for Hasan Sharif with eXp Realty — here's the ${searchName} search link you requested: ${url} Reply STOP to opt out.`
+  }
+
+  return null
 }
 
 /**
@@ -78,18 +161,20 @@ export interface OutboundLeadSmsConfig {
  * (including the client's custom sms_template — "thanks for calling") read
  * wrong and must never be sent on this path.
  *
- * Lanes (call-quality-overhaul design 2026-06-12):
- *  - booked   → confirmation text. The agent's close promises "we'll text to
- *               confirm" — this is the only thing that fulfills that promise.
- *  - missed   → vm/no-answer. Instant SMS paired with the voicemail (VM+SMS
- *               same-minute roughly doubles contact rate vs VM alone).
- *  - answered → null. Answered-but-not-booked (browsing/warm) gets NOTHING —
- *               the list email already went out; extra texts add noise.
+ * Generic outbound lanes preserve the pre-existing behavior. The scoped
+ * realtor_lofty_revival campaign/mode is stricter: default no auto-SMS for
+ * answered/no-answer calls, suppression-only for DNC/wrong-number/not-looking,
+ * and confirmation/link texts only when backed by captured source data.
  */
 export function getOutboundLeadSmsTemplate(
-  outcome: 'booked' | 'missed' | 'answered',
+  outcome: OutboundLeadSmsOutcome,
   config: OutboundLeadSmsConfig
 ): string | null {
+  const campaignType = config.campaignType ?? 'generic'
+  if (campaignType === 'realtor_lofty_revival') {
+    return getRealtorLoftyRevivalSmsTemplate(outcome, config)
+  }
+
   const biz = config.businessName || 'our office'
   const from = config.agentName ? `${config.agentName} at ${biz}` : biz
   const name = config.callerName ? ` ${config.callerName}` : ''
