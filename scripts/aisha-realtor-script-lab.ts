@@ -39,7 +39,7 @@ interface Scenario {
   persona: string
   expect: {
     outcome: string // substring expected in final summary/labels
-    closeLine?: string
+    closeLine?: RegExp | string
   }
   maxAgentTurns?: number
 }
