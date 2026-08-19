@@ -334,8 +334,12 @@ async function runScenario(sc: Scenario, showTranscript: boolean): Promise<{ pas
   }
 
   // 5. closing line matches expectation
-  if (sc.expect.closeLine && !sc.expect.closeLine.test(lastAgent)) {
-    problems.push(`closing line mismatch: expected ~${sc.expect.closeLine}`)
+  const closeLine = sc.expect.closeLine
+  const closeMatch = closeLine instanceof RegExp
+    ? closeLine.test(lastAgent)
+    : typeof closeLine === 'string' && lastAgent.includes(closeLine)
+  if (closeLine && !closeMatch) {
+    problems.push(`closing line mismatch: expected ~${closeLine}`)
   }
 
   // 6. no recap-echo (no "so just to confirm" / "to summarize")
