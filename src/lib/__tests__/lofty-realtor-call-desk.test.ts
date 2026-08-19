@@ -149,7 +149,7 @@ describe('Lofty/Aisha realtor outbound call desk contract', () => {
     assert.match(prompt, /within 12 seconds/)
     assert.match(prompt, /Ask at most three qualification questions total/)
     assert.match(prompt, /Maximum one agent turn is 10 seconds/)
-    assert.match(prompt, /Ask one question per turn/)
+    assert.match(prompt, /ONE QUESTION PER TURN/)
     assert.match(prompt, /one short check-in only/)
     assert.match(prompt, /Do not make price, listing, school, market, or availability claims/)
     assert.match(prompt, /Yes, I’m Hasan’s AI assistant\./)
